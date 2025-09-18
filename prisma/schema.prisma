@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id                String    @id @default(cuid())
+  changenowId       String    @unique
+  userAddress       String
+  fromCurrency      String
+  toCurrency        String
+  fromNetwork       String?
+  toNetwork         String?
+  fromAmount        Decimal   @db.Decimal(20, 8)
+  toAmount          Decimal?  @db.Decimal(20, 8)
+  expectedToAmount  Decimal   @db.Decimal(20, 8)
+  status            String    @default("pending")
+  payinAddress      String
+  payoutAddress     String
+  payinHash         String?
+  payoutHash        String?
+  depositReceivedAt DateTime?
+  refundAddress     String?
+  refundHash        String?
+  refundAmount      Decimal?  @db.Decimal(20, 8)
+  errorMessage      String?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  completedAt       DateTime?
+
+  @@map("transactions")
+}
+
+model RateCache {
+  id           String   @id @default(cuid())
+  fromCurrency String
+  toCurrency   String
+  fromNetwork  String?
+  toNetwork    String?
+  minAmount    Decimal  @db.Decimal(20, 8)
+  maxAmount    Decimal? @db.Decimal(20, 8)
+  rate         Decimal  @db.Decimal(20, 8)
+  validUntil   DateTime
+  createdAt    DateTime @default(now())
+
+  @@unique([fromCurrency, toCurrency])
+  @@map("rate_cache")
+}
+
+model Currency {
+  id          String   @id @default(cuid())
+  ticker      String   @unique
+  name        String
+  network     String?
+  isFiat      Boolean  @default(false)
+  featured    Boolean  @default(false)
+  isStable    Boolean  @default(true)
+  buy         Boolean  @default(true)
+  sell        Boolean  @default(true)
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("currencies")
+}
+
+model OmniBridgeTransaction {
+  id                String    @id @default(cuid())
+  messageId         String    @unique
+  userAddress       String
+  sourceChainId     Int
+  targetChainId     Int
+  sourceTxHash      String
+  targetTxHash      String?
+  tokenAddress      String
+  tokenSymbol       String
+  tokenDecimals     Int
+  amount            String    // Store as string to handle large wei amounts
+  status            String    @default("pending") // pending, executed, failed
+  sourceTimestamp   DateTime
+  targetTimestamp   DateTime?
+  encodedData       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userAddress])
+  @@index([messageId])
+  @@index([sourceChainId])
+  @@index([targetChainId])
+  @@map("omnibridge_transactions")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  address      String   @unique
+  referralCode String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model ReferralFee {
+  id           String   @id @default(cuid())
+  referrer     String   // Referrer address
+  token        String   // Token address (0x0 for ETH)
+  amount       Decimal  @db.Decimal(20, 8) // Current accumulated amount
+  lastUpdated  DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@unique([referrer, token])
+  @@index([referrer])
+  @@index([token])
+  @@map("referral_fees")
+}
+
+model IndexingState {
+  id                String   @id @default(cuid())
+  indexerName       String   @unique // Name of the indexer (e.g., "referral_fee_indexer")
+  lastIndexedBlock  Int      @default(0)
+  lastIndexedAt     DateTime @default(now())
+  isActive          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("indexing_states")
+}
