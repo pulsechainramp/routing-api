@@ -40,7 +40,7 @@ let cache: OnrampsJson;
 
 export function loadOnrampsJson(): OnrampsJson {
   if (cache) return cache;
-  const file = process.env.ONRAMPS_JSON_PATH || path.join(process.cwd(), "data", "onramps_providers_002.json");
+  const file = process.env.ONRAMPS_JSON_PATH || path.join(process.cwd(), "data", "onramps_providers.json");
   const raw = fs.readFileSync(file, "utf8");
   cache = JSON.parse(raw);
   return cache;
