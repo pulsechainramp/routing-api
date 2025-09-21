@@ -8,7 +8,7 @@ import { RateService } from '../services/RateService';
 import { TransactionService } from '../services/TransactionService';
 import { ReferralService } from '../services/ReferralService';
 import { ReferralFeeService } from '../services/ReferralFeeService';
-
+import onrampsRoutes from './onramps';
 
 // Route imports
 import healthRoutes from './health';
@@ -43,6 +43,7 @@ export class RouteRegistry {
   async registerAllRoutes(): Promise<void> {
     await this.registerHealthRoutes();
     await this.registerPiteasRoutes();
+    await this.registerOnrampsRoutes();
     // await this.registerChangeNowRoutes();
     await this.registerOmniBridgeRoutes();
     await this.registerReferralRoutes();
@@ -113,5 +114,10 @@ export class RouteRegistry {
     });
   }
 
-
+  private async registerOnrampsRoutes(): Promise<void> {
+    await this.fastify.register(onrampsRoutes, {
+      prefix: '/onramps'
+      // (no DI services needed; the plugin reads env + JSON file)
+    });
+  }
 } 
