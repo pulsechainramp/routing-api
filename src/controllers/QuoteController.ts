@@ -10,6 +10,9 @@ interface QuoteQuery {
   amount: string;
   allowedSlippage?: number;
   account?: string;
+  allowedDexes?: string;   // CSV
+  blockedDexes?: string;   // CSV
+  policy?: 'strict' | 'soft'; // default: 'strict'
 }
 
 export class QuoteController {
@@ -17,26 +20,19 @@ export class QuoteController {
 
   async getQuote(request: FastifyRequest<{ Querystring: QuoteQuery }>, reply: FastifyReply) {
     try {
-      const { 
-        tokenInAddress, 
-        tokenOutAddress, 
-        amount, 
-        allowedSlippage = 0.5,
-        account 
-      } = request.query;
+      const { tokenInAddress, tokenOutAddress, amount, allowedSlippage = 0.5, account,
+              allowedDexes, blockedDexes, policy } = request.query;
 
       const quote = await this.piteasService.getQuote({
-        tokenInAddress,
-        tokenOutAddress,
-        amount,
-        allowedSlippage,
-        account
+        tokenInAddress, tokenOutAddress, amount, allowedSlippage, account,
+        allowedDexes, blockedDexes, policy
       });
 
       return quote;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error fetching quote', { error });
-      reply.code(500).send({ error: 'Failed to fetch quote' });
+      const code = error?.statusCode ?? 500;
+      reply.code(code).send({ error: error?.message || 'Failed to fetch quote', details: error?.details });
     }
   }
-} 
+}

@@ -4,6 +4,7 @@ import { AbiCoder, ParamType } from "ethers";
 import { ethers } from "ethers";
 
 export const toCorrectDexName = (dex: string) => {
+  if (!dex) return '';
   if (dex === "PulseX V1") return "pulsexV1";
   if (dex === "PulseX V2") return "pulsexV2";
   if (dex === "9inch V2") return "9inchV2";
@@ -14,7 +15,7 @@ export const toCorrectDexName = (dex: string) => {
   if (dex === "PulseX Stable") return "pulsexStable";
   if (dex === "pDex V3") return "pDexV3";
   if (dex.toLowerCase().includes("dextop")) return "dexTop";
-  if (dex == "Tide") return "tide";
+  if (dex.toLowerCase().includes("tide")) return "tide";
   return "";
 };
 
