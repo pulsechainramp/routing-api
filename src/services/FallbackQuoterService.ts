@@ -81,7 +81,8 @@ export class FallbackQuoterService {
     const isUSDCtoWPLS = eq(tokenIn, config.USDC) && eq(tokenOut, config.WPLS);
     const isWPLStoUSDC = eq(tokenIn, config.WPLS) && eq(tokenOut, config.USDC);
 
-    // We optimized USDC <-> WPLS. For anything else fallback to simple direct best of V1/V2.
+    // We optimized USDC <-> WPLS. For anything else fallback to simple direct best of V1/V2
+    // (now extended to also try 2-hop via common connectors).
     if (!isUSDCtoWPLS && !isWPLStoUSDC) {
       return this.simpleBestExactIn(tokenIn, tokenOut, amountInWei, tokenInMeta, tokenOutMeta);
     }
@@ -166,7 +167,7 @@ export class FallbackQuoterService {
     return this.finish(bestLegs, bestTotal, tokenIn, tokenOut, amountInWei, tokenInMeta, tokenOutMeta);
   }
 
-  // ---------- single best (direct V1/V2) ----------
+  // ---------- single best (direct V1/V2 + minimal 2‑hop via connectors) ----------
   private async simpleBestExactIn(
     tokenIn: string,
     tokenOut: string,
@@ -174,13 +175,40 @@ export class FallbackQuoterService {
     tokenInMeta: PathToken,
     tokenOutMeta: PathToken
   ) {
-    const legs: TryOut[] = (["pulsexV1","pulsexV2"] as const).map((dex) => ({
-      id: `${dex}-direct`,
-      label: dex === "pulsexV1" ? "PulseX V1" : "PulseX V2",
-      dexPath: dex,
-      tokens: [tokenIn, tokenOut],
-      out: (amt: bigint) => this.localDexQuote(dex, tokenIn, tokenOut, amt),
-    }));
+    const legs: TryOut[] = [];
+
+    // (a) direct on V1/V2
+    for (const dex of ["pulsexV1","pulsexV2"] as const) {
+      legs.push({
+        id: `${dex}-direct`,
+        label: dex === "pulsexV1" ? "PulseX V1" : "PulseX V2",
+        dexPath: dex,
+        tokens: [tokenIn, tokenOut],
+        out: (amt: bigint) => this.localDexQuote(dex, tokenIn, tokenOut, amt),
+      });
+    }
+
+    // (b) 2‑hop via common connectors (WPLS/USDC/USDT/DAI)
+    const connectors = [config.WPLS, config.USDC, config.USDT, config.DAI]
+      .filter((a): a is string => typeof a === "string" && a.length > 0);
+
+    for (const mid of connectors) {
+      if (eq(mid, tokenIn) || eq(mid, tokenOut)) continue;
+      for (const dex of ["pulsexV1","pulsexV2"] as const) {
+        const fn: QuoteFn = async (amt) => {
+          const midOut = await this.localDexQuote(dex, tokenIn, mid, amt); // tokenIn -> mid
+          if (midOut === 0n) return 0n;
+          return this.localDexQuote(dex, mid, tokenOut, midOut);          // mid -> tokenOut
+        };
+        legs.push({
+          id: `${dex}-via-${sym(mid)}`,
+          label: dex === "pulsexV1" ? `PulseX V1 (via ${sym(mid)})` : `PulseX V2 (via ${sym(mid)})`,
+          dexPath: dex,
+          tokens: [tokenIn, mid, tokenOut],
+          out: fn,
+        });
+      }
+    }
 
     const outs = await Promise.all(legs.map(async c => ({ c, y: await c.out(amountInWei) })));
     outs.sort((a,b) => (a.y === b.y ? 0 : (a.y < b.y ? 1 : -1)));
