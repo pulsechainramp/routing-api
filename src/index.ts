@@ -21,6 +21,8 @@ import { ReferralService } from './services/ReferralService';
 import { ReferralFeeService } from './services/ReferralFeeService';
 import { IndexerManager } from './services/IndexerManager';
 import { RouteRegistry } from './routes/registry';
+import pulsexQuotePlugin from './controllers/PulseXQuoteController';
+import pricePulsexPlugin from './controllers/PricePulseXController';
 
 import dotenv from 'dotenv';
 import config from './config';
@@ -208,6 +210,8 @@ const start = async () => {
   try {
     // Register all routes
     await routeRegistry.registerAllRoutes();
+    app.register(pulsexQuotePlugin, { prefix: '/quote' });
+    app.register(pricePulsexPlugin, { prefix: '/price' });
     
     await app.listen({ port: PORT, host: '0.0.0.0' });
     logger.info(`Server listening on port ${PORT} (env=${NODE_ENV})`);

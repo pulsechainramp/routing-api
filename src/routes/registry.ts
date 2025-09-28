@@ -42,7 +42,7 @@ export class RouteRegistry {
 
   async registerAllRoutes(): Promise<void> {
     await this.registerHealthRoutes();
-    await this.registerPiteasRoutes();
+    //await this.registerPiteasRoutes();
     // await this.registerChangeNowRoutes();
     await this.registerOmniBridgeRoutes();
     await this.registerReferralRoutes();
