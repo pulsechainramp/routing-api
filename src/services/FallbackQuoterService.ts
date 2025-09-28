@@ -210,6 +210,32 @@ export class FallbackQuoterService {
       }
     }
 
+    // stable‑first leg when input is a bridged stable and output is non‑stable
+    const isStable = (a?: string) =>
+      !!a && [config.USDC, config.USDT, config.DAI].some((s) => eq(s, a));
+
+    if (isStable(tokenIn) && !isStable(tokenOut)) {
+      const stableTargets = [config.USDC, config.USDT, config.DAI]
+        .filter((a): a is string => !!a && !eq(a, tokenIn)); // try the other stables, incl. USDC for USDT input
+
+      for (const mid of stableTargets) {
+        for (const dex of ["pulsexV1","pulsexV2"] as const) {
+          const fn: QuoteFn = async (amt) => {
+            const midOut = await this.stable.quote(tokenIn, mid, amt);     // stable pool: tokenIn -> mid (≈1:1, low slippage)
+            if (midOut === 0n) return 0n;
+            return this.localDexQuote(dex, mid, tokenOut, midOut);         // mid -> tokenOut (V1/V2)
+          };
+          legs.push({
+            id: `stable-${sym(mid)}-${dex}`,
+            label: dex === "pulsexV1" ? "PulseX Stable + PulseX V1" : "PulseX Stable + PulseX V2",
+            dexPath: dex === "pulsexV1" ? "stable+v1" : "stable+v2",
+            tokens: [tokenIn, mid, tokenOut],
+            out: fn,
+          });
+        }
+      }
+    }
+
     const outs = await Promise.all(legs.map(async c => ({ c, y: await c.out(amountInWei) })));
     outs.sort((a,b) => (a.y === b.y ? 0 : (a.y < b.y ? 1 : -1)));
     const best = outs[0];
