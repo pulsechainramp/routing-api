@@ -71,12 +71,15 @@ export function combineRoute(route: Route): CombinedRoute {
         percent: subswap.percent / 1000,
         paths: subswap.paths.map((path, pathIdx) => {
           // Get the tokens for this path from the corresponding paths array
-          const tokens = route.paths[swapIdx]?.[subswapIdx]
-            ? [
-                route.paths[swapIdx][subswapIdx],
-                route.paths[swapIdx][subswapIdx + 1],
-              ]
-            : [];
+          const pathArr = route?.paths?.[swapIdx];
+          const tokens =
+            Array.isArray(pathArr) &&
+            subswapIdx >= 0 &&
+            subswapIdx + 1 < pathArr.length &&
+            pathArr[subswapIdx] &&
+            pathArr[subswapIdx + 1]
+              ? [pathArr[subswapIdx], pathArr[subswapIdx + 1]]
+              : [];
           // Remove "address" field
           const { address, percent, ...rest } = path;
           return {

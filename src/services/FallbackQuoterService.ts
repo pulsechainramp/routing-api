@@ -144,7 +144,7 @@ export class FallbackQuoterService {
     for (let i = 0; i < top.length; i++) {
       for (let j = i + 1; j < top.length; j++) {
         const A = top[i], B = top[j];
-        pairPromises.push(this.bestPairTernary(A, B, amountInWei, deadline).then(res => {
+        const p = this.bestPairTernary(A, B, amountInWei, deadline).then(res => {
           if (res.totalOut > bestTotal) {
             bestTotal = res.totalOut;
             bestLegs = [
@@ -152,7 +152,9 @@ export class FallbackQuoterService {
               { leg: res.routeB!, bps: 10_000 - res.wA_bps },
             ];
           }
-        }).catch(() => {}));
+        });
+        p.finally(() => { (p as any).settled = true; });
+        pairPromises.push(p);
         if (pairPromises.length >= CONCURRENCY) {
           await Promise.race(pairPromises);
           // remove settled
