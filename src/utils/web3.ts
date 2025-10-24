@@ -52,7 +52,8 @@ const SWAP_ROUTE_ABI = [
           { name: 'groupCount', type: 'uint256' },
           { name: 'deadline', type: 'uint256' },
           { name: 'amountIn', type: 'uint256' },
-          { name: 'amountOutMin', type: 'uint256' }
+          { name: 'amountOutMin', type: 'uint256' },
+          { name: 'isETHOut', type: 'bool' }
       ]
   })
 ];
@@ -126,6 +127,28 @@ export async function getTokenDecimals(tokenAddress: string): Promise<number> {
     console.error(`Error getting decimals for token ${tokenAddress}:`, error);
     // Default to 18 decimals if we can't get the actual decimals
     return 18;
+  }
+}
+
+export async function getTokenSymbol(tokenAddress: string): Promise<string> {
+  try {
+    // Handle PLS (zero address)
+    if (tokenAddress === ethers.ZeroAddress) {
+      return "PLS";
+    }
+
+    // ERC20 ABI for symbol function
+    const erc20ABI = [
+      'function symbol() view returns (string)'
+    ];
+
+    const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, getProvider());
+    const symbol = await tokenContract.symbol();
+    return symbol;
+  } catch (error) {
+    console.error(`Error getting symbol for token ${tokenAddress}:`, error);
+    // Return a fallback symbol based on address
+    return `TOKEN_${tokenAddress.slice(0, 6)}`;
   }
 }
 

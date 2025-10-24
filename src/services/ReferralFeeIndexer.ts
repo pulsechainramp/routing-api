@@ -183,7 +183,7 @@ export class ReferralFeeIndexer extends IndexingService {
       // Process each event
       for (const log of logs) {
         try {
-          const event = this.parseLogToEvent(log);
+          const event = await this.parseLogToEvent(log);
           if (event) {
             console.log(`Processing referral fee event: ${event.referrer} -> ${event.token}: Raw amount: ${event.amount}`);
             await this.referralFeeService.processReferralFeeEvent(event);
@@ -202,7 +202,7 @@ export class ReferralFeeIndexer extends IndexingService {
   /**
    * Parse a log entry to ReferralFeeUpdateEvent
    */
-  private parseLogToEvent(log: ethers.Log): ReferralFeeUpdateEvent | null {
+  private async parseLogToEvent(log: ethers.Log): Promise<ReferralFeeUpdateEvent | null> {
     try {
       // Parse the log using the contract interface
       const parsedLog = this.affiliateRouterContract.interface.parseLog({
@@ -211,13 +211,18 @@ export class ReferralFeeIndexer extends IndexingService {
       });
 
       if (parsedLog && parsedLog.name === 'ReferralFeeAmountUpdated') {
+        // Fetch block details to get timestamp
+        const block = await this.provider.getBlock(log.blockNumber);
+        const timestamp = block ? block.timestamp : 0;
+
         return {
           referrer: parsedLog.args[0] as string,
           token: parsedLog.args[1] as string,
           amount: parsedLog.args[2].toString(),
           blockNumber: log.blockNumber,
           transactionHash: log.transactionHash,
-          logIndex: log.index
+          logIndex: log.index,
+          timestamp: Number(timestamp)
         };
       }
 
@@ -242,7 +247,7 @@ export class ReferralFeeIndexer extends IndexingService {
       // Find ReferralFeeAmountUpdated events in the transaction
       for (const log of receipt.logs) {
         if (log.address.toLowerCase() === (this.affiliateRouterContract.target as string).toLowerCase()) {
-          const event = this.parseLogToEvent(log);
+          const event = await this.parseLogToEvent(log);
           if (event) {
             await this.referralFeeService.processReferralFeeEvent(event);
             console.log(`Processed referral fee event from transaction ${txHash}: ${event.referrer} -> ${event.token}: ${event.amount}`);

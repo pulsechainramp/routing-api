@@ -23,4 +23,5 @@ export interface SwapRoute {
   deadline: number;
   amountIn: string;
   amountOutMin: string;
+  isETHOut: boolean;
 }

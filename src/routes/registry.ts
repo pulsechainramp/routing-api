@@ -17,7 +17,8 @@ import * as changenowRoutes from './changenow';
 import * as omnibridgeRoutes from './omnibridge';
 import referralRoutes from './referral';
 import referralFeeRoutes from './referralFees';
-
+import { PulseXQuoteService } from '@/services/PulseXQuoteService';
+import onrampsRoutes from './onramps';
 
 export interface RouteDependencies {
   prisma: PrismaClient;
@@ -29,6 +30,7 @@ export interface RouteDependencies {
   transactionService: TransactionService;
   referralService: ReferralService;
   referralFeeService: ReferralFeeService;
+  pulseXQuoteService: PulseXQuoteService;
 }
 
 export class RouteRegistry {
@@ -47,6 +49,7 @@ export class RouteRegistry {
     await this.registerOmniBridgeRoutes();
     await this.registerReferralRoutes();
     await this.registerReferralFeeRoutes();
+    await this.registerOnrampsRoutes();
   }
 
   private async registerHealthRoutes(): Promise<void> {
@@ -59,7 +62,8 @@ export class RouteRegistry {
   private async registerPiteasRoutes(): Promise<void> {
     await this.fastify.register(quoteRoutes, {
       prefix: '/quote',
-      piteasService: this.dependencies.piteasService
+      piteasService: this.dependencies.piteasService,
+      pulseXQuoteService: this.dependencies.pulseXQuoteService
     });
   }
 
@@ -113,5 +117,9 @@ export class RouteRegistry {
     });
   }
 
-
+  private async registerOnrampsRoutes(): Promise<void> {
+    await this.fastify.register(onrampsRoutes, {
+      prefix: '/onramps',
+    });
+  }
 } 

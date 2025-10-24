@@ -21,6 +21,7 @@ import { ReferralService } from './services/ReferralService';
 import { ReferralFeeService } from './services/ReferralFeeService';
 import { IndexerManager } from './services/IndexerManager';
 import { RouteRegistry } from './routes/registry';
+import { PulseXQuoteService } from './services/PulseXQuoteService';
 
 import dotenv from 'dotenv';
 import config from './config';
@@ -97,6 +98,7 @@ const rateService = new RateService(prisma);
 const transactionService = new TransactionService(prisma);
 const referralService = new ReferralService(prisma);
 const referralFeeService = new ReferralFeeService(prisma);
+const pulseXQuoteService = new PulseXQuoteService();
 
 // Initialize IndexerManager with environment variables
 const indexerManager = new IndexerManager(
@@ -171,7 +173,8 @@ const routeRegistry = new RouteRegistry(app, {
   rateService,
   transactionService,
   referralService,
-  referralFeeService
+  referralFeeService,
+  pulseXQuoteService
 });
 
 // ---- Global error handler (no leaky details) --------------------------------

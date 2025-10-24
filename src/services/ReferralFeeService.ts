@@ -37,7 +37,7 @@ export class ReferralFeeService {
         },
         update: {
           amount: formattedAmount,
-          lastUpdated: new Date()
+          lastUpdated: new Date(event.timestamp * 1000)
         },
         create: {
           referrer: event.referrer.toLowerCase(),
@@ -103,7 +103,7 @@ export class ReferralFeeService {
         token: fee.token,
         amount: fee.amount.toString(),
         lastUpdated: fee.lastUpdated.toISOString(),
-        createdAt: fee.createdAt.toISOString()
+        createdAt: fee.lastUpdated.toISOString()
       }));
     } catch (error) {
       console.error('Error getting referral fees by referrer:', error);
@@ -136,34 +136,6 @@ export class ReferralFeeService {
     } catch (error) {
       console.error('Error getting referral fees by token:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Parse ReferralFeeAmountUpdated event from transaction logs
-   */
-  parseReferralFeeEvent(log: any): ReferralFeeUpdateEvent | null {
-    try {
-      const parsedLog = this.affiliateRouterInterface.parseLog({
-        topics: log.topics,
-        data: log.data
-      });
-
-      if (parsedLog && parsedLog.name === 'ReferralFeeAmountUpdated') {
-        return {
-          referrer: parsedLog.args[0] as string,
-          token: parsedLog.args[1] as string,
-          amount: parsedLog.args[2].toString(),
-          blockNumber: parseInt(log.blockNumber, 16),
-          transactionHash: log.transactionHash,
-          logIndex: parseInt(log.logIndex, 16)
-        };
-      }
-
-      return null;
-    } catch (error) {
-      // This log is not a ReferralFeeAmountUpdated event
-      return null;
     }
   }
 

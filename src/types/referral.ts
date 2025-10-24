@@ -36,6 +36,7 @@ export interface ReferralFeeUpdateEvent {
   blockNumber: number;
   transactionHash: string;
   logIndex: number;
+  timestamp: number;
 }
 
 export interface IndexingStateResponse {

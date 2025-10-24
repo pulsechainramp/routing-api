@@ -69,14 +69,15 @@ export class PiteasService {
         proxy.url
       );
 
-      return await this.transformQuoteData(response.data);
+      const isEthOut = params.tokenOutAddress == "PLS" || params.tokenOutAddress == ethers.ZeroAddress;
+      return await this.transformQuoteData(response.data, isEthOut);
     } catch (error) {
       this.logger.error("Failed to fetch quote from Piteas", { error });
       throw error;
     }
   }
 
-  private async transformQuoteData(piteasData: any): Promise<QuoteResponse> {
+  private async transformQuoteData(piteasData: any, isEthOut: boolean): Promise<QuoteResponse> {
     // Implement the transformation logic here
     // This should convert Piteas API response to your custom format
     const {
@@ -100,9 +101,8 @@ export class PiteasService {
       destination: ethers.ZeroAddress,
       tokenIn: srcToken.address,
       tokenOut: destToken.address,
+      isETHOut: isEthOut,
     };
-
-    const swapRoute = [];
 
     let currentGroupId = 0;
     for (const [swapIndex, swap] of swaps.entries()) {

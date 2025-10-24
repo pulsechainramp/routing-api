@@ -47,7 +47,6 @@ export class ProxyManager {
 
     return axios.create({
       httpsAgent: new HttpsProxyAgent(proxyUrl),
-      timeout: 10000,
     });
   }
 
