@@ -21,34 +21,51 @@ export default async function providersRoutes(fastify: FastifyInstance) {
     const json = loadOnrampsJson();
 
     const entry = json.countries.find(c => c.iso2.toUpperCase() === country.toUpperCase());
-    if (!entry) return { country, providers: [], fallback_providers: [] };
+    const unknown = !entry || country.toUpperCase() === "ZZ";
 
-    // Prepare response with processed deeplinks (when address/amount/fiat are supplied)
-    const env = process.env as Record<string, string | undefined>;
+    const envRecord = process.env as Record<string, string | undefined>;
+
+    const build = (p: any) => {
+      let url = fillTemplate(p.deeplink_template as any, { address, amount, fiat }, envRecord);
+      if (!url) url = p.coverage_url ?? (p.regulator_links?.[0] ?? null);
+      return { ...p, deeplink: url, deeplink_available: Boolean(url) };
+    };
+
+    if (unknown) {
+      const fallbackIds = json.globals.fallback_providers ?? [];
+      const catalog = json.globals.default_provider_details ?? {};
+      const fallbackFilled = fallbackIds
+        .map(id => catalog[id])
+        .filter(Boolean)
+        .map(build);
+
+      return {
+        country,
+        providers: [],
+        fallback_providers: fallbackIds,
+        // NEW: full records for the UI to render without hard-coding
+        fallback_provider_details: fallbackFilled
+      };
+    }
+
+    // Known country:
     const filled = entry.providers
       .slice()
       .sort((a, b) => a.priority - b.priority)
-      .map(p => {
-        // Only template if a template exists; otherwise fallback to coverage/regulator URLs.
-        const templated = fillTemplate(p.deeplink_template as any, { address, amount, fiat }, env);
-        let url = p.id === "moonpay"
-            ? signMoonPayIfNeeded(templated, env.MOONPAY_SECRET_KEY)
-            : templated;
+      .map(build);
 
-        // Fallbacks if no deeplink template (or after signing still null)
-        if (!url) url = p.coverage_url ?? (p.regulator_links?.[0] ?? null);
-
-        return {
-          ...p,
-          deeplink: url, // could be null if absolutely nothing available
-          deeplink_available: Boolean(url)
-        };
-      });
+    const fallbackIds = entry.fallback_providers ?? json.globals.fallback_providers ?? [];
+    const catalog = json.globals.default_provider_details ?? {};
+    const fallbackFilled = fallbackIds
+      .map(id => catalog[id])
+      .filter(Boolean)
+      .map(build);
 
     return {
       country: entry.iso2,
       providers: filled,
-      fallback_providers: entry.fallback_providers ?? json.globals.fallback_providers ?? []
+      fallback_providers: fallbackIds,
+      fallback_provider_details: fallbackFilled
     };
   });
 }

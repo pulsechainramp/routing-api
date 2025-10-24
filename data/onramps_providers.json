@@ -37,6 +37,70 @@
           "fee_hint": "https://m2.com/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["USD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": "Availability subject to Ramp regional rules; see unsupported-countries list.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["USD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": "Local AED rails not supported; card/Apple/Google Pay in USD.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/global-coverage",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["USD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "Coverage varies by product; confirm AED vs. USD checkout in-app.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["AED"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": "Availability subject to Banxa country and payment method coverage.",
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","banxa"]
@@ -60,6 +124,38 @@
           "fee_hint": "https://bitso.com/help/es/articles/360049722093-comisiones",
           "risk_notes": "Local FX controls can impact ARS deposits/withdrawals.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["USD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": "ARS not supported; purchases typically processed in USD.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["USD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": "Local ARS rails not supported; cross‑border card payments only.",
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","banxa"]
@@ -99,6 +195,70 @@
           "fee_hint": "https://www.coinspot.com.au/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["AUD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["AUD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/global-coverage",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["AUD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["PayID","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["AUD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -138,6 +298,70 @@
           "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["PIX","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["BRL"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": "PIX supported.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["PIX","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["BRL"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": "PIX supported.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/global-coverage",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["BRL"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["BRL"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","banxa"]
@@ -161,6 +385,70 @@
           "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": "Certain provinces may display additional risk warnings.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["USD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": "Checkout may use USD; confirm local CAD option in-app.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["CAD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/global-coverage",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["CAD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["CAD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -184,6 +472,70 @@
           "fee_hint": "https://en.swissquote.com/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["CHF"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["CHF"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/btc/switzerland",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["CHF"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["CHF"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -223,6 +575,70 @@
           "fee_hint": "https://support.bitvavo.com/hc/en-us/articles/4411707243153-Fees-overview",
           "risk_notes": "MiCA passporting may apply; verify service scope in Germany.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/cusd/germany",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -246,10 +662,75 @@
           "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": "Ramp checkout commonly offers EUR for DK via SEPA.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","SEPA","Bank Transfer"],
+          "supports_fiat": ["DKK","EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/usdt/denmark",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "Transak DK pages display EUR checkout.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR","DKK"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "ES",
       "notes": "SEPA transfers and cards widely supported.",
@@ -285,10 +766,75 @@
           "fee_hint": "https://help.coinbase.com/es/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/xrp/spain",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "FI",
       "notes": null,
@@ -308,10 +854,75 @@
           "fee_hint": "https://coinmotion.com/fees/",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/global-coverage",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "Transak EU checkout commonly in EUR.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "FR",
       "notes": "Providers must be registered/licensed (PSAN/MiCA).",
@@ -347,10 +958,75 @@
           "fee_hint": "https://help.coinbase.com/fr/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/cusd/france",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "GB",
       "notes": "FCA promotions regime applies; ensure firm is compliant.",
@@ -367,7 +1043,7 @@
           "supports_fiat": ["GBP"],
           "kyc_speed_hint": "fast",
           "limits_hint": null,
-          "fee_hint": "https://support.rampnetwork.com/en/articles/477-what-fees-are-charged-when-buying-crypto",
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
         },
@@ -402,10 +1078,43 @@
           "fee_hint": "https://www.gemini.com/fees",
           "risk_notes": "FCA risk warnings apply for UK retail.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/btc/united-kingdom",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["GBP"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "FCA promotions regime applies to communications.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Faster Payments","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["GBP"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": "FCA promotions regime applies to communications.",
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "HK",
       "notes": "Retail trading permitted only via SFC-licensed VATPs.",
@@ -445,6 +1154,7 @@
       ],
       "fallback_providers": []
     },
+
     {
       "iso2": "IE",
       "notes": "SEPA preferred.",
@@ -480,10 +1190,75 @@
           "fee_hint": "https://www.bitstamp.net/fee-schedule/",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/global-coverage",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "Transak EU checkout commonly in EUR.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "IN",
       "notes": "Providers must comply with local AML/Tax rules; banking rails may vary.",
@@ -519,10 +1294,43 @@
           "fee_hint": "https://wazirx.com/fees",
           "risk_notes": "INR rails subject to change; TDS rules apply for certain transactions.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["USD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": "International card payments; INR not listed in MoonPay buy fiat.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["INR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": "Availability varies by bank and provider risk rules.",
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","banxa"]
     },
+
     {
       "iso2": "IT",
       "notes": "SEPA supported.",
@@ -542,10 +1350,75 @@
           "fee_hint": "https://help.coinbase.com/it/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/btc/italy",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "JP",
       "notes": "Only FSA-registered exchanges can serve retail.",
@@ -569,6 +1442,7 @@
       ],
       "fallback_providers": []
     },
+
     {
       "iso2": "KR",
       "notes": "Retail access via KoFIU-registered VASPs.",
@@ -592,6 +1466,7 @@
       ],
       "fallback_providers": []
     },
+
     {
       "iso2": "MX",
       "notes": "SPEI preferred.",
@@ -611,10 +1486,75 @@
           "fee_hint": "https://bitso.com/help/es/articles/360049722093-comisiones",
           "risk_notes": "SPEI availability may be during banking hours.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["MXN"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["MXN"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/sol/mexico",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["MXN"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["MXN"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "NL",
       "notes": "SEPA recommended.",
@@ -634,10 +1574,75 @@
           "fee_hint": "https://support.bitvavo.com/hc/en-us/articles/4411707243153-Fees-overview",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/btc/netherlands",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "NO",
       "notes": null,
@@ -657,10 +1662,75 @@
           "fee_hint": "https://firi.com/prices",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": "Ramp often offers EUR checkout for NO via SEPA.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["NOK","EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/btc/norway",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "Transak NO pages show EUR checkout.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["NOK","EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "NZ",
       "notes": null,
@@ -680,10 +1750,75 @@
           "fee_hint": "https://easycrypto.ai/nz/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["NZD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["NZD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/global-coverage",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["NZD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["NZD"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "PH",
       "notes": "BSP-regulated VASP required.",
@@ -707,6 +1842,7 @@
       ],
       "fallback_providers": ["moonpay","transak","banxa"]
     },
+
     {
       "iso2": "PL",
       "notes": "SEPA available via EUR transfers; PLN bank transfers supported by some providers.",
@@ -726,10 +1862,75 @@
           "fee_hint": "https://help.coinbase.com/pl/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["PLN","EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["PLN","EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/usdc/poland",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "Transak PL pages show EUR checkout.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["PLN","EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "PT",
       "notes": "SEPA preferred.",
@@ -749,10 +1950,75 @@
           "fee_hint": "https://help.coinbase.com/pt/coinbase/trading-and-funding/pricing-and-fees/fees",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/btc/portugal",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["SEPA","Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "SE",
       "notes": null,
@@ -772,10 +2038,75 @@
           "fee_hint": "https://safello.com/en/price-and-fees/",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "ramp",
+          "display_name": "Ramp Network",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://app.ramp.network/",
+          "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+          "regulator_links": [],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["SEK"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["SEK"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "transak",
+          "display_name": "Transak",
+          "type": "onramp",
+          "priority": 4,
+          "deeplink_template": "https://global.transak.com/",
+          "coverage_url": "https://transak.com/buy/usdt/sweden",
+          "regulator_links": [],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://docs.transak.com/docs/fees",
+          "risk_notes": "Transak SE pages display EUR checkout.",
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 5,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["SEK","EUR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "SG",
       "notes": "DPT service providers must be MAS-licensed; PayNow common for SGD.",
@@ -815,6 +2146,7 @@
       ],
       "fallback_providers": []
     },
+
     {
       "iso2": "TH",
       "notes": "Use SEC-licensed exchanges for retail.",
@@ -838,6 +2170,7 @@
       ],
       "fallback_providers": []
     },
+
     {
       "iso2": "US",
       "notes": "State-specific rules may apply by provider; ensure ETH on Ethereum mainnet.",
@@ -901,7 +2234,7 @@
           },
           "kyc_speed_hint": "fast",
           "limits_hint": null,
-          "fee_hint": "https://support.rampnetwork.com/en/articles/477-what-fees-are-charged-when-buying-crypto",
+          "fee_hint": "https://support.rampnetwork.com/en/articles/10415-what-fees-does-ramp-network-charge-for-buying-crypto",
           "risk_notes": null,
           "last_verified": "2025-09-21T20:45:00Z"
         },
@@ -932,7 +2265,7 @@
           "type": "onramp",
           "priority": 5,
           "deeplink_template": "https://global.transak.com/",
-          "coverage_url": "https://transak.com/global-coverage",
+          "coverage_url": "https://transak.com/buy/btc/united-states-of-america",
           "regulator_links": [],
           "supported_payment_methods": ["ACH","Wire","Card","Apple Pay","Google Pay"],
           "supports_fiat": ["USD"],
@@ -944,12 +2277,34 @@
           "kyc_speed_hint": "fast",
           "limits_hint": null,
           "fee_hint": "https://docs.transak.com/docs/fees",
-          "risk_notes": null,
+          "risk_notes": "Wire ACH availability per Transak US coverage.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 6,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Wire","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["USD"],
+          "state_rules": {
+            "unsupported": [],
+            "restricted": [],
+            "notes": null
+          },
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","ramp","banxa"]
     },
+
     {
       "iso2": "ZA",
       "notes": "Use FSCA-registered platforms where applicable.",
@@ -969,13 +2324,957 @@
           "fee_hint": "https://www.luno.com/en/za/help/articles/11000084064",
           "risk_notes": "Confirm ETH mainnet withdrawals.",
           "last_verified": "2025-09-21T20:45:00Z"
+        },
+        {
+          "id": "moonpay",
+          "display_name": "MoonPay",
+          "type": "onramp",
+          "priority": 2,
+          "deeplink_template": "https://buy.moonpay.com/",
+          "coverage_url": "https://support.moonpay.com/customers/docs/moonpays-unsupported-countries",
+          "regulator_links": ["https://www.moonpay.com/legal/licenses"],
+          "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+          "supports_fiat": ["ZAR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://support.moonpay.com/customers/docs/what-fees-does-moonpay-charge",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
+        },
+        {
+          "id": "banxa",
+          "display_name": "Banxa",
+          "type": "onramp",
+          "priority": 3,
+          "deeplink_template": "https://checkout.banxa.com/",
+          "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+          "regulator_links": [],
+          "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
+          "supports_fiat": ["ZAR"],
+          "kyc_speed_hint": "fast",
+          "limits_hint": null,
+          "fee_hint": "https://banxa.com/pricing/",
+          "risk_notes": null,
+          "last_verified": "2025-10-05T00:00:00Z"
         }
       ],
       "fallback_providers": ["moonpay","transak","banxa"]
-    }
+    },
+    {
+    "iso2": "AT",
+    "notes": "SEPA transfers widely supported; MiCA/CASP passporting environment.",
+    "providers": [
+      {
+        "id": "bitpanda",
+        "display_name": "Bitpanda",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitpanda.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://support.bitpanda.com/hc/en-us/articles/16259273206044-Bitpanda-s-fees-and-premiums-explained",
+        "risk_notes": "EEA residents only; supports EUR via SEPA and cards.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "BE",
+    "notes": "SEPA transfers; cards widely supported.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "BG",
+    "notes": "SEPA (EUR-denominated) transfers recommended; card supported.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": "Funding typically in EUR via SEPA.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "CY",
+    "notes": "SEPA + cards widely supported.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "CZ",
+    "notes": "CZK & EUR rails; SEPA and local bank transfers supported by local providers.",
+    "providers": [
+      {
+        "id": "coinmate",
+        "display_name": "Coinmate",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://coinmate.io/en",
+        "regulator_links": [],
+        "supported_payment_methods": ["Bank Transfer","SEPA","Card"],
+        "supports_fiat": ["CZK","EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://coinmate.io/en/fees",
+        "risk_notes": "Transparent fee schedule for CZK/EUR; SEPA deposit & withdrawal available.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": "Funding typically in EUR via SEPA.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "EE",
+    "notes": "SEPA/Instant SEPA common; strong local exchange presence.",
+    "providers": [
+      {
+        "id": "coinmetro",
+        "display_name": "Coinmetro",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://coinmetro.com/",
+        "regulator_links": ["https://fiu.ee/en"],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://coinmetro.com/pricing",
+        "risk_notes": "Operates under Estonian compliance regime; SEPA/Instant SEPA available.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "GR",
+    "notes": "SEPA and cards widely supported for EUR funding.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "HR",
+    "notes": "Eurozone; SEPA + cards.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "HU",
+    "notes": "SEPA EUR flows common; cards supported.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": "Funding typically in EUR via SEPA.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitpanda",
+        "display_name": "Bitpanda",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitpanda.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://support.bitpanda.com/hc/en-us/articles/16259273206044-Bitpanda-s-fees-and-premiums-explained",
+        "risk_notes": "EEA service.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "LT",
+    "notes": "Eurozone; SEPA/Instant SEPA available with many banks.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "LV",
+    "notes": "Eurozone; SEPA + cards.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "RO",
+    "notes": "RON bank rails common; EUR via SEPA also available.",
+    "providers": [
+      {
+        "id": "tradesilvania",
+        "display_name": "Tradesilvania",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://tradesilvania.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Bank Transfer","Card"],
+        "supports_fiat": ["RON","EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://tradesilvania.com/en/frequent-questions/en-general/what-commissions-do-you-apply",
+        "risk_notes": "Supports RON deposits via bank transfer and cards; local compliance per Law 129/2019.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": "Use EUR SEPA for cheapest fees.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "SI",
+    "notes": "Eurozone; SEPA and cards.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "SK",
+    "notes": "Eurozone; SEPA + cards.",
+    "providers": [
+      {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://www.coinbase.com/legal/countries",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+        "risk_notes": null,
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "bitstamp",
+        "display_name": "Bitstamp",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitstamp.net/",
+        "regulator_links": [],
+        "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+        "supports_fiat": ["EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+        "risk_notes": "Instant SEPA available for selected EU/EEA banks.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","ramp","banxa"]
+  },
+  {
+    "iso2": "MY",
+    "notes": "Use SC Malaysia‑registered DAXs; FPX bank transfers common.",
+    "providers": [
+      {
+        "id": "luno",
+        "display_name": "Luno",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://www.luno.com/en/my",
+        "regulator_links": ["https://www.sc.com.my/development/digital/digital-asset-exchange-dax"],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["MYR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://www.luno.com/en/my/help/articles/11000084064",
+        "risk_notes": "Operates as a registered Digital Asset Exchange (RMO/DAX) in Malaysia.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  },
+  {
+    "iso2": "ID",
+    "notes": "Use Bappebti‑registered crypto asset traders; IDR bank transfers prevalent.",
+    "providers": [
+      {
+        "id": "indodax",
+        "display_name": "INDODAX",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://indodax.com/",
+        "regulator_links": ["https://bappebti.go.id/"],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["IDR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://help.indodax.com/hc/en-us/articles/17544343838937-Fees-on-INDODAX",
+        "risk_notes": "Registered under Indonesian commodity futures regulator (Bappebti).",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "pintu",
+        "display_name": "Pintu",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://pintu.co.id/",
+        "regulator_links": ["https://bappebti.go.id/"],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["IDR"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://support.pintu.co.id/hc/en-us/articles/900002580946-Fees-at-Pintu",
+        "risk_notes": "IDR deposits via local banking; Bappebti registration required for service.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  },
+  {
+    "iso2": "TW",
+    "notes": "TWD bank transfer rails; local exchanges operate under AML supervision.",
+    "providers": [
+      {
+        "id": "bitopro",
+        "display_name": "BitoPro",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://www.bitopro.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["TWD"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.bitopro.com/fees",
+        "risk_notes": "Supports TWD deposits/withdrawals; complies with Taiwan AML requirements.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "maicoin",
+        "display_name": "MaiCoin",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.maicoin.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["TWD"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://support.maicoin.com/en/support/solutions/articles/35000209462-fees",
+        "risk_notes": "Local TWD rails via online banking/ATM; AML/KYC applies.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  },
+  {
+    "iso2": "TR",
+    "notes": "TRY bank transfers (FAST/EFT) via local exchanges; regulatory framework evolving (MASAK guidance).",
+    "providers": [
+      {
+        "id": "btcturk",
+        "display_name": "BtcTurk",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://www.btcturk.com/",
+        "regulator_links": ["https://www.masak.gov.tr/"],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["TRY"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.btcturk.com/commission",
+        "risk_notes": "Deposits/withdrawals via TRY bank transfers (FAST/EFT).",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "paribu",
+        "display_name": "Paribu",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.paribu.com/",
+        "regulator_links": ["https://www.masak.gov.tr/"],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["TRY"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://www.paribu.com/ucretler",
+        "risk_notes": "Supports TRY deposits via bank transfer; KYC required.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  },
+  {
+    "iso2": "CL",
+    "notes": "CLP bank transfers; local exchange presence.",
+    "providers": [
+      {
+        "id": "buda",
+        "display_name": "Buda.com",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://www.buda.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["CLP"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://ayuda.buda.com/es/articles/6121504-comisiones-de-buda-com",
+        "risk_notes": "Local CLP rails; confirm bank availability and settlement windows.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","banxa"]
+  },
+  {
+    "iso2": "CO",
+    "notes": "PSE (ACH) is the main local rail for COP.",
+    "providers": [
+      {
+        "id": "bitso",
+        "display_name": "Bitso",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://bitso.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["PSE","Bank Transfer"],
+        "supports_fiat": ["COP"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://bitso.com/fees/transactions",
+        "risk_notes": "Offers COP deposits via PSE; localized Colombia operation.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      },
+      {
+        "id": "buda",
+        "display_name": "Buda.com",
+        "type": "exchange",
+        "priority": 2,
+        "deeplink_template": null,
+        "coverage_url": "https://www.buda.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["PSE","Bank Transfer"],
+        "supports_fiat": ["COP"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://ayuda.buda.com/es/articles/6121504-comisiones-de-buda-com",
+        "risk_notes": "COP deposits via PSE; verify deposit hours and bank support.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","banxa"]
+  },
+  {
+    "iso2": "PE",
+    "notes": "PEN bank transfers via local exchange.",
+    "providers": [
+      {
+        "id": "buda",
+        "display_name": "Buda.com",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://www.buda.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["PEN"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://ayuda.buda.com/es/articles/6121504-comisiones-de-buda-com",
+        "risk_notes": "PEN deposits via local banks; confirm cut‑off times.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": ["moonpay","transak","banxa"]
+  },
+  {
+    "iso2": "NG",
+    "notes": "Local NGN on/off‑ramp; mobile/instant bank rails used. Regulatory environment evolving.",
+    "providers": [
+      {
+        "id": "yellow-card",
+        "display_name": "Yellow Card",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://yellowcard.io/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Bank Transfer"],
+        "supports_fiat": ["NGN"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://yellowcard.io/legal/user-agreement/",
+        "risk_notes": "NGN deposits/withdrawals supported; verify bank transfer instructions in‑app.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  },
+  {
+    "iso2": "KE",
+    "notes": "KES via mobile money (M‑Pesa) and bank transfers with local providers.",
+    "providers": [
+      {
+        "id": "yellow-card",
+        "display_name": "Yellow Card",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://yellowcard.io/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Mobile Money","Bank Transfer"],
+        "supports_fiat": ["KES"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://yellowcard.io/legal/user-agreement/",
+        "risk_notes": "Supports M‑Pesa/mobile money for KES; confirm current deposit fees.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  },
+  {
+    "iso2": "GH",
+    "notes": "GHS via mobile money; local on/off‑ramp coverage.",
+    "providers": [
+      {
+        "id": "yellow-card",
+        "display_name": "Yellow Card",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://yellowcard.io/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Mobile Money","Bank Transfer"],
+        "supports_fiat": ["GHS"],
+        "kyc_speed_hint": "fast",
+        "limits_hint": null,
+        "fee_hint": "https://yellowcard.io/legal/user-agreement/",
+        "risk_notes": "GHS cash‑out limited to Ghana Cedis; verify mobile money networks supported.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  },
+  {
+    "iso2": "UA",
+    "notes": "UAH card/bank rails via local exchanges; regulation evolving amid wartime measures.",
+    "providers": [
+      {
+        "id": "whitebit",
+        "display_name": "WhiteBIT",
+        "type": "exchange",
+        "priority": 1,
+        "deeplink_template": null,
+        "coverage_url": "https://whitebit.com/",
+        "regulator_links": [],
+        "supported_payment_methods": ["Card","Bank Transfer"],
+        "supports_fiat": ["UAH","EUR"],
+        "kyc_speed_hint": "medium",
+        "limits_hint": null,
+        "fee_hint": "https://help.whitebit.com/hc/en-gb/articles/25029308319005-Trading-deposit-and-withdrawal-fees",
+        "risk_notes": "UAH deposits/withdrawals supported via card transfer; confirm active providers in‑app.",
+        "last_verified": "2025-10-05T00:00:00Z"
+      }
+    ],
+    "fallback_providers": []
+  }
   ],
   "globals": {
     "fallback_providers": ["moonpay","transak","ramp","banxa"],
+
+    "default_provider_details": {
+      "moonpay": {
+        "id": "moonpay",
+        "display_name": "MoonPay",
+        "type": "onramp",
+        "priority": 10,
+        "deeplink_template": "https://buy.moonpay.com/",
+        "coverage_url": "https://dev.moonpay.com/docs/country-coverage",
+        "regulator_links": ["https://www.moonpay.com/legal/licenses"]
+      },
+      "transak": {
+        "id": "transak",
+        "display_name": "Transak",
+        "type": "onramp",
+        "priority": 10,
+        "deeplink_template": "https://global.transak.com/",
+        "coverage_url": "https://transak.com/global-coverage",
+        "regulator_links": []
+      },
+      "coinbase": {
+        "id": "coinbase",
+        "display_name": "Coinbase",
+        "type": "exchange",
+        "priority": 20,
+        "deeplink_template": "https://www.coinbase.com/buy/ETH",
+        "coverage_url": "https://help.coinbase.com",
+        "regulator_links": []
+      },
+      "ramp": {
+        "id": "ramp",
+        "display_name": "Ramp Network",
+        "type": "onramp",
+        "priority": 30,
+        "deeplink_template": "https://app.ramp.network/",
+        "coverage_url": "https://ramp.network/docs/country-coverage",
+        "regulator_links": []
+      },
+      "banxa": {
+        "id": "banxa",
+        "display_name": "Banxa",
+        "type": "onramp",
+        "priority": 30,
+        "deeplink_template": "https://www.banxa.com/buy/",
+        "coverage_url": "https://support.banxa.com/en/support/solutions/articles/44002216505-what-countries-are-supported-by-banxa-",
+        "regulator_links": []
+      }
+    },
+
     "deeplink_placeholders": ["{address}","{amount}","{fiat}"]
   }
 }

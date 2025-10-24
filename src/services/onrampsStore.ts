@@ -32,6 +32,27 @@ export type OnrampsJson = {
   }>;
   globals: {
     fallback_providers?: string[];
+    default_provider_details?: Record<string, {
+      id: string;
+      display_name: string;
+      type: "exchange" | "onramp";
+      priority?: number;
+      deeplink_template?: string | null;
+      coverage_url?: string | null;
+      regulator_links?: string[] | null;
+      supported_payment_methods?: string[] | null;
+      supports_fiat?: string[] | null;
+      kyc_speed_hint?: string | null;
+      limits_hint?: string | null;
+      fee_hint?: string | null;
+      risk_notes?: string | null;
+      last_verified?: string | null;
+      state_rules?: {
+        unsupported?: string[];
+        restricted?: string[];
+        notes?: string | null;
+      };
+    }>;
     deeplink_placeholders: string[]; // should include {address},{amount},{fiat}
   };
 };
