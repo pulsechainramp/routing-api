@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+declare const __dirname: string; // ensure NodeJS global typed when Node types aren't auto-included
+
 export type OnrampsJson = {
   version: string;
   generated_at: string;
@@ -40,8 +42,33 @@ let cache: OnrampsJson;
 
 export function loadOnrampsJson(): OnrampsJson {
   if (cache) return cache;
-  const file = process.env.ONRAMPS_JSON_PATH || path.join(process.cwd(), "src/data", "onramps_providers.json");
-  const raw = fs.readFileSync(file, "utf8");
-  cache = JSON.parse(raw);
-  return cache;
+
+  const envPath = process.env.ONRAMPS_JSON_PATH
+    ? path.resolve(process.cwd(), process.env.ONRAMPS_JSON_PATH)
+    : null;
+
+  const candidatePaths = [
+    envPath,
+    path.join(process.cwd(), "data", "onramps_providers.json"),
+    path.join(process.cwd(), "src/data", "onramps_providers.json"),
+    path.join(__dirname, "..", "data", "onramps_providers.json"),
+    path.join(__dirname, "..", "..", "src", "data", "onramps_providers.json")
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  let lastError: unknown;
+
+  for (const candidate of candidatePaths) {
+    try {
+      if (!fs.existsSync(candidate)) continue;
+      const raw = fs.readFileSync(candidate, "utf8");
+      cache = JSON.parse(raw);
+      return cache;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const searched = candidatePaths.map(p => `"${p}"`).join(", ");
+  const reason = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown error");
+  throw new Error(`Unable to load onramps providers JSON. Checked paths: ${searched}. Last error: ${reason}`);
 }
