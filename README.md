@@ -16,6 +16,8 @@ npm run dev
 ```bash
 # Docker Compose
 git clone https://github.com/pulsechainramp/routing-api.git && cd routing-api
+cp docker-compose.yml.example docker-compose.yml  # or copy on Windows
+# edit docker-compose.yml and .env to set POSTGRES_USER/POSTGRES_PASSWORD and DATABASE_URL
 docker compose up --build
 ```
 
@@ -62,6 +64,7 @@ docker compose up --build
 | `ENFORCE_ALLOWED_DEXES` | `true` |  | Toggle enforcement of the DEX whitelist |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 
+> Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
 > Update `src/config/index.ts` before deploying so `AffiliateRouterAddress` (and other contract constants) match your target network.
 
 ---
