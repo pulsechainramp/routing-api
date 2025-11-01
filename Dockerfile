@@ -1,21 +1,12 @@
-FROM node:20-alpine
-
+FROM node:20-bookworm-slim
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-
-# Copy package files
+ENV PRISMA_SKIP_POSTINSTALL_GENERATE=1
 COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
+COPY prisma ./prisma
+RUN npm ci
 COPY . .
-
-# Build TypeScript
+RUN npx prisma generate
 RUN npm run build
-
-# Expose port
 EXPOSE 3000
-
-# Start the application with PM2
-CMD ["npm", "run", "start"] 
+CMD ["npm","run","start"]

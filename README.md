@@ -1,257 +1,196 @@
-# Routing API
+# PulseChain Routing API
+Fastify service that aggregates PulseChain swap quotes, bridge data, and onramp providers with Prisma-backed persistence and rate limiting.
 
-API Gateway for Piteas with proxy rotation and rate limiting
+---
 
-## ChangeNow Cross-Chain Aggregator
+## TL;DR (Quickstart)
 
-This API now includes ChangeNow-based cross-chain cryptocurrency exchange functionality.
-
-### New Features
-- **Cross-Chain Swaps**: Swap cryptocurrencies between different networks (e.g., ETH to PLS)
-- **Real-time Quotes**: Get instant exchange rates and fees
-- **Transaction Tracking**: Monitor swap progress in real-time
-- **Rate Caching**: Optimized performance with cached exchange rates
-
-### New API Endpoints
-
-#### Rate Endpoints
-- `GET /exchange/rate` - Get exchange rate for a currency pair
-
-#### Trade Endpoints
-- `POST /exchange/trade` - Create a new trade transaction
-- `GET /exchange/order/:id` - Get order status
-- `GET /exchange/orders` - Get user's order history
-- `GET /exchange/stats` - Get transaction statistics
-
-
-### Setup for ChangeNow Features
-
-1. **Environment Variables**
-   Add to your `.env` file:
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/pt_quote_api"
-   CHANGENOW_API_KEY=your_api_key_here
-   ```
-
-2. **Database Setup**
-   ```bash
-   npm run db:generate
-   npm run db:migrate
-   ```
-
-3. **Start Development**
-   ```bash
-   npm run dev
-   ```
-
-### Example Usage
-
-Get a rate:
 ```bash
-curl "http://localhost:3000/exchange/rate?fromCurrency=eth&toCurrency=pls&amount=0.1"
+# Native toolchain
+git clone https://github.com/pulsechainramp/routing-api.git && cd routing-api
+npm install
+npm run db:generate && npm run db:migrate
+npm run dev
 ```
 
-Create a trade:
 ```bash
-curl -X POST "http://localhost:3000/exchange/trade" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fromCurrency": "eth",
-    "toCurrency": "pls",
-    "fromAmount": 0.1,
-    "userAddress": "0x1234567890123456789012345678901234567890"
-  }'
+# Docker Compose
+git clone https://github.com/pulsechainramp/routing-api.git && cd routing-api
+docker compose up --build
 ```
 
-Get order status:
-```bash
-curl "http://localhost:3000/exchange/order/order_id_here"
-```
+**Open:** http://localhost:3000/health  
+**Requirements:** Node 18+, npm 9+, Postgres 15+ (or Docker Desktop / Docker Engine 24+)  
+**Demo data (optional):** `npm run db:reset`
 
-## Original Features
+---
 
-A Fastify-based API that provides cross-chain cryptocurrency exchange functionality using ChangeNow as the backend provider. This service abstracts away ChangeNow's complexity and provides a simple, branded interface for users to swap cryptocurrencies across different networks.
+## What's Inside (Features)
+- **PulseX & Piteas quotes** - Aggregates on-chain routes with slippage controls and PulseX fallback quoting.
+- **OmniBridge support** - Lists supported currencies, estimates bridge output, and records bridge transactions.
+- **Referral management** - Generates referral codes, resolves addresses, and exposes indexed referral fees.
+- **Onramp discovery** - Serves geo-aware onramp providers with signed MoonPay, Ramp, and Transak deeplinks.
 
-## Features
+---
 
-- **Cross-Chain Swaps**: Swap cryptocurrencies between different networks (e.g., ETH to PLS)
-- **Real-time Quotes**: Get instant exchange rates and fees
-- **Transaction Tracking**: Monitor swap progress in real-time
-- **Rate Caching**: Optimized performance with cached exchange rates
-- **Database Integration**: Persistent storage with Prisma ORM
-- **API Gateway**: Clean REST API for frontend integration
-
-## API Endpoints
-
-### Quote Endpoints
-- `GET /api/v1/quote` - Get exchange quote for a currency pair
-
-### Swap Endpoints
-- `POST /api/v1/swap` - Create a new swap transaction
-- `GET /api/v1/transaction/:id` - Get transaction status
-- `GET /api/v1/transactions` - Get user's transaction history
-- `GET /api/v1/stats` - Get transaction statistics
-
-## Setup
+## Installation & Setup
 
 ### Prerequisites
-- Node.js >= 18.0.0
-- PostgreSQL database
-- ChangeNow API key
+- **Runtime:** Node.js >=18 with TypeScript toolchain
+- **Package manager:** npm (uses `package-lock.json`)
+- **Infra:** PostgreSQL (local or via Docker Compose)
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd pt-quote-api
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Configuration**
-   Create a `.env` file with the following variables:
-   ```env
-   # Database
-   DATABASE_URL="postgresql://user:password@localhost:5432/pt_quote_api"
-   
-   # ChangeNow Configuration
-   CHANGENOW_API_KEY=your_api_key_here
-   
-   # Application Configuration
-   NODE_ENV=development
-   PORT=3000
-   LOG_LEVEL=info
-   ```
-
-4. **Database Setup**
-   ```bash
-   # Generate Prisma client
-   npm run db:generate
-   
-   # Run database migrations
-   npm run db:migrate
-   ```
-
-5. **Start Development Server**
-   ```bash
-   npm run dev
-   ```
-
-## Usage Examples
-
-### Get Exchange Quote
+### Local Development
 ```bash
-curl "http://localhost:3000/api/v1/quote?fromCurrency=eth&toCurrency=pls&amount=0.1&fromNetwork=eth&toNetwork=pls"
+npm install
+npm run db:generate && npm run db:migrate
+npm run dev
 ```
 
-### Create Swap Transaction
+### Docker (optional)
 ```bash
-curl -X POST "http://localhost:3000/api/v1/swap" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fromCurrency": "eth",
-    "toCurrency": "pls",
-    "fromAmount": 0.1,
-    "userAddress": "0x1234567890123456789012345678901234567890",
-    "fromNetwork": "eth",
-    "toNetwork": "pls"
-  }'
+docker compose up --build
 ```
 
-### Get Transaction Status
-```bash
-curl "http://localhost:3000/api/v1/transaction/transaction_id_here"
+### Configuration (ENV)
+| Key | Example | Required | Description |
+|---|---|:--:|---|
+| `DATABASE_URL` | `postgresql://postgres:postgres@db:5432/routing?schema=public` | yes | Postgres DSN for Prisma |
+| `PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Quote aggregation backend |
+| `RPC_URL` | `https://rpc.pulsechain.com` |  | PulseChain RPC for PulseX quoting |
+| `CORS_ALLOWLIST` | `http://localhost:5173` |  | Comma-separated origins allowed by CORS |
+| `ENFORCE_ALLOWED_DEXES` | `true` |  | Toggle enforcement of the DEX whitelist |
+| `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
+
+> Update `src/config/index.ts` before deploying so `AffiliateRouterAddress` (and other contract constants) match your target network.
+
+---
+
+## Usage
+
+### API
+**Base URL:** http://localhost:3000
+
+```http
+GET /quote/pulsex?tokenInAddress=0xA1077a294dDE1B09bB078844df40758a5D0f9a27&tokenOutAddress=0xefD766cCb38EaF1dfd701853BFCe31359239F305&amount=1000000000000000000
+```
+**Response (excerpt)**
+```json
+{
+  "outputAmount": "998347654321234567",
+  "route": {
+    "steps": [
+      { "dex": "PulseX V2", "path": ["0xA1077...", "0xefD766..."] }
+    ]
+  }
+}
 ```
 
-## Database Schema
-
-### Transactions Table
-- `id`: Unique transaction identifier
-- `changenowId`: ChangeNow transaction ID
-- `userAddress`: User's wallet address
-- `fromCurrency`/`toCurrency`: Source and destination currencies
-- `fromNetwork`/`toNetwork`: Source and destination networks
-- `fromAmount`/`toAmount`: Exchange amounts
-- `status`: Transaction status (pending, finished, failed, etc.)
-- `payinAddress`/`payoutAddress`: Deposit and withdrawal addresses
-- `payinHash`/`payoutHash`: Blockchain transaction hashes
-
-### Rate Cache Table
-- Caches exchange ranges and rates for performance
-- Automatic expiration and refresh
-
-## Development
-
-### Available Scripts
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run db:migrate` - Run database migrations
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:studio` - Open Prisma Studio
-- `npm run test` - Run tests
-
-### Project Structure
+```http
+GET /exchange/omnibridge/transactions?userAddress=0x1234000000000000000000000000000000000000&limit=5
 ```
-src/
-├── services/
-│   ├── ChangeNowService.ts    # ChangeNow API integration
-│   ├── RateService.ts         # Rate caching and quotes
-│   └── TransactionService.ts  # Transaction management
-├── routes/
-│   ├── quote.ts              # Quote endpoints
-│   ├── swap.ts               # Swap endpoints
-│   ├── status.ts             # Status endpoints
-├── types/
-│   └── changenow.ts          # ChangeNow API types
-└── generated/
-    └── prisma-client/        # Generated Prisma client
+**Response**
+```json
+{
+  "success": true,
+  "data": [
+    { "messageId": "0xabc...", "status": "pending", "sourceChainId": 1, "targetChainId": 369 }
+  ]
+}
 ```
 
-## Architecture
+```http
+GET /onramps/providers?country=US&address=0x1234&amount=200&fiat=USD
+```
+**Response (excerpt)**
+```json
+{
+  "country": "US",
+  "providers": [
+    { "id": "moonpay", "deeplink_available": true, "deeplink": "https://buy.moonpay..." }
+  ]
+}
+```
 
-### Service Layer
-- **ChangeNowService**: Handles all ChangeNow API interactions
-- **RateService**: Manages rate caching and quote calculations
-- **TransactionService**: Orchestrates swap creation and tracking
+Swagger UI is available in non-production environments at `/docs`.
 
-### Data Flow
-1. User requests quote → RateService validates and caches rates
-2. User creates swap → TransactionService creates ChangeNow transaction
-3. User monitors status → Real-time status updates from ChangeNow
-4. Transaction completes → Database updated with final status
+---
 
-### Error Handling
-- Comprehensive error handling for API failures
-- User-friendly error messages
-- Automatic retry mechanisms for transient failures
+## Project Structure
+```
+routing-api/
+  prisma/           # Prisma schema and migrations
+  src/
+    controllers/    # Request handlers (e.g. quote)
+    routes/         # Fastify route modules
+    services/       # Business logic & integrations
+    utils/          # Logging, web3 helpers, link builders
+  Dockerfile
+  docker-compose.yml
+```
 
-## Security
+**Key scripts**
+| Script | What it does |
+|---|---|
+| `npm run dev` | Start Fastify with TypeScript hot reload |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm run start` | Serve compiled build |
+| `npm run test` | Execute Jest test suite (none defined yet) |
+| `npm run db:generate` | Regenerate Prisma client |
+| `npm run db:migrate` | Apply latest database migrations |
+| `npm run db:reset` | Reset database (drops data) |
 
-- API key management for ChangeNow
-- Input validation and sanitization
-- Rate limiting to prevent abuse
-- Secure database connections
+---
 
-## Monitoring
+## Architecture & Design
+- **Pattern:** Modular Fastify plugins with explicit dependency injection via a route registry.
+- **Modules:** Quote aggregation, OmniBridge, referrals, referral fee indexer, onramp catalog, proxy/rate limiting.
+- **Data:** PostgreSQL + Prisma client (`Transaction`, `RateCache`, `OmniBridgeTransaction`, `ReferralFee`, `User`, `IndexingState`).
+- **Integrations:** Piteas, PulseX routers, ChangeNOW, OmniBridge GraphQL, MoonPay, Transak, Ramp, optional proxy list.
+- **Indexers:** `IndexerManager` runs referral fee indexing against PulseChain RPC when the server boots.
+- **Resilience:** Global and per-endpoint rate limits, proxy rotation, sanitized logging, and retry-friendly error handling.
 
-- Health check endpoint (`/health`)
-- Transaction statistics endpoint
-- Comprehensive logging
-- Database connection monitoring
+---
+
+## Testing & Quality
+- **Test types:** Jest scaffold present; add unit/integration tests as features mature.
+- **Run:** `npm test`
+- **Lint/format:** No dedicated scripts; rely on TypeScript compiler and project conventions.
+- **Conventional commits:** Not enforced (use team guidelines if applicable).
+
+---
+
+## Security & Compliance
+- **Secrets:** Loaded via `.env`; never commit production credentials.
+- **Auth:** No built-in auth; protect deployment with network controls or upstream gateway.
+- **Validation:** Fastify schemas validate query params, body payloads, and rate-limit responses.
+- **Protections:** Helmet defaults, strict CORS allowlist, log redaction for auth headers and secrets.
+- **Dependencies:** Managed via npm; review with `npm audit` during CI/CD.
+
+---
+
+## Observability
+- **Logging:** `pino` (developer-friendly with `pino-pretty`), contextual request IDs, redacted secrets.
+- **Health check:** `GET /health` verifies application and database connectivity.
+- **Swagger:** `/docs` (non-production) for discoverability during development.
+
+---
+
+## Deployment
+- **Environments:** Configure `.env` per environment; ensure Postgres and PulseChain RPC endpoints are reachable.
+- **CI/CD:** No pipeline committed; add GitHub Actions or other automation for installs, tests, and migrations.
+- **Artifacts:** Dockerfile builds production image; `docker-compose.yml` wires API + Postgres for local/staging usage.
+- **Migrations:** Run `npm run db:migrate` (or `npm run db:deploy` in CI) before promoting builds.
+
+---
+
+## Troubleshooting / FAQ
+- **Prisma connection errors:** Confirm Postgres is running and `DATABASE_URL` targets the reachable host/port.
+- **Onramp catalog missing:** Ensure `src/data/onramps_providers.json` exists or set `ONRAMPS_JSON_PATH` to a valid file.
+
+---
 
 ## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-[Your License Here] 
+- Fork or branch from `main`, run `npm run db:migrate`, and keep Prisma schema changes committed.
+- Add or update Jest tests when touching business logic; run `npm test` before opening a PR.
+- Document new env keys and endpoints in this README or service-specific docs.
