@@ -8,6 +8,7 @@ Fastify service that aggregates PulseChain swap quotes, bridge data, and onramp 
 ```bash
 # Native toolchain
 git clone https://github.com/pulsechainramp/routing-api.git && cd routing-api
+cp .env.example .env                   # edit credentials & secrets
 npm install
 npm run db:generate && npm run db:migrate
 npm run dev
@@ -16,6 +17,7 @@ npm run dev
 ```bash
 # Docker Compose
 git clone https://github.com/pulsechainramp/routing-api.git && cd routing-api
+cp .env.example .env                   # edit credentials & secrets
 cp docker-compose.yml.example docker-compose.yml  # or copy on Windows
 # edit docker-compose.yml and .env to set POSTGRES_USER/POSTGRES_PASSWORD and DATABASE_URL
 docker compose up --build
@@ -57,13 +59,15 @@ docker compose up --build
 ### Configuration (ENV)
 | Key | Example | Required | Description |
 |---|---|:--:|---|
-| `DATABASE_URL` | `postgresql://postgres:postgres@db:5432/routing?schema=public` | yes | Postgres DSN for Prisma |
-| `PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Quote aggregation backend |
-| `RPC_URL` | `https://rpc.pulsechain.com` |  | PulseChain RPC for PulseX quoting |
+| `DATABASE_URL` | `postgresql://routing_app:password@localhost:5432/routing?schema=public` | yes | Postgres DSN for Prisma/Prisma |
+| `PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Upstream aggregator used for quotes |
 | `CORS_ALLOWLIST` | `http://localhost:5173` |  | Comma-separated origins allowed by CORS |
-| `ENFORCE_ALLOWED_DEXES` | `true` |  | Toggle enforcement of the DEX whitelist |
+| `RPC_URL` | `https://rpc.pulsechain.com` |  | PulseChain RPC endpoint (override default) |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
+| `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
+| `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
 
+> Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
 > Update `src/config/index.ts` before deploying so `AffiliateRouterAddress` (and other contract constants) match your target network.
 

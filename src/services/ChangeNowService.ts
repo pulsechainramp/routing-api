@@ -1,32 +1,44 @@
 import axios, { AxiosInstance } from 'axios';
-import { 
-  Currency, 
-  ExchangeRange, 
-  EstimateResponse, 
-  TransactionResponse, 
+import {
+  Currency,
+  ExchangeRange,
+  EstimateResponse,
+  TransactionResponse,
   TransactionStatus,
   CreateTransactionParams,
-  EstimateParams
+  EstimateParams,
 } from '../types/changenow';
 
+const DISABLED_MESSAGE = 'ChangeNOW integration is disabled (missing CHANGENOW_API_KEY)';
+
 export class ChangeNowService {
-  private client: AxiosInstance;
-  private apiKey: string;
+  private client: AxiosInstance | null = null;
+  private apiKey: string | null;
+  private enabled: boolean;
 
   constructor() {
-    this.apiKey = process.env.CHANGENOW_API_KEY!;
-    if (!this.apiKey) {
-      throw new Error('CHANGENOW_API_KEY environment variable is required');
+    this.apiKey = process.env.CHANGENOW_API_KEY ?? null;
+    this.enabled = Boolean(this.apiKey);
+
+    if (!this.enabled) {
+      console.warn('ChangeNOW integration disabled: CHANGENOW_API_KEY not set');
+      return;
     }
 
     this.client = axios.create({
       baseURL: 'https://api.changenow.io/v2',
       headers: {
         'x-changenow-api-key': this.apiKey,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      timeout: 10000
+      timeout: 10000,
     });
+  }
+
+  private assertEnabled(): asserts this is { client: AxiosInstance } {
+    if (!this.enabled || !this.client) {
+      throw new Error(DISABLED_MESSAGE);
+    }
   }
 
   async getSupportedCurrencies(params?: {
@@ -35,6 +47,7 @@ export class ChangeNowService {
     buy?: boolean;
     sell?: boolean;
   }): Promise<Currency[]> {
+    this.assertEnabled();
     try {
       const response = await this.client.get('/exchange/currencies', { params });
       return response.data;
@@ -49,17 +62,18 @@ export class ChangeNowService {
     toCurrency: string,
     fromNetwork?: string,
     toNetwork?: string,
-    flow: 'standard' | 'fixed-rate' = 'standard'
+    flow: 'standard' | 'fixed-rate' = 'standard',
   ): Promise<ExchangeRange> {
+    this.assertEnabled();
     try {
       const params = {
         fromCurrency,
         toCurrency,
         fromNetwork,
         toNetwork,
-        flow
+        flow,
       };
-      
+
       const response = await this.client.get('/exchange/range', { params });
       return response.data;
     } catch (error) {
@@ -69,6 +83,7 @@ export class ChangeNowService {
   }
 
   async getEstimatedAmount(params: EstimateParams): Promise<EstimateResponse> {
+    this.assertEnabled();
     try {
       const response = await this.client.get('/exchange/estimated-amount', { params });
       return response.data;
@@ -79,6 +94,7 @@ export class ChangeNowService {
   }
 
   async createTransaction(params: CreateTransactionParams): Promise<TransactionResponse> {
+    this.assertEnabled();
     try {
       const response = await this.client.post('/exchange', params);
       return response.data;
@@ -89,8 +105,9 @@ export class ChangeNowService {
   }
 
   async getTransactionStatus(id: string): Promise<TransactionStatus> {
+    this.assertEnabled();
     try {
-      const response = await this.client.get(`/exchange/by-id?id=${id}`);
+      const response = await this.client.get(`/exchange/by-id`, { params: { id } });
       return response.data;
     } catch (error) {
       console.error('Failed to get transaction status:', error);
@@ -103,17 +120,18 @@ export class ChangeNowService {
     toCurrency: string,
     fromNetwork?: string,
     toNetwork?: string,
-    flow: 'standard' | 'fixed-rate' = 'standard'
+    flow: 'standard' | 'fixed-rate' = 'standard',
   ): Promise<{ minAmount: number }> {
+    this.assertEnabled();
     try {
       const params = {
         fromCurrency,
         toCurrency,
         fromNetwork,
         toNetwork,
-        flow
+        flow,
       };
-      
+
       const response = await this.client.get('/exchange/min-amount', { params });
       return response.data;
     } catch (error) {
@@ -121,4 +139,4 @@ export class ChangeNowService {
       throw new Error('Failed to fetch minimum amount');
     }
   }
-} 
+}
