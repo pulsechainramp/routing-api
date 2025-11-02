@@ -35,10 +35,12 @@ export class ChangeNowService {
     });
   }
 
-  private assertEnabled(): asserts this is { client: AxiosInstance } {
+  private getClient(): AxiosInstance {
     if (!this.enabled || !this.client) {
       throw new Error(DISABLED_MESSAGE);
     }
+
+    return this.client;
   }
 
   async getSupportedCurrencies(params?: {
@@ -47,9 +49,9 @@ export class ChangeNowService {
     buy?: boolean;
     sell?: boolean;
   }): Promise<Currency[]> {
-    this.assertEnabled();
+    const client = this.getClient();
     try {
-      const response = await this.client.get('/exchange/currencies', { params });
+      const response = await client.get('/exchange/currencies', { params });
       return response.data;
     } catch (error) {
       console.error('Failed to get supported currencies:', error);
@@ -64,7 +66,7 @@ export class ChangeNowService {
     toNetwork?: string,
     flow: 'standard' | 'fixed-rate' = 'standard',
   ): Promise<ExchangeRange> {
-    this.assertEnabled();
+    const client = this.getClient();
     try {
       const params = {
         fromCurrency,
@@ -74,7 +76,7 @@ export class ChangeNowService {
         flow,
       };
 
-      const response = await this.client.get('/exchange/range', { params });
+      const response = await client.get('/exchange/range', { params });
       return response.data;
     } catch (error) {
       console.error('Failed to get exchange range:', error);
@@ -83,9 +85,9 @@ export class ChangeNowService {
   }
 
   async getEstimatedAmount(params: EstimateParams): Promise<EstimateResponse> {
-    this.assertEnabled();
+    const client = this.getClient();
     try {
-      const response = await this.client.get('/exchange/estimated-amount', { params });
+      const response = await client.get('/exchange/estimated-amount', { params });
       return response.data;
     } catch (error) {
       console.error('Failed to get estimated amount:', error);
@@ -94,9 +96,9 @@ export class ChangeNowService {
   }
 
   async createTransaction(params: CreateTransactionParams): Promise<TransactionResponse> {
-    this.assertEnabled();
+    const client = this.getClient();
     try {
-      const response = await this.client.post('/exchange', params);
+      const response = await client.post('/exchange', params);
       return response.data;
     } catch (error) {
       console.error('Failed to create transaction:', error);
@@ -105,9 +107,9 @@ export class ChangeNowService {
   }
 
   async getTransactionStatus(id: string): Promise<TransactionStatus> {
-    this.assertEnabled();
+    const client = this.getClient();
     try {
-      const response = await this.client.get(`/exchange/by-id`, { params: { id } });
+      const response = await client.get(`/exchange/by-id`, { params: { id } });
       return response.data;
     } catch (error) {
       console.error('Failed to get transaction status:', error);
@@ -122,7 +124,7 @@ export class ChangeNowService {
     toNetwork?: string,
     flow: 'standard' | 'fixed-rate' = 'standard',
   ): Promise<{ minAmount: number }> {
-    this.assertEnabled();
+    const client = this.getClient();
     try {
       const params = {
         fromCurrency,
@@ -132,7 +134,7 @@ export class ChangeNowService {
         flow,
       };
 
-      const response = await this.client.get('/exchange/min-amount', { params });
+      const response = await client.get('/exchange/min-amount', { params });
       return response.data;
     } catch (error) {
       console.error('Failed to get min amount:', error);
@@ -140,3 +142,7 @@ export class ChangeNowService {
     }
   }
 }
+
+
+
+
