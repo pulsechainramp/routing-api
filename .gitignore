@@ -69,3 +69,4 @@ Thumbs.db
 /src/generated/prisma-client/
 
 vercel.json
+docker-compose.yml
