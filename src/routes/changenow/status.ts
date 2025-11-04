@@ -80,7 +80,7 @@ export async function statusRoutes(fastify: FastifyInstance, options: StatusPlug
         }
       });
     } catch (error) {
-      fastify.log.error('Order status error:', error);
+      fastify.log.error({ err: error }, 'Order status error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get order status'
@@ -137,7 +137,7 @@ export async function statusRoutes(fastify: FastifyInstance, options: StatusPlug
         }))
       });
     } catch (error) {
-      fastify.log.error('Get orders error:', error);
+      fastify.log.error({ err: error }, 'Get orders error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get orders'
@@ -155,7 +155,7 @@ export async function statusRoutes(fastify: FastifyInstance, options: StatusPlug
         data: stats
       });
     } catch (error) {
-      fastify.log.error('Stats error:', error);
+      fastify.log.error({ err: error }, 'Stats error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get stats'

@@ -47,7 +47,7 @@ export async function swapRoutes(fastify: FastifyInstance, options: SwapPluginOp
         data: swapResult
       });
     } catch (error) {
-      fastify.log.error('Trade error:', error);
+      fastify.log.error({ err: error }, 'Trade error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create trade'

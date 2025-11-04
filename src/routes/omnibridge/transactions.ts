@@ -62,7 +62,7 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
         data: transaction
       });
     } catch (error) {
-      fastify.log.error('Get transaction error:', error);
+      fastify.log.error({ err: error }, 'Get transaction error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get transaction'
@@ -109,7 +109,7 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
         data: transactions
       });
     } catch (error) {
-      fastify.log.error('Get user transactions error:', error);
+      fastify.log.error({ err: error }, 'Get user transactions error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get user transactions'
@@ -145,7 +145,7 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
         data: transactions
       });
     } catch (error) {
-      fastify.log.error('Sync user transactions error:', error);
+      fastify.log.error({ err: error }, 'Sync user transactions error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to sync user transactions'
@@ -189,7 +189,7 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
         data: transaction
       });
     } catch (error) {
-      fastify.log.error('Create transaction error:', error);
+      fastify.log.error({ err: error }, 'Create transaction error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create transaction'

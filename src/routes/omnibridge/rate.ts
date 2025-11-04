@@ -62,7 +62,7 @@ export async function rateRoutes(fastify: FastifyInstance, options: RatePluginOp
         data: currencies
       });
     } catch (error) {
-      fastify.log.error('Currencies error:', error);
+      fastify.log.error({ err: error }, 'Currencies error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get currencies'
@@ -108,7 +108,7 @@ export async function rateRoutes(fastify: FastifyInstance, options: RatePluginOp
         data: estimate
       });
     } catch (error) {
-      fastify.log.error('Estimate error:', error);
+      fastify.log.error({ err: error }, 'Estimate error');
       return reply.status(400).send({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get estimate'

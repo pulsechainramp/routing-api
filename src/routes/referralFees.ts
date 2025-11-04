@@ -52,7 +52,7 @@ export default async function referralFeeRoutes(
         
         return reply.send(result);
       } catch (error) {
-        fastify.log.error('Error getting referral fee:', error);
+        fastify.log.error({ err: error }, 'Error getting referral fee');
         return reply.status(500).send({ error: 'Internal server error' });
       }
     }
@@ -94,7 +94,7 @@ export default async function referralFeeRoutes(
         const result = await referralFeeService.getReferralFeesByReferrer(referrer);
         return reply.send(result);
       } catch (error) {
-        fastify.log.error('Error getting referral fees by referrer:', error);
+        fastify.log.error({ err: error }, 'Error getting referral fees by referrer');
         return reply.status(500).send({ error: 'Internal server error' });
       }
     }
@@ -136,7 +136,7 @@ export default async function referralFeeRoutes(
         const result = await referralFeeService.getReferralFeesByToken(token);
         return reply.send(result);
       } catch (error) {
-        fastify.log.error('Error getting referral fees by token:', error);
+        fastify.log.error({ err: error }, 'Error getting referral fees by token');
         return reply.status(500).send({ error: 'Internal server error' });
       }
     }
@@ -164,7 +164,7 @@ export default async function referralFeeRoutes(
         const result = await referralFeeService.getTotalReferralFees();
         return reply.send(result);
       } catch (error) {
-        fastify.log.error('Error getting total referral fees:', error);
+        fastify.log.error({ err: error }, 'Error getting total referral fees');
         return reply.status(500).send({ error: 'Internal server error' });
       }
     }

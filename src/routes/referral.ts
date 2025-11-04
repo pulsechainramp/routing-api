@@ -46,7 +46,7 @@ export default async function referralRoutes(
         const result = await referralService.getOrCreateReferralCode(address);
         return reply.send(result);
       } catch (error) {
-        fastify.log.error('Error getting referral code:', error);
+        fastify.log.error({ err: error }, 'Error getting referral code');
         return reply.status(500).send({ error: 'Internal server error' });
       }
     }
@@ -98,7 +98,7 @@ export default async function referralRoutes(
         
         return reply.send(result);
       } catch (error) {
-        fastify.log.error('Error getting address by referral code:', error);
+        fastify.log.error({ err: error }, 'Error getting address by referral code');
         return reply.status(500).send({ error: 'Internal server error' });
       }
     }
