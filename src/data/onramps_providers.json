@@ -60,9 +60,64 @@
             "fee_hint": "https://bitso.com/help/es/articles/360049722093-comisiones",
             "risk_notes": "Local FX controls can impact ARS deposits/withdrawals.",
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "kraken",
+            "display_name": "Kraken",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.kraken.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["ARS"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://support.kraken.com/articles/360000381846-cash-deposit-options-fees-minimums-and-processing-times-",
+            "risk_notes": "ARS deposits supported for Argentina accounts; confirm availability in-app.",
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","banxa"]
+      },
+      {
+        "iso2": "AT",
+        "notes": "SEPA transfers widely supported; MiCA/CASP environment.",
+        "providers": [
+          {
+            "id": "bitpanda",
+            "display_name": "Bitpanda",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://bitpanda.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://support.bitpanda.com/hc/en-us/sections/360000603860-Fees",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://help.coinbase.com/en/coinbase/getting-started/crypto-education/usdc-regions",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": "MiCA passporting may apply across EEA; verify deposit method availability.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
       },
       {
         "iso2": "AU",
@@ -104,6 +159,139 @@
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
       },
       {
+        "iso2": "BE",
+        "notes": "SEPA supported.",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://help.coinbase.com/en/coinbase/getting-started/crypto-education/usdc-regions",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": "SEPA Instant may be available depending on bank.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "BG",
+        "notes": "SEPA supported; BGN not widely supported by global exchanges.",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://help.coinbase.com/en/coinbase/getting-started/crypto-education/usdc-regions",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": "Use EUR via SEPA from local BGN accounts.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/faq/what-is-an-instant-sepa-deposit/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "BH",
+        "notes": "CBB-regulated market with multiple licensed CASPs.",
+        "providers": [
+          {
+            "id": "rain",
+            "display_name": "Rain",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.rain.com/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["BHD"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.rain.com/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinmena",
+            "display_name": "CoinMENA",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.coinmena.com/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["BHD"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://www.coinmena.com/fee-schedule/withdrawal_crypto",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "binance-bahrain",
+            "display_name": "Binance Bahrain",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://www.binance.bh/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["BHD"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://www.binance.com/en/fee/cryptoFee",
+            "risk_notes": "Category 4 CBB license; check BHD rails in-app.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
+      },
+      {
         "iso2": "BR",
         "notes": "PIX is the primary local rail.",
         "providers": [
@@ -128,7 +316,7 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 2,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
+            "deeplink_template": "https://www.coinbase.com/",
             "coverage_url": "https://www.coinbase.com/legal/countries",
             "regulator_links": [],
             "supported_payment_methods": ["PIX","Card"],
@@ -151,7 +339,7 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
+            "deeplink_template": "https://www.coinbase.com/",
             "coverage_url": "https://www.coinbase.com/legal/countries",
             "regulator_links": ["https://www.securities-administrators.ca/crypto-trading-platforms-regulation-and-enforcement-actions/crypto-trading-platforms-authorized-to-do-business-with-canadians/"],
             "supported_payment_methods": ["Bank Transfer","Card","Apple Pay","Google Pay"],
@@ -161,6 +349,77 @@
             "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
             "risk_notes": "Certain provinces may display additional risk warnings.",
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "kraken",
+            "display_name": "Kraken",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.kraken.com/",
+            "regulator_links": ["https://www.osc.ca/en/industry/registration-and-compliance/crypto-businesses"],
+            "supported_payment_methods": ["Interac e-Transfer","Wire","Bank Transfer"],
+            "supports_fiat": ["CAD"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://support.kraken.com/articles/360000423043-cash-withdrawal-options-fees-minimums-and-processing-times-",
+            "risk_notes": "Registered Restricted Dealer in Canada.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "newton",
+            "display_name": "Newton",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://newton.co/",
+            "regulator_links": ["https://www.osc.ca/en/industry/registration-and-compliance/crypto-businesses"],
+            "supported_payment_methods": ["Interac e-Transfer","Wire"],
+            "supports_fiat": ["CAD"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://help.newton.co/hc/en-us/articles/360052371793-What-are-Newton-s-Fees",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "CH",
+        "notes": null,
+        "providers": [
+          {
+            "id": "swissquote",
+            "display_name": "Swissquote",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://en.swissquote.com/",
+            "regulator_links": ["https://www.finma.ch/en/finma-public/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["CHF","EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://en.swissquote.com/fees",
+            "risk_notes": null,
+            "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "kraken",
+            "display_name": "Kraken",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.kraken.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["CHF"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://support.kraken.com/articles/360000423043-cash-withdrawal-options-fees-minimums-and-processing-times-",
+            "risk_notes": "CHF via SIC/SWIFT through Bank Frick.",
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -189,6 +448,146 @@
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
       },
       {
+        "iso2": "CL",
+        "notes": "Use local CLP rails; bank transfer common.",
+        "providers": [
+          {
+            "id": "buda",
+            "display_name": "Buda.com",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.buda.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["CLP"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.buda.com/comisiones",
+            "risk_notes": "CLP deposits via bank transfer; confirm processing times.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
+      },
+      {
+        "iso2": "CO",
+        "notes": "COP PSE rails supported by local exchanges.",
+        "providers": [
+          {
+            "id": "bitso-co",
+            "display_name": "Bitso (Colombia)",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://bitso.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["PSE","Bank Transfer"],
+            "supports_fiat": ["COP"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://bitso.com/help/es/articles/360049722093-comisiones",
+            "risk_notes": "PSE deposit availability and limits may vary.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "buda-co",
+            "display_name": "Buda.com (Colombia)",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.buda.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer","PSE"],
+            "supports_fiat": ["COP"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.buda.com/co/terms",
+            "risk_notes": "Confirm COP deposit hours via PSE.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
+      },
+      {
+        "iso2": "CY",
+        "notes": "SEPA supported.",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "CZ",
+        "notes": "CZK and EUR rails; SEPA widely available.",
+        "providers": [
+          {
+            "id": "coinmate",
+            "display_name": "Coinmate",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://coinmate.io/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer","SEPA","Card"],
+            "supports_fiat": ["CZK","EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://coinmate.io/en/fees",
+            "risk_notes": "CZK bank transfers supported; EUR via SEPA.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://help.coinbase.com/en/coinbase/getting-started/crypto-education/usdc-regions",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
         "iso2": "DE",
         "notes": "SEPA transfers recommended.",
         "providers": [
@@ -197,8 +596,8 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/de/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://www.coinbase.com/",
             "regulator_links": ["https://portal.mvp.bafin.de/database/InstInfo/institutDetails.do?cmd=loadInstitutAction&institutId=181555"],
             "supported_payment_methods": ["SEPA","Card"],
             "supports_fiat": ["EUR"],
@@ -236,8 +635,8 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/en-dk/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://www.coinbase.com/",
             "regulator_links": [],
             "supported_payment_methods": ["SEPA","Card"],
             "supports_fiat": ["EUR","DKK"],
@@ -246,6 +645,61 @@
             "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
             "risk_notes": null,
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "bitpanda",
+            "display_name": "Bitpanda",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://bitpanda.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitpanda.com/en/limits",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "EE",
+        "notes": "SEPA supported; local FIU-licensed exchange available.",
+        "providers": [
+          {
+            "id": "coinmetro",
+            "display_name": "Coinmetro",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://coinmetro.com/",
+            "regulator_links": ["https://coinmetro.com/blog/coinmetro-secures-renewed-fiu-license-in-estonia","https://fiu.ee/en/news/100-active-authorisations-estonia-providing-virtual-asset-services"],
+            "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.coinmetro.com/en-us/blog/say-hello-to-seamless-card-deposits-on-coinmetro",
+            "risk_notes": "Estonia transitioning VASP licensing to FSA CASP regimeâ€”verify status.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://help.coinbase.com/en/coinbase/getting-started/crypto-education/usdc-regions",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -275,7 +729,7 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 2,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
+            "deeplink_template": "https://www.coinbase.com/",
             "coverage_url": "https://www.coinbase.com/es/legal/countries",
             "regulator_links": [],
             "supported_payment_methods": ["SEPA","Card"],
@@ -308,6 +762,22 @@
             "fee_hint": "https://coinmotion.com/fees/",
             "risk_notes": null,
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.coinbase.com/en-fi/legal/countries",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -337,7 +807,7 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 2,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
+            "deeplink_template": "https://www.coinbase.com/",
             "coverage_url": "https://www.coinbase.com/fr/legal/countries",
             "regulator_links": [],
             "supported_payment_methods": ["SEPA","Card"],
@@ -361,7 +831,7 @@
             "type": "onramp",
             "priority": 1,
             "deeplink_template": "https://app.ramp.network/",
-            "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+            "coverage_url": "https://rampnetwork.com/",
             "regulator_links": [],
             "supported_payment_methods": ["Faster Payments","Card","Apple Pay","Google Pay"],
             "supports_fiat": ["GBP"],
@@ -407,6 +877,68 @@
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
       },
       {
+        "iso2": "GH",
+        "notes": "Mobile Money rails preferred; verify supported MNOs.",
+        "providers": [
+          {
+            "id": "yellow-card",
+            "display_name": "Yellow Card",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://yellowcard.io/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Mobile Money","Bank Transfer"],
+            "supports_fiat": ["GHS"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.yellowcard.io/article/518-deposit-withdrawal-methods-per-country",
+            "risk_notes": "Name on mobile money wallet must match KYC name.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
+      },
+       {
+        "iso2": "GR",
+        "notes": "SEPA supported.",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": "SEPA Instant may be supported depending on bank.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
         "iso2": "HK",
         "notes": "Retail trading permitted only via SFC-licensed VATPs.",
         "providers": [
@@ -446,6 +978,123 @@
         "fallback_providers": []
       },
       {
+        "iso2": "HR",
+        "notes": "SEPA supported (euro area).",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "HU",
+        "notes": "SEPA supported; HUF not commonâ€”use EUR via SEPA.",
+        "providers": [
+          {
+            "id": "bitpanda",
+            "display_name": "Bitpanda",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://bitpanda.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://support.bitpanda.com/hc/en-us/sections/360000603860-Fees",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "ID",
+        "notes": "Use Bappebti-registered exchanges; IDR bank transfers.",
+        "providers": [
+          {
+            "id": "indodax",
+            "display_name": "INDODAX",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://indodax.com/",
+            "regulator_links": ["https://bappebti.go.id/","https://www.bappebti.go.id/siaran_pers/view/4888/daftar_pedagang_aset_kripto_terdaftar_di_bappebti"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["IDR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://indodax.com/fees",
+            "risk_notes": "Verify current status on Bappebti registered list.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "pintu",
+            "display_name": "Pintu",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://pintu.co.id/",
+            "regulator_links": ["https://www.bappebti.go.id/siaran_pers/view/4888/daftar_pedagang_aset_kripto_terdaftar_di_bappebti"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["IDR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://pintu.co.id/en/help",
+            "risk_notes": "IDR deposit methods via local bank transfers/virtual accounts.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
+      },
+          {
         "iso2": "IE",
         "notes": "SEPA preferred.",
         "providers": [
@@ -454,8 +1103,8 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/en-ie/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://www.coinbase.com/",
             "regulator_links": ["https://www.centralbank.ie/regulation/how-we-regulate/authorisation/regulated-entities-register"],
             "supported_payment_methods": ["SEPA","Card"],
             "supports_fiat": ["EUR"],
@@ -483,6 +1132,29 @@
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "IL",
+        "notes": "Use locally licensed VASPs; ILS bank transfers widely supported.",
+        "providers": [
+          {
+            "id": "bits-of-gold",
+            "display_name": "Bits of Gold",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitsofgold.co.il/en",
+            "regulator_links": ["https://www.gov.il/en/departments/capital_market_authority/govil-landing-page"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["ILS","USD","EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitsofgold.net/about",
+            "risk_notes": "Licensed locally; confirm card availability with your issuer.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
       },
       {
         "iso2": "IN",
@@ -524,6 +1196,45 @@
         "fallback_providers": ["moonpay","transak","banxa"]
       },
       {
+        "iso2": "IS",
+        "notes": "Local VASPs supervised by the Central Bank of Iceland; ISK bank transfers are standard.",
+        "providers": [
+          {
+            "id": "myntkaup",
+            "display_name": "Myntkaup",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://myntkaup.is/en",
+            "regulator_links": ["https://cb.is/financial-supervision/other-undertakings/crypto-asset-service-providers/"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["ISK"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://hjalp.myntkaup.is/article/36-gjaldskra-myntkaupa",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "ismynt",
+            "display_name": "IsMynt",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.ismynt.is/",
+            "regulator_links": ["https://cb.is/financial-supervision/other-undertakings/crypto-asset-service-providers/"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["ISK"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": null,
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
         "iso2": "IT",
         "notes": "SEPA supported.",
         "providers": [
@@ -532,8 +1243,8 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/it/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://www.coinbase.com/",
             "regulator_links": [],
             "supported_payment_methods": ["SEPA","Card"],
             "supports_fiat": ["EUR"],
@@ -542,9 +1253,80 @@
             "fee_hint": "https://help.coinbase.com/it/coinbase/trading-and-funding/pricing-and-fees/fees",
             "risk_notes": null,
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "JP",
+        "notes": "Only FSA-registered exchanges can serve retail.",
+        "providers": [
+          {
+            "id": "bitflyer",
+            "display_name": "bitFlyer",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://bitflyer.com/ja-jp",
+            "regulator_links": ["https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["JPY"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://bitflyer.com/ja-jp/commission",
+            "risk_notes": "Deposit/withdrawal rules vary by bank; confirm ETH mainnet availability.",
+            "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "bitbank",
+            "display_name": "bitBank",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://support.bitbank.cc/",
+            "regulator_links": ["https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["JPY"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://bitbank.cc/docs/fees/",
+            "risk_notes": "FSA-registered VASP; retail JPY deposits via bank transfer.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coincheck",
+            "display_name": "Coincheck",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://coincheck.com/",
+            "regulator_links": ["https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["JPY"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://coincheck.com/ja/fee_scheduled",
+            "risk_notes": "FSA-registered VASP; confirm ETH mainnet withdrawals in-app.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
       },
       {
         "iso2": "JP",
@@ -570,6 +1352,45 @@
         "fallback_providers": []
       },
       {
+        "iso2": "KE",
+        "notes": "Mobile money and bank transfer rails.",
+        "providers": [
+          {
+            "id": "yellow-card",
+            "display_name": "Yellow Card",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://yellowcard.io/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Mobile Money","Bank Transfer"],
+            "supports_fiat": ["KES"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.yellowcard.io/article/518-deposit-withdrawal-methods-per-country",
+            "risk_notes": "Name on mobile money wallet must match KYC name.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "luno-ke",
+            "display_name": "Luno (Kenya)",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.luno.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["KES"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": null,
+            "risk_notes": "Service relaunched in 2025; confirm local KES deposit method.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
+      },
+      {
         "iso2": "KR",
         "notes": "Retail access via KoFIU-registered VASPs.",
         "providers": [
@@ -588,9 +1409,158 @@
             "fee_hint": "https://upbit.com/service_center/guide",
             "risk_notes": "Requires real-name bank account linkage.",
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "bithumb",
+            "display_name": "Bithumb",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://bithumb.com/",
+            "regulator_links": ["https://www.fsc.go.kr/eng/pr010101/80586"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["KRW"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bithumb.com/customer_support/guide?categorySeq=88",
+            "risk_notes": "Requires real-name bank account linkage.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinone",
+            "display_name": "Coinone",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://coinone.co.kr/",
+            "regulator_links": ["https://www.fsc.go.kr/eng/pr010101/80586"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["KRW"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://coinonechannel.tistory.com/16",
+            "risk_notes": "Requires real-name bank account linkage.",
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": []
+      },
+      {
+        "iso2": "LT",
+        "notes": "SEPA supported; local EUR rails available.",
+        "providers": [
+          {
+            "id": "spectrocoin",
+            "display_name": "SpectroCoin",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://spectrocoin.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://help.spectrocoin.com/en-GB/kb/article/103/deposit-fees-and-limits",
+            "risk_notes": "SEPA deposits typically free; verify per bank.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "LU",
+        "notes": "MiCA CASP-regulated EU hub; SEPA recommended.",
+        "providers": [
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": ["https://www.cssf.lu/en/"],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": "Authorised in Luxembourg; MiCA CASP license.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://www.coinbase.com/",
+            "regulator_links": ["https://www.cssf.lu/en/"],
+            "supported_payment_methods": ["SEPA","Card","Apple Pay","Google Pay"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+            "risk_notes": "MiCA CASP authorisation via CSSF enables EU-wide coverage.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "LV",
+        "notes": "SEPA supported.",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
       },
       {
         "iso2": "MX",
@@ -611,9 +1581,103 @@
             "fee_hint": "https://bitso.com/help/es/articles/360049722093-comisiones",
             "risk_notes": "SPEI availability may be during banking hours.",
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "kraken",
+            "display_name": "Kraken",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.kraken.com/",
+            "regulator_links": ["https://www.gob.mx/cnbv/acciones-y-programas/entidades-supervisadas"],
+            "supported_payment_methods": ["SPEI"],
+            "supports_fiat": ["MXN"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://support.kraken.com/articles/360000381846-cash-deposit-options-fees-minimums-and-processing-times-",
+            "risk_notes": "MXN via SPEI per Kraken support; confirm live availability.",
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "MY",
+        "notes": "Use SC Malaysiaâ€‘registered DAX; MYR bank transfers.",
+        "providers": [
+          {
+            "id": "luno-my",
+            "display_name": "Luno Malaysia",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.luno.com/",
+            "regulator_links": ["https://www.sc.com.my/regulation/guidelines/recognizedmarkets/list-of-registered-digital-asset-exchanges"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["MYR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://guide.luno.com/hc/en-gb/articles/1000168415-Fees-and-limits",
+            "risk_notes": "Only MASâ€‘permitted assets in Malaysia per SC guidance; verify supported tokens.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "tokenize",
+            "display_name": "Tokenize Malaysia (Kinetic DAX/Tokenize Technology)",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://kdx.com.my/",
+            "regulator_links": ["https://www.sc.com.my/regulation/guidelines/recognizedmarkets/list-of-registered-digital-asset-exchanges"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["MYR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": null,
+            "risk_notes": "Registered RMO DAX; check current brand (Tokenize/Kinetic DAX) and fee schedule.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
+      },
+      {
+        "iso2": "NG",
+        "notes": "Use NGN bank rails; some providers use vouchers or payment partners.",
+        "providers": [
+          {
+            "id": "yellow-card",
+            "display_name": "Yellow Card",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://yellowcard.io/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["NGN"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.yellowcard.io/article/518-deposit-withdrawal-methods-per-country",
+            "risk_notes": "Name on bank account must match KYC name.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "luno-ng",
+            "display_name": "Luno (Nigeria)",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://luno.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["NGN"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://guide.luno.com/hc/en-gb/articles/14962563616157-Luno-fees-and-limits-in-Nigeria",
+            "risk_notes": "Deposit/withdrawal partner fees may apply; voucher flows used for some methods.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
       },
       {
         "iso2": "NL",
@@ -634,6 +1698,61 @@
             "fee_hint": "https://support.bitvavo.com/hc/en-us/articles/4411707243153-Fees-overview",
             "risk_notes": null,
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/nl/coinbase/trading-and-funding/pricing-and-fees/fees",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "NO",
+        "notes": null,
+        "providers": [
+          {
+            "id": "firi",
+            "display_name": "Firi",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://firi.com/",
+            "regulator_links": ["https://www.finanstilsynet.no/en/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["NOK"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://firi.com/prices",
+            "risk_notes": null,
+            "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "nbx",
+            "display_name": "NBX (Norwegian Block Exchange)",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://nbx.com/",
+            "regulator_links": ["https://www.finanstilsynet.no/en/"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["NOK"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://help.nbx.com/hc/en-us/articles/360002573097",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -680,9 +1799,103 @@
             "fee_hint": "https://easycrypto.ai/nz/fees",
             "risk_notes": null,
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "independent-reserve",
+            "display_name": "Independent Reserve",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.independentreserve.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["NZD"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.independentreserve.com/nz/fees",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "OM",
+        "notes": "CMA has introduced a VA/VASP framework; regional CBB-licensed platforms support OMR bank transfers.",
+        "providers": [
+          {
+            "id": "rain",
+            "display_name": "Rain",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.rain.com/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/","https://fsa.gov.om/Home/ReadMore?id=9560&id=9560"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["OMR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.rain.com/",
+            "risk_notes": "Cross-border service from CBB-licensed entity; confirm OMR bank support.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinmena",
+            "display_name": "CoinMENA",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.coinmena.com/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/","https://fsa.gov.om/Home/ReadMore?id=9560&id=9560"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["OMR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://www.coinmena.com/fee-schedule/withdrawal_crypto",
+            "risk_notes": "OMR deposits and withdrawals supported via local rails; verify in-app.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "binance-bahrain",
+            "display_name": "Binance Bahrain",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://www.binance.bh/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["OMR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://www.binance.com/en/fee/cryptoFee",
+            "risk_notes": "CBB Category 4 exchange; OMR funding supported via regional banking partners.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
+      },
+      {
+        "iso2": "PE",
+        "notes": "Local PEN rails via bank transfer.",
+        "providers": [
+          {
+            "id": "buda-pe",
+            "display_name": "Buda.com (Peru)",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.buda.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["PEN"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.buda.com/pe/terminos",
+            "risk_notes": "PEN bank hours may affect settlement timing.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
       },
       {
         "iso2": "PH",
@@ -703,6 +1916,22 @@
             "fee_hint": "https://support.coins.ph/hc/en-us/articles/203011224-Fees-and-Limits",
             "risk_notes": "Confirm ETH mainnet network selection at withdrawal.",
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "pdax",
+            "display_name": "PDAX",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://pdax.ph/",
+            "regulator_links": ["https://www.bsp.gov.ph/Regulations/Lists/VASP/AllItems.aspx"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["PHP"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://support.pdax.ph/hc/en-us/articles/17542226394073-Fees-and-Limits",
+            "risk_notes": "BSP-registered VASP.",
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","banxa"]
@@ -716,8 +1945,47 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/pl/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card","Bank Transfer"],
+            "supports_fiat": ["EUR","PLN"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/pl/coinbase/trading-and-funding/pricing-and-fees/fees",
+            "risk_notes": null,
+            "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "zonda",
+            "display_name": "Zonda",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://zondaglobal.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["PLN","EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://zondaglobal.com/en/help/fees-and-commissions",
+            "risk_notes": "Formerly BitBay.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "PL",
+        "notes": "SEPA available via EUR transfers; PLN bank transfers supported by some providers.",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
             "regulator_links": [],
             "supported_payment_methods": ["SEPA","Card","Bank Transfer"],
             "supports_fiat": ["EUR","PLN"],
@@ -739,8 +2007,8 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/pt/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
             "regulator_links": [],
             "supported_payment_methods": ["SEPA","Card"],
             "supports_fiat": ["EUR"],
@@ -749,9 +2017,103 @@
             "fee_hint": "https://help.coinbase.com/pt/coinbase/trading-and-funding/pricing-and-fees/fees",
             "risk_notes": null,
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "RO",
+        "notes": "RON and EUR rails; SEPA supported.",
+        "providers": [
+          {
+            "id": "tradesilvania",
+            "display_name": "Tradesilvania",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://tradesilvania.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["RON","EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://tradesilvania.com/en/frequent-questions/en-general/what-commissions-do-you-apply",
+            "risk_notes": "Local RON rails available; SEPA for EUR.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "SA",
+        "notes": "Regional, CBB-licensed platforms support SAR with local bank transfers; confirm deposit options with your bank.",
+        "providers": [
+          {
+            "id": "rain",
+            "display_name": "Rain",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.rain.com/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["SAR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.rain.com/",
+            "risk_notes": "Cross-border service from CBB-licensed entity; verify SAR funding with your bank.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinmena",
+            "display_name": "CoinMENA",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.coinmena.com/",
+            "regulator_links": ["https://www.cbb.gov.bh/licensing-directory/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["SAR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://www.coinmena.com/fee-schedule/withdrawal_crypto",
+            "risk_notes": "Serves KSA users; SAR card and bank transfers supported; verify local bank acceptance.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
       },
       {
         "iso2": "SE",
@@ -772,6 +2134,100 @@
             "fee_hint": "https://safello.com/en/price-and-fees/",
             "risk_notes": null,
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "btcx",
+            "display_name": "BTCX (Goobit)",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://bt.cx/en/",
+            "regulator_links": ["https://www.fi.se/en/our-registers/"],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["SEK","EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://bt.cx/en/support/faq/exchange/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "SI",
+        "notes": "SEPA supported.",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
+      },
+      {
+        "iso2": "SK",
+        "notes": "SEPA supported (euro area).",
+        "providers": [
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/exchange/funding/depositing-with-sepa-transfers",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "bitstamp",
+            "display_name": "Bitstamp",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitstamp.net/",
+            "regulator_links": [],
+            "supported_payment_methods": ["SEPA","Card"],
+            "supports_fiat": ["EUR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitstamp.net/fee-schedule/",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","ramp","banxa"]
@@ -785,8 +2241,8 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/en-sg/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
             "regulator_links": ["https://eservices.mas.gov.sg/fid/institution/detail/235467-COINBASE-SINGAPORE-PTE-LTD"],
             "supported_payment_methods": ["PayNow","Bank Transfer","Card"],
             "supports_fiat": ["SGD","USD"],
@@ -834,6 +2290,186 @@
             "fee_hint": "https://support.bitkub.com/hc/en-us/articles/360006678492-Fee-Structure",
             "risk_notes": "Ensure ETH mainnet withdrawal network.",
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "upbit-th",
+            "display_name": "Upbit Thailand",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://th.upbit.com/",
+            "regulator_links": ["https://www.sec.or.th/EN/Pages/LawandRegulations/DigitalAssetBusiness.aspx"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["THB"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": null,
+            "risk_notes": "SEC-licensed local exchange.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "binance-th",
+            "display_name": "Binance TH (Gulf Binance)",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://www.binance.th/en",
+            "regulator_links": ["https://www.sec.or.th/EN/Pages/LawandRegulations/DigitalAssetBusiness.aspx"],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["THB"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": null,
+            "risk_notes": "SEC-authorised local entity; THB deposits/withdrawals supported.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
+      },
+      {
+        "iso2": "TR",
+        "notes": "No formal crypto exchange license yet; CASPs operate under MASAK AML rules. TRY funding is typically via bank transfer (EFT/FAST) and some eâ€‘money rails (e.g., Papara) per provider.",
+        "providers": [
+          {
+            "id": "btcturk",
+            "display_name": "BtcTurk",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://btcturk.com/",
+            "regulator_links": [
+              "https://masak.hmb.gov.tr/regulation-on-measures-for-prevention-of-laundering-proceeds-of-crime-and-financing-of-terrorism"
+            ],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["TRY"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.btcturk.com/komisyon-ve-limitler",
+            "risk_notes": "Bank account name must match KYC name; deposits via FAST/EFT timing can vary by bank.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "paribu",
+            "display_name": "Paribu",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.paribu.com/",
+            "regulator_links": [
+              "https://masak.hmb.gov.tr/regulation-on-measures-for-prevention-of-laundering-proceeds-of-crime-and-financing-of-terrorism"
+            ],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["TRY"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://destek.paribu.com/hc/tr/sections/115001634185-%C3%9Ccretler",
+            "risk_notes": "TL deposits/withdrawals are free; thirdâ€‘party payments not accepted.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "binance-tr",
+            "display_name": "Binance TR",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://www.binance.com/",
+            "regulator_links": [
+              "https://masak.hmb.gov.tr/regulation-on-measures-for-prevention-of-laundering-proceeds-of-crime-and-financing-of-terrorism"
+            ],
+            "supported_payment_methods": ["Bank Transfer","Papara"],
+            "supports_fiat": ["TRY"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://www.binance.com/en/fee/cryptoFee",
+            "risk_notes": "TRY funding via EFT/FAST and Papara is available on TR entity per guide.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","banxa"]
+      },
+      {
+        "iso2": "TW",
+        "notes": "Retail trading via locally AML-registered VASPs. Credit cards cannot be used to buy crypto in Taiwan; use bank transfers. Convenience-store cash top-ups have been curtailed by some platforms.",
+        "providers": [
+          {
+            "id": "bitopro",
+            "display_name": "BitoPro",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://www.bitopro.com/",
+            "regulator_links": [
+              "https://www.bitopro.com/ns/en-US/announcements/1271",
+              "https://law.fsc.gov.tw/EngLawContent.aspx?id=2734&lan=E"
+            ],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["TWD"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://www.bitopro.com/ns/en-US/fees",
+            "risk_notes": "BitoPro paused convenience-store TWD deposits pending regulator discussions (May 27, 2025).",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "maicoin-max",
+            "display_name": "MAX (MaiCoin Group)",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://maicoin.com/",
+            "regulator_links": [
+              "https://group.maicoin.com/group",
+              "https://law.fsc.gov.tw/EngLawContent.aspx?id=2734&lan=E"
+            ],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["TWD"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://max.maicoin.com/docs/fees",
+            "risk_notes": "Bankâ€‘linked TWD accounts only; typical maker/taker trading fees apply on MAX.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "xrex",
+            "display_name": "XREX",
+            "type": "exchange",
+            "priority": 3,
+            "deeplink_template": null,
+            "coverage_url": "https://xrex.io/",
+            "regulator_links": [
+              "https://xrex.io/",
+              "https://www.prnewswire.com/apac/news-releases/xrex-taiwan-secures-key-regulatory-approval-from-taiwans-fsc-pioneering-a-new-era-of-regulated-virtual-asset-services-302564451.html"
+            ],
+            "supported_payment_methods": ["Bank Transfer"],
+            "supports_fiat": ["TWD","USD"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://help.xrex.io/hc/en-us/articles/8593321960473-Deposit-withdrawal-and-transfer-fee",
+            "risk_notes": "Creditâ€‘card funding is not allowed in Taiwan; XREX supports TWD and USD bank transfers.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": []
+      },
+      {
+        "iso2": "UA",
+        "notes": "War-time banking rules may affect UAH rails; verify current deposit methods.",
+        "providers": [
+          {
+            "id": "whitebit",
+            "display_name": "WhiteBIT",
+            "type": "exchange",
+            "priority": 1,
+            "deeplink_template": null,
+            "coverage_url": "https://whitebit.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Card","Bank Transfer"],
+            "supports_fiat": ["UAH"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://whitebit.com/fees/fiat",
+            "risk_notes": "UAH deposits often via card transfer/P2P partners; Kuna ceased operations (Mar 31, 2025).",
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": []
@@ -847,8 +2483,8 @@
             "display_name": "Coinbase",
             "type": "exchange",
             "priority": 1,
-            "deeplink_template": "https://www.coinbase.com/buy/ETH",
-            "coverage_url": "https://www.coinbase.com/legal/countries",
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://www.coinbase.com/",
             "regulator_links": ["https://www.coinbase.com/legal/licenses"],
             "supported_payment_methods": ["ACH","Wire","Card","Apple Pay","Google Pay"],
             "supports_fiat": ["USD"],
@@ -890,7 +2526,7 @@
             "type": "onramp",
             "priority": 3,
             "deeplink_template": "https://app.ramp.network/",
-            "coverage_url": "https://support.rampnetwork.com/en/articles/433-which-countries-and-us-states-are-unsupported-for-buying-and-selling-crypto",
+            "coverage_url": "https://rampnetwork.com/",
             "regulator_links": [],
             "supported_payment_methods": ["ACH","Card","Apple Pay","Google Pay","Bank Transfer"],
             "supports_fiat": ["USD"],
@@ -911,7 +2547,7 @@
             "type": "onramp",
             "priority": 4,
             "deeplink_template": "https://buy.moonpay.com/",
-            "coverage_url": "https://www.moonpay.com/legal/licenses",
+            "coverage_url": "https://www.moonpay.com/",
             "regulator_links": ["https://www.moonpay.com/legal/licenses"],
             "supported_payment_methods": ["ACH","Card","Apple Pay","Google Pay","Wire"],
             "supports_fiat": ["USD"],
@@ -932,7 +2568,7 @@
             "type": "onramp",
             "priority": 5,
             "deeplink_template": "https://global.transak.com/",
-            "coverage_url": "https://transak.com/global-coverage",
+            "coverage_url": "https://transak.com/",
             "regulator_links": [],
             "supported_payment_methods": ["ACH","Wire","Card","Apple Pay","Google Pay"],
             "supports_fiat": ["USD"],
@@ -960,7 +2596,7 @@
             "type": "exchange",
             "priority": 1,
             "deeplink_template": null,
-            "coverage_url": "https://www.luno.com/wallet/",
+            "coverage_url": "https://www.luno.com/",
             "regulator_links": ["https://www.fsca.co.za/pages/financial-institutions/fi-search.aspx"],
             "supported_payment_methods": ["Bank Transfer","Card"],
             "supports_fiat": ["ZAR"],
@@ -969,9 +2605,112 @@
             "fee_hint": "https://www.luno.com/en/za/help/articles/11000084064",
             "risk_notes": "Confirm ETH mainnet withdrawals.",
             "last_verified": "2025-09-21T20:45:00Z"
+          },
+          {
+            "id": "valr",
+            "display_name": "VALR",
+            "type": "exchange",
+            "priority": 2,
+            "deeplink_template": null,
+            "coverage_url": "https://www.valr.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Bank Transfer","Card"],
+            "supports_fiat": ["ZAR"],
+            "kyc_speed_hint": "medium",
+            "limits_hint": null,
+            "fee_hint": "https://support.valr.com/hc/en-us/articles/360015777451-What-are-VALR-s-charges",
+            "risk_notes": null,
+            "last_verified": "2025-11-03T00:00:00Z"
           }
         ],
         "fallback_providers": ["moonpay","transak","banxa"]
+      },
+      {
+        "iso2": "ZZ",
+        "notes": "Fallback for users in countries we haven't mapped yet. Shows global on-ramps that cover many jurisdictions. Availability varies by provider and may be blocked in sanctioned/restricted regions.",
+        "providers": [
+          {
+            "id": "ramp",
+            "display_name": "Ramp Network",
+            "type": "onramp",
+            "priority": 1,
+            "deeplink_template": "https://app.ramp.network/",
+            "coverage_url": "https://rampnetwork.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+            "supports_fiat": ["USD","EUR","GBP"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://support.rampnetwork.com/en/articles/477-what-fees-are-charged-when-buying-crypto",
+            "risk_notes": "Check Ramp’s unsupported list; some jurisdictions are buy-only or unavailable.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "moonpay",
+            "display_name": "MoonPay",
+            "type": "onramp",
+            "priority": 2,
+            "deeplink_template": "https://buy.moonpay.com/",
+            "coverage_url": "https://moonpay.com/",
+            "regulator_links": ["https://dev.moonpay.com/docs/country-coverage"],
+            "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+            "supports_fiat": ["USD","EUR","GBP"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://support.moonpay.com/en/articles/382205-what-fees-does-moonpay-charge",
+            "risk_notes": "Not available in listed unsupported countries/regions; see coverage docs.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "transak",
+            "display_name": "Transak",
+            "type": "onramp",
+            "priority": 3,
+            "deeplink_template": "https://global.transak.com/",
+            "coverage_url": "https://transak.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+            "supports_fiat": ["USD","EUR","GBP"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://docs.transak.com/docs/fees",
+            "risk_notes": "Supports 60+ countries; exact methods/fiat vary by user country and KYC.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "banxa",
+            "display_name": "Banxa",
+            "type": "onramp",
+            "priority": 4,
+            "deeplink_template": "https://checkout.banxa.com/",
+            "coverage_url": "https://banxa.com/",
+            "regulator_links": ["https://docs.banxa.com/reference/retrieve-a-list-of-countries"],
+            "supported_payment_methods": ["Card","Apple Pay","Google Pay","Bank Transfer"],
+            "supports_fiat": ["USD","EUR","GBP","AUD","CAD"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://banxa.com/pricing/",
+            "risk_notes": "Global except sanctioned/blacklisted jurisdictions; methods/fiat vary.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          },
+          {
+            "id": "coinbase",
+            "display_name": "Coinbase",
+            "type": "exchange",
+            "priority": 5,
+            "deeplink_template": "https://www.coinbase.com/",
+            "coverage_url": "https://coinbase.com/",
+            "regulator_links": [],
+            "supported_payment_methods": ["Card","Bank Transfer","Apple Pay","Google Pay"],
+            "supports_fiat": ["USD","EUR","GBP"],
+            "kyc_speed_hint": "fast",
+            "limits_hint": null,
+            "fee_hint": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees",
+            "risk_notes": "Availability depends on user country; not offered in all regions.",
+            "last_verified": "2025-11-03T00:00:00Z"
+          }
+        ],
+        "fallback_providers": ["moonpay","transak","ramp","banxa"]
       }
     ],
     "globals": {
