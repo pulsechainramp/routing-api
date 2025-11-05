@@ -66,6 +66,20 @@ docker compose up --build
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
 | `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
+| `JWT_SECRET` | `super-secret-value` | yes | HMAC secret for SIWE-issued JWTs |
+| `JWT_EXPIRES_IN` | `1h` |  | Optional JWT lifetime (Fastify JWT format) |
+| `SIWE_DOMAIN` | `pulsechainramp.com` |  | Expected SIWE domain (defaults to request host) |
+| `SIWE_URI` | `https://pulsechainramp.com` |  | Audience URI embedded in SIWE messages |
+| `SIWE_STATEMENT` | `Sign in to create a referral code` |  | Custom SIWE message statement |
+| `SIWE_CHAIN_ID` | `369` |  | Chain ID used for SIWE validation (defaults to 369) |
+| `REFERRAL_CREATION_RATE_LIMIT_MAX` | `3` |  | Per-address POST `/referral/code` limit |
+| `REFERRAL_CREATION_RATE_LIMIT_WINDOW` | `1 minute` |  | Rate-limit window for referral creation |
+| `REFERRAL_READ_RATE_LIMIT_MAX` | `60` |  | GET `/referral/*` read limit |
+| `REFERRAL_READ_RATE_LIMIT_WINDOW` | `1 minute` |  | Window for referral read limits |
+| `REFERRAL_FEES_RATE_LIMIT_MAX` | `120` |  | GET `/referral-fees/*` limit |
+| `REFERRAL_FEES_RATE_LIMIT_WINDOW` | `1 minute` |  | Window for referral fee limits |
+| `SIWE_CHALLENGE_RATE_LIMIT_MAX` | `20` |  | Auth challenge/verify rate limit |
+| `SIWE_CHALLENGE_RATE_LIMIT_WINDOW` | `1 minute` |  | Window for auth rate limit |
 
 > Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
@@ -121,6 +135,35 @@ GET /onramps/providers?country=US&address=0x1234&amount=200&fiat=USD
 
 Swagger UI is available in non-production environments at `/docs`.
 
+### Authenticated Referral Flow
+1. **Challenge:**  
+   `GET /auth/challenge?address=0xAbC...`  
+   Returns a SIWE message + nonce for the wallet to sign.
+
+2. **Verify:**  
+   `POST /auth/verify`  
+   ```json
+   { "message": "<siwe message>", "signature": "<0x…>" }
+   ```  
+   Responds with a short-lived JWT (`{ "token": "...", "address": "0xabc..." }`).
+
+3. **Check on-chain fee:**  
+   `GET /referral/creation-fee` → `{ "fee": "35000000000000000", "contractAddress": "0x..." }`
+
+4. **Create code (authenticated):**  
+   `POST /referral/code` with headers:
+   ```
+   Authorization: Bearer <jwt>
+   X-Idempotency-Key: <uuid>
+   ```
+   Body: `{ "address": "0xabc..." }`
+
+   - `200/201` — Existing or newly created referral record.
+   - `402` — `{ "error": "Referral creation fee required", "fee": "35000000000000000", "contractAddress": "0x..." }`
+   - `401` — JWT missing/invalid or wallet mismatch.
+
+Read-only endpoints (`GET /referral/code`, `/referral/address`, `/referral-fees/*`) remain unauthenticated but inherit tighter rate limits.
+
 ---
 
 ## Project Structure
@@ -169,7 +212,7 @@ routing-api/
 
 ## Security & Compliance
 - **Secrets:** Loaded via `.env`; never commit production credentials.
-- **Auth:** No built-in auth; protect deployment with network controls or upstream gateway.
+- **Auth:** SIWE challenge + Fastify JWT protect referral creation; other routes remain unauthenticated and should sit behind network controls.
 - **Validation:** Fastify schemas validate query params, body payloads, and rate-limit responses.
 - **Protections:** Helmet defaults, strict CORS allowlist, log redaction for auth headers and secrets.
 - **Dependencies:** Managed via npm; review with `npm audit` during CI/CD.

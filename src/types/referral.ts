@@ -10,6 +10,10 @@ export interface ReferralCodeRequest {
   address: string;
 }
 
+export interface ReferralCodeCreateBody {
+  address: string;
+}
+
 export interface ReferralCodeByCodeRequest {
   referralCode: string;
 }
@@ -18,6 +22,11 @@ export interface ReferralCodeByCodeResponse {
   address: string;
   referralCode: string;
   createdAt: string;
+}
+
+export interface ReferralCreationFeeResponse {
+  fee: string;
+  contractAddress: string;
 }
 
 export interface ReferralFeeResponse {

@@ -5,6 +5,7 @@ import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import fastifyHelmet from '@fastify/helmet';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
+import fastifyJwt from '@fastify/jwt';
 
 import { PrismaClient } from './generated/prisma-client';
 import { Logger } from './utils/logger';
@@ -22,6 +23,8 @@ import { ReferralFeeService } from './services/ReferralFeeService';
 import { IndexerManager } from './services/IndexerManager';
 import { RouteRegistry } from './routes/registry';
 import { PulseXQuoteService } from './services/PulseXQuoteService';
+import { AuthService } from './services/AuthService';
+import { ReferralPaymentService } from './services/ReferralPaymentService';
 
 import dotenv from 'dotenv';
 import config from './config';
@@ -32,6 +35,7 @@ dotenv.config();
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const PORT = Number(process.env.PORT ?? 3000);
 const isDev = NODE_ENV === 'development';
+const JWT_SECRET = process.env.JWT_SECRET || 'development-jwt-secret-change-me';
 
 // Comma-separated list of allowed origins, e.g.
 // CORS_ALLOWLIST="https://app.example.com,https://admin.example.com"
@@ -99,6 +103,8 @@ const transactionService = new TransactionService(prisma);
 const referralService = new ReferralService(prisma);
 const referralFeeService = new ReferralFeeService(prisma);
 const pulseXQuoteService = new PulseXQuoteService();
+const authService = new AuthService();
+const referralPaymentService = new ReferralPaymentService();
 
 // Initialize IndexerManager with environment variables
 const indexerManager = new IndexerManager(
@@ -163,6 +169,23 @@ if (NODE_ENV !== 'production') {
   console.log('Swagger plugins registered successfully');
 }
 
+// ---- JWT Authentication -----------------------------------------------------
+app.register(fastifyJwt, {
+  secret: JWT_SECRET,
+  sign: {
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '1h'
+  }
+});
+
+app.decorate('authenticate', async function (request: any, reply: any) {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    request.log.warn({ err }, 'JWT verification failed');
+    return reply.status(401).send({ error: 'Unauthorized' });
+  }
+});
+
 // Register all routes using the registry
 const routeRegistry = new RouteRegistry(app, {
   prisma,
@@ -174,7 +197,9 @@ const routeRegistry = new RouteRegistry(app, {
   transactionService,
   referralService,
   referralFeeService,
-  pulseXQuoteService
+  pulseXQuoteService,
+  authService,
+  referralPaymentService
 });
 
 // ---- Global error handler (no leaky details) --------------------------------

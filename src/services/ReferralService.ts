@@ -36,33 +36,45 @@ export class ReferralService {
 
 
 
-  async getOrCreateReferralCode(address: string): Promise<UserResponse> {
-    // Normalize address to lowercase for case-insensitive handling
+  async getReferralCodeByAddress(address: string): Promise<UserResponse | null> {
     const normalizedAddress = address.toLowerCase();
-    
-    // Check if user already exists
-    let user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { address: normalizedAddress }
     });
 
     if (!user) {
-      // Generate new unique referral code
-      const newReferralCode = await this._generateUniqueReferralCode();
-      
-      user = await this.prisma.user.create({
-        data: {
-          address: normalizedAddress,
-          referralCode: newReferralCode
-        }
-      });
+      return null;
     }
 
+    return this.toResponse(user);
+  }
+
+  async createReferralCode(address: string): Promise<{ user: UserResponse; created: boolean }> {
+    const normalizedAddress = address.toLowerCase();
+
+    const existing = await this.prisma.user.findUnique({
+      where: { address: normalizedAddress }
+    });
+
+    if (existing) {
+      return {
+        user: this.toResponse(existing),
+        created: false
+      };
+    }
+
+    const newReferralCode = await this._generateUniqueReferralCode();
+
+    const user = await this.prisma.user.create({
+      data: {
+        address: normalizedAddress,
+        referralCode: newReferralCode
+      }
+    });
+
     return {
-      id: user.id,
-      address: user.address,
-      referralCode: user.referralCode,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString()
+      user: this.toResponse(user),
+      created: true
     };
   }
 
@@ -81,4 +93,14 @@ export class ReferralService {
       createdAt: result.createdAt.toISOString()
     };
   }
-} 
+
+  private toResponse(user: any): UserResponse {
+    return {
+      id: user.id,
+      address: user.address,
+      referralCode: user.referralCode,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString()
+    };
+  }
+}

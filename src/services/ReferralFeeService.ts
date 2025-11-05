@@ -1,7 +1,7 @@
 import { PrismaClient } from '../generated/prisma-client';
 import { ReferralFeeResponse, ReferralFeeUpdateEvent } from '../types/referral';
 import { ethers } from 'ethers';
-import AffiliateRouterABI from '../abis/AffiliateRouter.json';
+import AffiliateRouterArtifact from '../abis/AffiliateRouter.json';
 import { formatTokenAmount } from '../utils/web3';
 
 export class ReferralFeeService {
@@ -10,7 +10,8 @@ export class ReferralFeeService {
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
-    this.affiliateRouterInterface = new ethers.Interface(AffiliateRouterABI);
+    const abi = (AffiliateRouterArtifact as { abi: ethers.InterfaceAbi }).abi;
+    this.affiliateRouterInterface = new ethers.Interface(abi);
   }
 
 

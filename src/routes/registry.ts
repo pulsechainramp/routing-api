@@ -8,6 +8,8 @@ import { RateService } from '../services/RateService';
 import { TransactionService } from '../services/TransactionService';
 import { ReferralService } from '../services/ReferralService';
 import { ReferralFeeService } from '../services/ReferralFeeService';
+import { AuthService } from '../services/AuthService';
+import { ReferralPaymentService } from '../services/ReferralPaymentService';
 
 
 // Route imports
@@ -19,6 +21,7 @@ import referralRoutes from './referral';
 import referralFeeRoutes from './referralFees';
 import { PulseXQuoteService } from '@/services/PulseXQuoteService';
 import onrampsRoutes from './onramps';
+import authRoutes from './auth';
 
 export interface RouteDependencies {
   prisma: PrismaClient;
@@ -31,6 +34,8 @@ export interface RouteDependencies {
   referralService: ReferralService;
   referralFeeService: ReferralFeeService;
   pulseXQuoteService: PulseXQuoteService;
+  authService: AuthService;
+  referralPaymentService: ReferralPaymentService;
 }
 
 export class RouteRegistry {
@@ -43,6 +48,7 @@ export class RouteRegistry {
   }
 
   async registerAllRoutes(): Promise<void> {
+    await this.registerAuthRoutes();
     await this.registerHealthRoutes();
     await this.registerPiteasRoutes();
     // await this.registerChangeNowRoutes();
@@ -50,6 +56,13 @@ export class RouteRegistry {
     await this.registerReferralRoutes();
     await this.registerReferralFeeRoutes();
     await this.registerOnrampsRoutes();
+  }
+
+  private async registerAuthRoutes(): Promise<void> {
+    await this.fastify.register(authRoutes, {
+      prefix: '/auth',
+      authService: this.dependencies.authService
+    });
   }
 
   private async registerHealthRoutes(): Promise<void> {
@@ -105,7 +118,8 @@ export class RouteRegistry {
     // Register referral routes under /referral prefix
     await this.fastify.register(referralRoutes, {
       prefix: '/referral',
-      referralService: this.dependencies.referralService
+      referralService: this.dependencies.referralService,
+      referralPaymentService: this.dependencies.referralPaymentService
     });
   }
 

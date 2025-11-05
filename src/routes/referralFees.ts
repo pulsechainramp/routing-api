@@ -1,6 +1,9 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { ReferralFeeService } from '../services/ReferralFeeService';
 
+const feeReadRateLimit = Number(process.env.REFERRAL_FEES_RATE_LIMIT_MAX ?? 120);
+const feeReadRateWindow = process.env.REFERRAL_FEES_RATE_LIMIT_WINDOW ?? '1 minute';
+
 export default async function referralFeeRoutes(
   fastify: FastifyInstance,
   options: FastifyPluginOptions & { referralFeeService: ReferralFeeService }
@@ -11,6 +14,12 @@ export default async function referralFeeRoutes(
   fastify.get<{ Querystring: { referrer: string; token: string } }>(
     '/fee',
     {
+      config: {
+        rateLimit: {
+          max: feeReadRateLimit,
+          timeWindow: feeReadRateWindow
+        }
+      },
       schema: {
         querystring: {
           type: 'object',
@@ -62,6 +71,12 @@ export default async function referralFeeRoutes(
   fastify.get<{ Querystring: { referrer: string } }>(
     '/referrer/:referrer',
     {
+      config: {
+        rateLimit: {
+          max: feeReadRateLimit,
+          timeWindow: feeReadRateWindow
+        }
+      },
       schema: {
         params: {
           type: 'object',
@@ -104,6 +119,12 @@ export default async function referralFeeRoutes(
   fastify.get<{ Querystring: { token: string } }>(
     '/token/:token',
     {
+      config: {
+        rateLimit: {
+          max: feeReadRateLimit,
+          timeWindow: feeReadRateWindow
+        }
+      },
       schema: {
         params: {
           type: 'object',
@@ -146,6 +167,12 @@ export default async function referralFeeRoutes(
   fastify.get(
     '/totals',
     {
+      config: {
+        rateLimit: {
+          max: feeReadRateLimit,
+          timeWindow: feeReadRateWindow
+        }
+      },
       schema: {
         response: {
           200: {
