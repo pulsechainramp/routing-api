@@ -71,6 +71,26 @@ export class PulseXQuoteService {
     );
   }
 
+  private isNativeToken(tokenAddress: string | undefined): boolean {
+    if (!tokenAddress) {
+      return false;
+    }
+
+    const normalized = tokenAddress.toLowerCase();
+    return tokenAddress === "PLS" || normalized === "pls" || normalized === "0x0" || normalized === ethers.ZeroAddress.toLowerCase();
+  }
+
+  private normalizeTokenAddress(tokenAddress: string): string {
+    if (this.isNativeToken(tokenAddress)) {
+      return config.WPLS;
+    }
+    return tokenAddress;
+  }
+
+  private formatResponseToken(originalToken: string, normalizedToken: string): string {
+    return this.isNativeToken(originalToken) ? ethers.ZeroAddress : normalizedToken;
+  }
+
   public async getQuote(params: QuoteParams): Promise<QuoteResponse> {
     try {
       this.logger.info("Getting PulseX quote", { 
@@ -79,24 +99,39 @@ export class PulseXQuoteService {
         amount: params.amount 
       });
 
-      const isEthOut = params.tokenOutAddress === "PLS" || params.tokenOutAddress === ethers.ZeroAddress;
-      params.tokenInAddress = params.tokenInAddress == "PLS" ? config.WPLS : params.tokenInAddress;
-      params.tokenOutAddress = params.tokenOutAddress == "PLS" ? config.WPLS : params.tokenOutAddress;
+      const originalTokenIn = params.tokenInAddress;
+      const originalTokenOut = params.tokenOutAddress;
+
+      const normalizedTokenIn = this.normalizeTokenAddress(originalTokenIn);
+      const normalizedTokenOut = this.normalizeTokenAddress(originalTokenOut);
+      const normalizedParams: QuoteParams = {
+        ...params,
+        tokenInAddress: normalizedTokenIn,
+        tokenOutAddress: normalizedTokenOut,
+      };
+
+      const isEthOut = this.isNativeToken(originalTokenOut);
       
       // First, try direct liquidity between tokenIn and tokenOut
-      let route = await this.findDirectRoute(params.tokenInAddress, params.tokenOutAddress, params.amount);
+      let route = await this.findDirectRoute(normalizedTokenIn, normalizedTokenOut, params.amount);
       
       // If no direct route, try through PLS
       if (!route) {
         this.logger.info("No direct route found, trying through PLS");
-        route = await this.findRouteThroughPLS(params.tokenInAddress, params.tokenOutAddress, params.amount);
+        route = await this.findRouteThroughPLS(normalizedTokenIn, normalizedTokenOut, params.amount);
       }
 
       if (!route) {
         throw new Error("No liquidity found for this token pair");
       }
 
-      return await this.transformToQuoteResponse(route, params, isEthOut);
+      return await this.transformToQuoteResponse(
+        route,
+        normalizedParams,
+        isEthOut,
+        originalTokenIn,
+        originalTokenOut
+      );
     } catch (error) {
       this.logger.error("Failed to get PulseX quote", { error });
       throw error;
@@ -128,7 +163,15 @@ export class PulseXQuoteService {
 
   private async findRouteThroughPLS(tokenIn: string, tokenOut: string, amount: string): Promise<Route | null> {
     try {
-      const plsAddress = ethers.ZeroAddress; // PLS is represented as zero address
+      const plsAddress = config.WPLS;
+      const tokenInLower = tokenIn.toLowerCase();
+      const tokenOutLower = tokenOut.toLowerCase();
+      const plsLower = plsAddress.toLowerCase();
+
+      // If either side is already WPLS, there is no additional PLS bridge to attempt
+      if (tokenInLower === plsLower || tokenOutLower === plsLower) {
+        return null;
+      }
       
       // Check if we can go tokenIn -> PLS
       const tokenInToPLS = await this.findDirectRoute(tokenIn, plsAddress, amount);
@@ -196,7 +239,9 @@ export class PulseXQuoteService {
 
   private async getAmountOut(tokenIn: string, tokenOut: string, amountIn: string, route: Route): Promise<string | null> {
     try {
-      const path = [tokenIn, tokenOut];
+      const normalizedTokenIn = this.normalizeTokenAddress(tokenIn);
+      const normalizedTokenOut = this.normalizeTokenAddress(tokenOut);
+      const path = [normalizedTokenIn, normalizedTokenOut];
       
       // Try PulseX V2 first
       try {
@@ -236,7 +281,13 @@ export class PulseXQuoteService {
     };
   }
 
-  private async transformToQuoteResponse(route: Route, params: QuoteParams, isEthOut: boolean): Promise<QuoteResponse> {
+  private async transformToQuoteResponse(
+    route: Route,
+    params: QuoteParams,
+    isEthOut: boolean,
+    originalTokenIn: string,
+    originalTokenOut: string
+  ): Promise<QuoteResponse> {
     // Calculate actual output amount
     const outputAmount = await this.calculateRouteOutput(route, params.amount);
     if (!outputAmount) {
@@ -290,8 +341,8 @@ export class PulseXQuoteService {
 
     return {
       calldata: encodeSwapRoute(swapRoute),
-      tokenInAdress: params.tokenInAddress,
-      tokenOutAddress: params.tokenOutAddress,
+      tokenInAdress: this.formatResponseToken(originalTokenIn, params.tokenInAddress),
+      tokenOutAddress: this.formatResponseToken(originalTokenOut, params.tokenOutAddress),
       outputAmount: outputAmount,
       gasAmountEstimated: gasEstimate.gasAmount,
       gasUSDEstimated: gasEstimate.gasUSD,
