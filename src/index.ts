@@ -1,10 +1,7 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
-import fastifySwagger from '@fastify/swagger';
-import fastifySwaggerUi from '@fastify/swagger-ui';
 import fastifyHelmet from '@fastify/helmet';
-import { RateLimiterMemory } from 'rate-limiter-flexible';
 import fastifyJwt from '@fastify/jwt';
 
 import { PrismaClient } from './generated/prisma-client';
@@ -28,14 +25,15 @@ import { ReferralPaymentService } from './services/ReferralPaymentService';
 
 import dotenv from 'dotenv';
 import config from './config';
+import { setupSwagger } from './plugins/swagger';
 
 // Load environment variables
 dotenv.config();
 
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const PORT = Number(process.env.PORT ?? 3000);
-const isDev = NODE_ENV === 'development';
 const JWT_SECRET = process.env.JWT_SECRET || 'development-jwt-secret-change-me';
+const ENABLE_SWAGGER = process.env.ENABLE_SWAGGER === 'true';
 
 // Comma-separated list of allowed origins, e.g.
 // CORS_ALLOWLIST="https://app.example.com,https://admin.example.com"
@@ -147,27 +145,11 @@ app.register(cors, {
   credentials: false,
 });
 
-// ---- Swagger (non-production only) ------------------------------------------
-if (NODE_ENV !== 'production') {
-  app.register(fastifySwagger, {
-    openapi: {
-        info: {
-            title: 'Admin Service API',
-            description: 'API Documentation for Admin Service',
-            version: '1.0.0',
-        },
-    },
-  });
-
-  app.register(fastifySwaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-        docExpansion: 'full',
-        deepLinking: false
-    }
-  });
-  console.log('Swagger plugins registered successfully');
-}
+// ---- Swagger (explicit opt-in only) -----------------------------------------
+setupSwagger(app, {
+  enabled: ENABLE_SWAGGER,
+  routePrefix: '/docs',
+});
 
 // ---- JWT Authentication -----------------------------------------------------
 app.register(fastifyJwt, {
