@@ -3,6 +3,7 @@ import { PiteasService } from '../services/PiteasService';
 import { QuoteController } from '../controllers/QuoteController';
 import { ADDRESS } from '../schemas/common';
 import { PulseXQuoteService } from '@/services/PulseXQuoteService';
+import { getClientIp } from '../utils/network';
 
 interface QuotePluginOptions extends FastifyPluginOptions {
   piteasService: PiteasService;
@@ -22,6 +23,7 @@ export default async function quoteRoutes(
       rateLimit: {
         max: Number(process.env.QUOTE_RL_POINTS ?? 60),
         timeWindow: `${Number(process.env.QUOTE_RL_DURATION ?? 60)} seconds`,
+        keyGenerator: (request: any) => getClientIp(request),
         errorResponseBuilder: (request: any, context: any) => ({
           error: 'Too Many Requests - Quote endpoint rate limit exceeded',
           requestId: request.id,
@@ -71,6 +73,7 @@ export default async function quoteRoutes(
       rateLimit: {
         max: Number(process.env.QUOTE_RL_POINTS ?? 60),
         timeWindow: `${Number(process.env.QUOTE_RL_DURATION ?? 60)} seconds`,
+        keyGenerator: (request: any) => getClientIp(request),
         errorResponseBuilder: (request: any, context: any) => ({
           error: 'Too Many Requests - Quote endpoint rate limit exceeded',
           requestId: request.id,

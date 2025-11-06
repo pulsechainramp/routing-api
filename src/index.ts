@@ -26,6 +26,7 @@ import { ReferralPaymentService } from './services/ReferralPaymentService';
 import dotenv from 'dotenv';
 import config from './config';
 import { setupSwagger } from './plugins/swagger';
+import { getClientIp } from './utils/network';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,43 @@ const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const PORT = Number(process.env.PORT ?? 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'development-jwt-secret-change-me';
 const ENABLE_SWAGGER = process.env.ENABLE_SWAGGER === 'true';
+const TRUST_PROXY = resolveTrustProxy(process.env.TRUST_PROXY);
+
+function resolveTrustProxy(value?: string): boolean | number | string | string[] {
+  if (!value) {
+    return false;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (lower === 'true') {
+    return true;
+  }
+  if (lower === 'false') {
+    return false;
+  }
+
+  const asNumber = Number(trimmed);
+  if (!Number.isNaN(asNumber)) {
+    return asNumber;
+  }
+
+  if (trimmed.includes(',')) {
+    const parts = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts;
+    }
+    if (parts.length === 1) {
+      return parts[0];
+    }
+  }
+
+  return trimmed;
+}
 
 // Comma-separated list of allowed origins, e.g.
 // CORS_ALLOWLIST="https://app.example.com,https://admin.example.com"
@@ -60,7 +98,7 @@ const app = fastify({
       remove: true,
     },
   },
-  trustProxy: true, // respect X-Forwarded-For for correct req.ip behind proxies
+  trustProxy: TRUST_PROXY,
   bodyLimit: 512 * 1024, // 512KB body limit to prevent DoS
   maxParamLength: 1024, // 1KB max parameter length
 });
@@ -125,7 +163,7 @@ app.register(fastifyHelmet, {
 app.register(rateLimit, {
   max: Number(process.env.RL_POINTS ?? 200),
   timeWindow: `${Number(process.env.RL_DURATION ?? 60)} seconds`,
-  keyGenerator: (request: any) => request.ip,
+  keyGenerator: (request: any) => getClientIp(request),
   errorResponseBuilder: (request: any, context: any) => ({
     error: 'Too Many Requests - Global rate limit exceeded',
     requestId: request.id,

@@ -62,6 +62,7 @@ docker compose up --build
 | `DATABASE_URL` | `postgresql://routing_app:password@localhost:5432/routing?schema=public` | yes | Postgres DSN for Prisma/Prisma |
 | `PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Upstream aggregator used for quotes |
 | `CORS_ALLOWLIST` | `http://localhost:5173` |  | Comma-separated origins allowed by CORS |
+| `TRUST_PROXY` | `` |  | Optional Fastify `trustProxy` setting (boolean/number/list). Leave empty to disable |
 | `RPC_URL` | `https://rpc.pulsechain.com` |  | PulseChain RPC endpoint (override default) |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
@@ -216,6 +217,12 @@ routing-api/
 - **Validation:** Fastify schemas validate query params, body payloads, and rate-limit responses.
 - **Protections:** Helmet defaults, strict CORS allowlist, log redaction for auth headers and secrets.
 - **Dependencies:** Managed via npm; review with `npm audit` during CI/CD.
+
+---
+
+## Networking & Rate Limits
+- When you deploy behind nginx or another trusted reverse proxy, set `TRUST_PROXY=1` (or list the proxy IPs/CIDRs) so Fastify honors the original client address forwarded by your edge.
+- Leave `TRUST_PROXY` empty when Fastify is exposed directly; this prevents spoofed `X-Forwarded-For` headers from bypassing the global or quote-specific rate limits.
 
 ---
 
