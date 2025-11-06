@@ -118,26 +118,18 @@ export class OmniBridgeService {
         };
       }
 
-      // Convert wei amount to human-readable format first
-      const humanReadableAmount = ethers.formatUnits(amount, token.decimals);
-      
-      // Calculate fee based on network
-      let feePercentage = 0;
+      // Calculate fee based on network (expressed as basis points to avoid floats)
+      let feeBps = 0; // basis points, e.g. 30 = 0.3%
       if (networkId === 369) { // PulseChain
-        feePercentage = 0.3; // 0.3%
+        feeBps = 30;
       } else if (networkId === 1) { // Ethereum
-        feePercentage = 0; // 0%
+        feeBps = 0;
       } else {
-        feePercentage = 0; // Default to 0% for unknown networks
+        feeBps = 0;
       }
 
-      // Calculate fee on human-readable amount
-      const feeAmount = (parseFloat(humanReadableAmount) * feePercentage) / 100;
-      const estimatedHumanAmount = parseFloat(humanReadableAmount) - feeAmount;
-
-      // Convert back to wei format for response
-      const feeWei = ethers.parseUnits(feeAmount.toString(), token.decimals).toString();
-      const estimatedAmountWei = ethers.parseUnits(estimatedHumanAmount.toString(), token.decimals).toString();
+      const feePercentage = feeBps / 100; // maintain existing response contract
+      const { feeWei, estimatedAmountWei } = this.calculateFeeInWei(amount, token.decimals, feeBps);
 
       return {
         tokenAddress,
@@ -202,8 +194,8 @@ export class OmniBridgeService {
     }
   }
 
-  // Utility function to calculate fee and return wei amounts
-  calculateFeeInWei(weiAmount: string, decimals: number, feePercentage: number): {
+  // Utility function to calculate fee using integer math
+  calculateFeeInWei(weiAmount: string, decimals: number, feeBps: number): {
     feeWei: string;
     estimatedAmountWei: string;
     humanReadableAmount: string;
@@ -211,23 +203,23 @@ export class OmniBridgeService {
     estimatedHuman: string;
   } {
     try {
-      // Convert wei to human readable
-      const humanReadableAmount = ethers.formatUnits(weiAmount, decimals);
-      
-      // Calculate fee on human readable amount
-      const feeAmount = (parseFloat(humanReadableAmount) * feePercentage) / 100;
-      const estimatedHumanAmount = parseFloat(humanReadableAmount) - feeAmount;
-      
-      // Convert back to wei
-      const feeWei = ethers.parseUnits(feeAmount.toString(), decimals).toString();
-      const estimatedAmountWei = ethers.parseUnits(estimatedHumanAmount.toString(), decimals).toString();
-      
+      const amountWei = BigInt(weiAmount);
+      const feeBpsBigInt = BigInt(feeBps);
+      const bpsDivisor = 10000n;
+
+      const feeWeiBigInt = (amountWei * feeBpsBigInt) / bpsDivisor;
+      const estimatedWeiBigInt = amountWei - feeWeiBigInt;
+
+      const humanReadableAmount = ethers.formatUnits(amountWei, decimals);
+      const feeHuman = ethers.formatUnits(feeWeiBigInt, decimals);
+      const estimatedHuman = ethers.formatUnits(estimatedWeiBigInt, decimals);
+
       return {
-        feeWei,
-        estimatedAmountWei,
+        feeWei: feeWeiBigInt.toString(),
+        estimatedAmountWei: estimatedWeiBigInt.toString(),
         humanReadableAmount,
-        feeHuman: feeAmount.toString(),
-        estimatedHuman: estimatedHumanAmount.toString()
+        feeHuman,
+        estimatedHuman
       };
     } catch (error) {
       console.error('Failed to calculate fee:', error);
