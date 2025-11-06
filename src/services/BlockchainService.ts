@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import Bottleneck from 'bottleneck';
 import OmniBridgeABI from '../abis/OmniBridge.json';
 
 export interface TransactionLog {
@@ -24,11 +25,30 @@ export class BlockchainService {
   private ethProvider: ethers.JsonRpcProvider;
   private plsProvider: ethers.JsonRpcProvider;
   private omniBridgeInterface: ethers.Interface;
+  private ethLimiter: Bottleneck;
+  private plsLimiter: Bottleneck;
 
   constructor() {
     this.ethProvider = new ethers.JsonRpcProvider('https://eth-mainnet.public.blastapi.io');
     this.plsProvider = new ethers.JsonRpcProvider('https://rpc.pulsechain.com');
     this.omniBridgeInterface = new ethers.Interface(OmniBridgeABI);
+
+    const ethConcurrency = Math.max(1, Number(process.env.RPC_ETH_MAX_CONCURRENCY ?? 5));
+    const plsConcurrency = Math.max(1, Number(process.env.RPC_PLS_MAX_CONCURRENCY ?? 5));
+
+    this.ethLimiter = new Bottleneck({ maxConcurrent: ethConcurrency });
+    this.plsLimiter = new Bottleneck({ maxConcurrent: plsConcurrency });
+  }
+
+  private getLimiter(networkId: number): Bottleneck {
+    switch (networkId) {
+      case 1:
+        return this.ethLimiter;
+      case 369:
+        return this.plsLimiter;
+      default:
+        throw new Error(`Unsupported network ID: ${networkId}`);
+    }
   }
 
   // Get provider based on network ID
@@ -47,83 +67,44 @@ export class BlockchainService {
   async getTransactionReceipt(txHash: string, networkId: number): Promise<ethers.TransactionReceipt | null> {
     try {
       const provider = this.getProvider(networkId);
-      return await provider.getTransactionReceipt(txHash);
+      const limiter = this.getLimiter(networkId);
+      return await limiter.schedule(() => provider.getTransactionReceipt(txHash));
     } catch (error) {
       console.error('Failed to get transaction receipt:', error);
       throw new Error('Failed to get transaction receipt');
     }
   }
 
-  // Parse transaction logs to find TokensBridgingInitiated event
-  async parseTokensBridgingInitiatedEvent(txHash: string, networkId: number): Promise<TokensBridgingInitiatedEvent | null> {
-    try {
-      const receipt = await this.getTransactionReceipt(txHash, networkId);
-      
-      if (!receipt) {
-        throw new Error('Transaction receipt not found');
-      }
+  extractTokensBridgingInitiatedEvent(receipt: ethers.TransactionReceipt): TokensBridgingInitiatedEvent | null {
+    for (const log of receipt.logs) {
+      try {
+        const parsedLog = this.omniBridgeInterface.parseLog({
+          topics: log.topics,
+          data: log.data
+        });
 
-      // Find the TokensBridgingInitiated event in the logs
-      for (const log of receipt.logs) {
-        try {
-          // Try to parse the log as TokensBridgingInitiated event
-          const parsedLog = this.omniBridgeInterface.parseLog({
-            topics: log.topics,
-            data: log.data
-          });
-
-          if (parsedLog && parsedLog.name === 'TokensBridgingInitiated') {
-            return {
-              token: parsedLog.args[0] as string,
-              sender: parsedLog.args[1] as string,
-              value: parsedLog.args[2].toString(),
-              messageId: parsedLog.args[3] as string
-            };
-          }
-        } catch (parseError) {
-          // This log is not a TokensBridgingInitiated event, continue to next log
-          continue;
+        if (parsedLog && parsedLog.name === 'TokensBridgingInitiated') {
+          return {
+            token: parsedLog.args[0] as string,
+            sender: parsedLog.args[1] as string,
+            value: parsedLog.args[2].toString(),
+            messageId: parsedLog.args[3] as string
+          };
         }
+      } catch {
+        continue;
       }
-
-      // No TokensBridgingInitiated event found
-      return null;
-    } catch (error) {
-      console.error('Failed to parse TokensBridgingInitiated event:', error);
-      throw new Error('Failed to parse bridge event');
     }
-  }
 
-  // Get transaction details
-  async getTransactionDetails(txHash: string, networkId: number) {
-    try {
-      const provider = this.getProvider(networkId);
-      const [transaction, receipt] = await Promise.all([
-        provider.getTransaction(txHash),
-        provider.getTransactionReceipt(txHash)
-      ]);
-
-      if (!transaction || !receipt) {
-        throw new Error('Transaction not found');
-      }
-
-      return {
-        transaction,
-        receipt,
-        blockNumber: receipt.blockNumber,
-        timestamp: await this.getBlockTimestamp(BigInt(receipt.blockNumber), networkId)
-      };
-    } catch (error) {
-      console.error('Failed to get transaction details:', error);
-      throw new Error('Failed to get transaction details');
-    }
+    return null;
   }
 
   // Get block timestamp
   async getBlockTimestamp(blockNumber: bigint, networkId: number): Promise<number> {
     try {
       const provider = this.getProvider(networkId);
-      const block = await provider.getBlock(blockNumber);
+      const limiter = this.getLimiter(networkId);
+      const block = await limiter.schedule(() => provider.getBlock(blockNumber));
       return Number(block?.timestamp) || 0;
     } catch (error) {
       console.error('Failed to get block timestamp:', error);

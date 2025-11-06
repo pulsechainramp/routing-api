@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { PrismaClient } from '../generated/prisma-client';
-import { BlockchainService, TokensBridgingInitiatedEvent } from './BlockchainService';
+import { BlockchainService } from './BlockchainService';
 import {
   OmniBridgeRequest,
   OmniBridgeExecution,
@@ -17,6 +17,9 @@ export class OmniBridgeTransactionService {
   private blockchainService: BlockchainService;
   private ethereumGraphUrl: string;
   private pulsechainGraphUrl: string;
+  private failedTransactionCache: Map<string, number>;
+  private inflightTransactions: Map<string, Promise<any>>;
+  private failureCacheTtlMs: number;
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
@@ -27,6 +30,10 @@ export class OmniBridgeTransactionService {
     this.client = axios.create({
       timeout: 10000
     });
+
+    this.failureCacheTtlMs = Number(process.env.OMNI_MISS_TTL_MS ?? 10 * 60 * 1000);
+    this.failedTransactionCache = new Map();
+    this.inflightTransactions = new Map();
   }
 
   // Create a new bridge transaction from source chain data
@@ -55,6 +62,32 @@ export class OmniBridgeTransactionService {
       console.log(data)
       throw new Error('Failed to create transaction');
     }
+  }
+
+  private getFailureCacheKey(txHash: string, networkId: number): string {
+    return `${networkId}:${txHash.toLowerCase()}`;
+  }
+
+  private hasRecentFailure(cacheKey: string): boolean {
+    const expiresAt = this.failedTransactionCache.get(cacheKey);
+    if (!expiresAt) {
+      return false;
+    }
+
+    if (Date.now() > expiresAt) {
+      this.failedTransactionCache.delete(cacheKey);
+      return false;
+    }
+
+    return true;
+  }
+
+  private rememberFailure(cacheKey: string): void {
+    if (this.failureCacheTtlMs <= 0) {
+      return;
+    }
+
+    this.failedTransactionCache.set(cacheKey, Date.now() + this.failureCacheTtlMs);
   }
 
   // Utility function to format amount for database storage
@@ -424,6 +457,8 @@ export class OmniBridgeTransactionService {
 
   // Create transaction from transaction hash and network ID (frontend sends tx hash and network)
   async createTransactionFromTxHash(txHash: string, networkId: number, userAddress: string) {
+    const cacheKey = this.getFailureCacheKey(txHash, networkId);
+
     try {
       // Validate inputs
       if (!this.blockchainService.validateTransactionHash(txHash)) {
@@ -434,65 +469,94 @@ export class OmniBridgeTransactionService {
         throw new Error('Invalid network ID. Supported: 1 (Ethereum), 369 (PulseChain)');
       }
 
-      // Parse the transaction logs to get the TokensBridgingInitiated event
-      const bridgeEvent = await this.blockchainService.parseTokensBridgingInitiatedEvent(txHash, networkId);
-      
-      if (!bridgeEvent) {
-        throw new Error('No TokensBridgingInitiated event found in transaction');
+      if (this.hasRecentFailure(cacheKey)) {
+        throw new Error('Transaction not found in bridge cache');
       }
 
-      // Check if transaction already exists
-      const existingTransaction = await this.getTransactionByMessageId(bridgeEvent.messageId);
-      if (existingTransaction) {
-        return existingTransaction;
+      if (this.inflightTransactions.has(cacheKey)) {
+        return await this.inflightTransactions.get(cacheKey)!;
       }
 
-      // Get transaction details for timestamp
-      const txDetails = await this.blockchainService.getTransactionDetails(txHash, networkId);
-      
-      // Determine direction based on network ID
-      const sourceChainId = networkId;
-      const targetChainId = networkId === 1 ? 369 : 1; // 1 -> 369, 369 -> 1
+      const work = (async () => {
+        const receipt = await this.blockchainService.getTransactionReceipt(txHash, networkId);
 
-      // Get token information from the OmniBridge service
-      const omniBridgeService = new (await import('./OmniBridgeService')).OmniBridgeService();
-      const currencies = await omniBridgeService.getSupportedCurrencies();
-      
-      // Find token info (handle native tokens with zero address)
-      let tokenInfo = currencies.find(currency => 
-        currency.address.toLowerCase() === bridgeEvent.token.toLowerCase() && 
-        currency.chainId === networkId
-      );
+        if (!receipt) {
+          this.rememberFailure(cacheKey);
+          throw new Error('Transaction receipt not found');
+        }
 
-      // If not found and token is zero address, look for native token
-      if (!tokenInfo && bridgeEvent.token.toLowerCase() === '0x0000000000000000000000000000000000000000') {
-        tokenInfo = currencies.find(currency => 
-          currency.chainId === networkId && 
-          (currency.symbol === 'ETH' || currency.symbol === 'PLS')
+        const bridgeEvent = this.blockchainService.extractTokensBridgingInitiatedEvent(receipt);
+
+        if (!bridgeEvent) {
+          this.rememberFailure(cacheKey);
+          throw new Error('No TokensBridgingInitiated event found in transaction');
+        }
+
+        // Check if transaction already exists
+        const existingTransaction = await this.getTransactionByMessageId(bridgeEvent.messageId);
+        if (existingTransaction) {
+          return existingTransaction;
+        }
+
+        // Determine direction based on network ID
+        const sourceChainId = networkId;
+        const targetChainId = networkId === 1 ? 369 : 1; // 1 -> 369, 369 -> 1
+
+        const timestamp = await this.blockchainService.getBlockTimestamp(BigInt(receipt.blockNumber), networkId);
+
+        // Get token information from the OmniBridge service
+        const omniBridgeService = new (await import('./OmniBridgeService')).OmniBridgeService();
+        const currencies = await omniBridgeService.getSupportedCurrencies();
+        
+        // Find token info (handle native tokens with zero address)
+        let tokenInfo = currencies.find(currency => 
+          currency.address.toLowerCase() === bridgeEvent.token.toLowerCase() && 
+          currency.chainId === networkId
         );
-      }
 
-      if (!tokenInfo) {
-        throw new Error('Token not found in supported currencies');
-      }
+        // If not found and token is zero address, look for native token
+        if (!tokenInfo && bridgeEvent.token.toLowerCase() === '0x0000000000000000000000000000000000000000') {
+          tokenInfo = currencies.find(currency => 
+            currency.chainId === networkId && 
+            (currency.symbol === 'ETH' || currency.symbol === 'PLS')
+          );
+        }
 
-      // Create the transaction record
-      return await this.createTransaction({
-        messageId: bridgeEvent.messageId,
-        userAddress: userAddress,
-        sourceChainId,
-        targetChainId,
-        sourceTxHash: txHash,
-        tokenAddress: bridgeEvent.token,
-        tokenSymbol: tokenInfo.symbol,
-        tokenDecimals: tokenInfo.decimals,
-        amount: bridgeEvent.value,
-        sourceTimestamp: new Date(txDetails.timestamp * 1000),
-        encodedData: undefined // We don't have this from the event
-      });
+        if (!tokenInfo) {
+          throw new Error('Token not found in supported currencies');
+        }
+
+        this.failedTransactionCache.delete(cacheKey);
+
+        // Create the transaction record
+        return await this.createTransaction({
+          messageId: bridgeEvent.messageId,
+          userAddress: userAddress,
+          sourceChainId,
+          targetChainId,
+          sourceTxHash: txHash,
+          tokenAddress: bridgeEvent.token,
+          tokenSymbol: tokenInfo.symbol,
+          tokenDecimals: tokenInfo.decimals,
+          amount: bridgeEvent.value,
+          sourceTimestamp: new Date(timestamp * 1000),
+          encodedData: undefined // We don't have this from the event
+        });
+      })();
+
+      this.inflightTransactions.set(cacheKey, work);
+
+      return await work;
     } catch (error) {
       console.error('Failed to create transaction from transaction hash:', error);
+      if (error instanceof Error && error.message === 'Transaction not found in bridge cache') {
+        throw error;
+      }
+
       throw new Error('Failed to create transaction from transaction hash');
+    } finally {
+      const cacheKey = this.getFailureCacheKey(txHash, networkId);
+      this.inflightTransactions.delete(cacheKey);
     }
   }
 

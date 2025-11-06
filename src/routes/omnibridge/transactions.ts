@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply, FastifyPluginOptions } from 'fastify';
 import { OmniBridgeTransactionService } from '../../services/OmniBridgeTransactionService';
 import { ADDRESS, TX_HASH } from '../../schemas/common';
+import { getClientIp } from '../../utils/network';
 
 interface GetTransactionRequest {
   Params: {
@@ -32,6 +33,17 @@ interface CreateTransactionRequest {
 
 interface TransactionPluginOptions extends FastifyPluginOptions {
   omniBridgeTransactionService: OmniBridgeTransactionService;
+}
+
+type AuthenticatedCreateRequest = FastifyRequest<CreateTransactionRequest> & { user?: { sub?: string } };
+
+const createRateLimitMax = Number(process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX ?? 5);
+const createRateLimitWindow = process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW ?? '1 minute';
+const createRateLimitBan = Number(process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN ?? 0);
+
+function isCreateEnabled(): boolean {
+  const flag = process.env.OMNIBRIDGE_CREATE_ENABLED ?? 'true';
+  return flag.toLowerCase() !== 'false';
 }
 
 export async function transactionRoutes(fastify: FastifyInstance, options: TransactionPluginOptions) {
@@ -155,6 +167,35 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
 
   // Create new transaction from transaction hash and network ID
   fastify.post('/transaction', {
+    preHandler: [
+      fastify.authenticate,
+      async (request: AuthenticatedCreateRequest, reply: FastifyReply) => {
+        const userSub = request.user?.sub?.toLowerCase();
+        const bodyAddress = request.body.userAddress.toLowerCase();
+
+        if (!userSub || userSub !== bodyAddress) {
+          return reply.status(401).send({
+            success: false,
+            error: 'Wallet authentication mismatch'
+          });
+        }
+      }
+    ],
+    config: {
+      rateLimit: (() => {
+        const rateLimitConfig: any = {
+          max: createRateLimitMax,
+          timeWindow: createRateLimitWindow,
+          keyGenerator: (req: any) => (req.user?.sub?.toLowerCase()) || getClientIp(req)
+        };
+
+        if (createRateLimitBan > 0) {
+          rateLimitConfig.ban = createRateLimitBan;
+        }
+
+        return rateLimitConfig;
+      })()
+    },
     schema: {
       body: {
         type: 'object',
@@ -178,9 +219,16 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
         additionalProperties: false
       }
     }
-  }, async (request: FastifyRequest<CreateTransactionRequest>, reply: FastifyReply) => {
+  }, async (request, reply: FastifyReply) => {
+    if (!isCreateEnabled()) {
+      return reply.status(503).send({
+        success: false,
+        error: 'OmniBridge transaction creation is temporarily disabled'
+      });
+    }
+
     try {
-      const { txHash, networkId, userAddress } = request.body;
+      const { txHash, networkId, userAddress } = (request as FastifyRequest<CreateTransactionRequest>).body;
 
       const transaction = await omniBridgeTransactionService.createTransactionFromTxHash(txHash, networkId, userAddress);
 

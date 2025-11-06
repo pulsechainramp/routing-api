@@ -1,0 +1,121 @@
+import { OmniBridgeTransactionService } from './OmniBridgeTransactionService';
+
+jest.mock('./OmniBridgeService', () => {
+  return {
+    OmniBridgeService: class {
+      async getSupportedCurrencies() {
+        return [
+          {
+            name: 'Token',
+            symbol: 'TKN',
+            decimals: 18,
+            address: '0x0000000000000000000000000000000000000001',
+            chainId: 1,
+            logoURI: '',
+            tags: [],
+            network: 'ethereum',
+          },
+        ];
+      }
+    },
+  };
+});
+
+const prismaStub = {
+  omniBridgeTransaction: {
+    create: jest.fn().mockResolvedValue({}),
+    findUnique: jest.fn().mockResolvedValue(null),
+    update: jest.fn(),
+  },
+} as any;
+
+describe('OmniBridgeTransactionService protections', () => {
+  const txHash = '0x' + 'b'.repeat(64);
+  const userAddress = '0x' + 'c'.repeat(40);
+
+  beforeEach(() => {
+    process.env.OMNI_MISS_TTL_MS = '60000';
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    delete process.env.OMNI_MISS_TTL_MS;
+  });
+
+  it('caches failed lookups to avoid repeated RPC calls', async () => {
+    const service = new OmniBridgeTransactionService(prismaStub);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const blockchainStub = {
+      validateTransactionHash: jest.fn().mockReturnValue(true),
+      validateNetworkId: jest.fn().mockReturnValue(true),
+      getTransactionReceipt: jest.fn().mockResolvedValue(null),
+      extractTokensBridgingInitiatedEvent: jest.fn(),
+      getBlockTimestamp: jest.fn(),
+    };
+
+    (service as any).blockchainService = blockchainStub;
+
+    await expect(service.createTransactionFromTxHash(txHash, 1, userAddress)).rejects.toThrow(
+      'Failed to create transaction from transaction hash',
+    );
+
+    expect((service as any).failedTransactionCache.size).toBe(1);
+
+    await expect(service.createTransactionFromTxHash(txHash, 1, userAddress)).rejects.toThrow(
+      'Transaction not found in bridge cache',
+    );
+
+    expect(blockchainStub.getTransactionReceipt).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
+
+  it('deduplicates in-flight requests for the same transaction hash', async () => {
+    const service = new OmniBridgeTransactionService(prismaStub);
+
+    const receipt: any = { blockNumber: 123n, logs: [] };
+    let resolveReceipt: ((value: any) => void) | undefined;
+    const receiptPromise = new Promise<any>((resolve) => {
+      resolveReceipt = resolve;
+    });
+
+    const bridgeEvent = {
+      token: '0x0000000000000000000000000000000000000001',
+      sender: userAddress,
+      value: '1000',
+      messageId: '0x' + 'd'.repeat(64),
+    };
+
+    const blockchainStub = {
+      validateTransactionHash: jest.fn().mockReturnValue(true),
+      validateNetworkId: jest.fn().mockReturnValue(true),
+      getTransactionReceipt: jest.fn().mockReturnValue(receiptPromise),
+      extractTokensBridgingInitiatedEvent: jest.fn().mockReturnValue(bridgeEvent),
+      getBlockTimestamp: jest.fn().mockResolvedValue(1700000000),
+    };
+
+    (service as any).blockchainService = blockchainStub;
+
+    const getTransactionSpy = jest
+      .spyOn(service as any, 'getTransactionByMessageId')
+      .mockResolvedValue(null);
+    const createTransactionSpy = jest
+      .spyOn(service as any, 'createTransaction')
+      .mockResolvedValue({ messageId: bridgeEvent.messageId });
+
+    const firstPromise = service.createTransactionFromTxHash(txHash, 1, userAddress);
+    const secondPromise = service.createTransactionFromTxHash(txHash, 1, userAddress);
+
+    expect(blockchainStub.getTransactionReceipt).toHaveBeenCalledTimes(1);
+
+    resolveReceipt!(receipt);
+
+    const [firstResult, secondResult] = await Promise.all([firstPromise, secondPromise]);
+
+    expect(firstResult).toEqual({ messageId: bridgeEvent.messageId });
+    expect(secondResult).toEqual({ messageId: bridgeEvent.messageId });
+    expect(createTransactionSpy).toHaveBeenCalledTimes(1);
+    expect(blockchainStub.getTransactionReceipt).toHaveBeenCalledTimes(1);
+    expect(getTransactionSpy).toHaveBeenCalledTimes(1);
+  });
+});

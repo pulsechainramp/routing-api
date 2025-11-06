@@ -81,6 +81,13 @@ docker compose up --build
 | `REFERRAL_FEES_RATE_LIMIT_WINDOW` | `1 minute` |  | Window for referral fee limits |
 | `SIWE_CHALLENGE_RATE_LIMIT_MAX` | `20` |  | Auth challenge/verify rate limit |
 | `SIWE_CHALLENGE_RATE_LIMIT_WINDOW` | `1 minute` |  | Window for auth rate limit |
+| `OMNIBRIDGE_CREATE_RATE_LIMIT_MAX` | `5` |  | Per-wallet POST `/exchange/omnibridge/transaction` limit |
+| `OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW` | `1 minute` |  | Window for OmniBridge transaction creation |
+| `OMNIBRIDGE_CREATE_RATE_LIMIT_BAN` | *(unset)* |  | Optional ban threshold; omit to rely on 429 responses |
+| `OMNIBRIDGE_CREATE_ENABLED` | `true` |  | Feature flag to disable OmniBridge transaction creation |
+| `OMNI_MISS_TTL_MS` | `600000` |  | Cache duration (ms) for failed OmniBridge lookups |
+| `RPC_ETH_MAX_CONCURRENCY` | `5` |  | Max concurrent Ethereum RPC calls for OmniBridge ingestion |
+| `RPC_PLS_MAX_CONCURRENCY` | `5` |  | Max concurrent PulseChain RPC calls for OmniBridge ingestion |
 
 > Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
@@ -213,9 +220,9 @@ routing-api/
 
 ## Security & Compliance
 - **Secrets:** Loaded via `.env`; never commit production credentials.
-- **Auth:** SIWE challenge + Fastify JWT protect referral creation; other routes remain unauthenticated and should sit behind network controls.
+- **Auth:** SIWE challenge + Fastify JWT now gate referral *and* OmniBridge transaction creation; other routes remain unauthenticated and should sit behind network controls.
 - **Validation:** Fastify schemas validate query params, body payloads, and rate-limit responses.
-- **Protections:** Helmet defaults, strict CORS allowlist, log redaction for auth headers and secrets.
+- **Protections:** Helmet defaults, strict CORS allowlist, log redaction for auth headers/secrets, per-wallet OmniBridge rate limits, and memoized bridge misses to avoid RPC exhaustion.
 - **Dependencies:** Managed via npm; review with `npm audit` during CI/CD.
 
 ---
