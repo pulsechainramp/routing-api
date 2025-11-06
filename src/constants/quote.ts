@@ -1,0 +1,3 @@
+export const QUOTE_AMOUNT_MAX_DIGITS = 50;
+export const QUOTE_AMOUNT_PATTERN = `^[0-9]{1,${QUOTE_AMOUNT_MAX_DIGITS}}$`;
+export const QUOTE_AMOUNT_REGEX = new RegExp(QUOTE_AMOUNT_PATTERN);
