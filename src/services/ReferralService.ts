@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { PrismaClient } from '../generated/prisma-client';
 import { UserResponse, ReferralCodeByCodeResponse } from '../types/referral';
 
@@ -12,7 +13,8 @@ export class ReferralService {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
     for (let i = 0; i < 8; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+      const index = randomInt(chars.length);
+      result += chars.charAt(index);
     }
     return result;
   }
