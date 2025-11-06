@@ -33,7 +33,7 @@ docker compose up --build
 - **PulseX & Piteas quotes** - Aggregates on-chain routes with slippage controls and PulseX fallback quoting.
 - **OmniBridge support** - Lists supported currencies, estimates bridge output, and records bridge transactions.
 - **Referral management** - Generates referral codes, resolves addresses, and exposes indexed referral fees.
-- **Onramp discovery** - Serves geo-aware onramp providers with signed MoonPay, Ramp, and Transak deeplinks.
+- **Onramp discovery** - Serves geo-aware onramp providers with templated onramp deeplinks (address/amount aware).
 
 ---
 

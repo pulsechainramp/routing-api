@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { loadOnrampsJson } from "../../services/OnRampsStore";
-import { fillTemplate, signMoonPayIfNeeded } from "../../utils/onrampLinks";
+import { fillTemplate } from "../../utils/onrampLinks";
 
 export default async function providersRoutes(fastify: FastifyInstance) {
   fastify.get("/providers", {
@@ -24,16 +24,13 @@ export default async function providersRoutes(fastify: FastifyInstance) {
     if (!entry) return { country, providers: [], fallback_providers: [] };
 
     // Prepare response with processed deeplinks (when address/amount/fiat are supplied)
-    const env = process.env as Record<string, string | undefined>;
     const filled = entry.providers
       .slice()
       .sort((a, b) => a.priority - b.priority)
       .map(p => {
         // Only template if a template exists; otherwise fallback to coverage/regulator URLs.
-        const templated = fillTemplate(p.deeplink_template as any, { address, amount, fiat }, env);
-        let url = p.id === "moonpay"
-            ? signMoonPayIfNeeded(templated, env.MOONPAY_SECRET_KEY)
-            : templated;
+        const templated = fillTemplate(p.deeplink_template as any, { address, amount, fiat });
+        let url = templated;
 
         // Fallbacks if no deeplink template (or after signing still null)
         if (!url) url = p.coverage_url ?? (p.regulator_links?.[0] ?? null);
