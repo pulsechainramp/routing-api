@@ -69,7 +69,7 @@ docker compose up --build
 | `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
 | `JWT_SECRET` | `super-secret-value` | yes | HMAC secret for SIWE-issued JWTs |
 | `JWT_EXPIRES_IN` | `1h` |  | Optional JWT lifetime (Fastify JWT format) |
-| `SIWE_DOMAIN` | `pulsechainramp.com` |  | Expected SIWE domain (defaults to request host) |
+| `SIWE_DOMAIN` | `pulsechainramp.com` | yes | Comma-separated list of trusted SIWE hostnames. Requests with other Host headers are rejected. |
 | `SIWE_URI` | `https://pulsechainramp.com` |  | Audience URI embedded in SIWE messages |
 | `SIWE_STATEMENT` | `Sign in to create a referral code` |  | Custom SIWE message statement |
 | `SIWE_CHAIN_ID` | `369` |  | Chain ID used for SIWE validation (defaults to 369) |
