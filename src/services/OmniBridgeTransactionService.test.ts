@@ -118,4 +118,39 @@ describe('OmniBridgeTransactionService protections', () => {
     expect(blockchainStub.getTransactionReceipt).toHaveBeenCalledTimes(1);
     expect(getTransactionSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects when the on-chain sender differs from the authenticated wallet', async () => {
+    const service = new OmniBridgeTransactionService(prismaStub);
+    const victimAddress = '0x' + 'd'.repeat(40);
+    const bridgeEvent = {
+      token: '0x0000000000000000000000000000000000000001',
+      sender: victimAddress,
+      value: '1000',
+      messageId: '0x' + 'e'.repeat(64),
+    };
+
+    const blockchainStub = {
+      validateTransactionHash: jest.fn().mockReturnValue(true),
+      validateNetworkId: jest.fn().mockReturnValue(true),
+      getTransactionReceipt: jest.fn().mockResolvedValue({ blockNumber: 123n, logs: [] }),
+      extractTokensBridgingInitiatedEvent: jest.fn().mockReturnValue(bridgeEvent),
+      getBlockTimestamp: jest.fn(),
+    };
+
+    (service as any).blockchainService = blockchainStub;
+
+    const getTransactionSpy = jest
+      .spyOn(service as any, 'getTransactionByMessageId')
+      .mockResolvedValue(null);
+    const createTransactionSpy = jest.spyOn(service as any, 'createTransaction');
+
+    await expect(service.createTransactionFromTxHash(txHash, 1, userAddress)).rejects.toThrow(
+      'Transaction sender does not match authenticated wallet',
+    );
+
+    expect(getTransactionSpy).not.toHaveBeenCalled();
+    expect(createTransactionSpy).not.toHaveBeenCalled();
+    expect(blockchainStub.getBlockTimestamp).not.toHaveBeenCalled();
+    expect((service as any).failedTransactionCache.size).toBe(0);
+  });
 });

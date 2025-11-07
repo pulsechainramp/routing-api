@@ -11,6 +11,9 @@ import {
   OmniBridgeTransactionUpdate
 } from '../types/omnibridge';
 
+const BRIDGE_CACHE_MISS_ERROR = 'Transaction not found in bridge cache';
+const SENDER_MISMATCH_ERROR = 'Transaction sender does not match authenticated wallet';
+
 export class OmniBridgeTransactionService {
   private prisma: PrismaClient;
   private client: AxiosInstance;
@@ -470,7 +473,7 @@ export class OmniBridgeTransactionService {
       }
 
       if (this.hasRecentFailure(cacheKey)) {
-        throw new Error('Transaction not found in bridge cache');
+        throw new Error(BRIDGE_CACHE_MISS_ERROR);
       }
 
       if (this.inflightTransactions.has(cacheKey)) {
@@ -490,6 +493,13 @@ export class OmniBridgeTransactionService {
         if (!bridgeEvent) {
           this.rememberFailure(cacheKey);
           throw new Error('No TokensBridgingInitiated event found in transaction');
+        }
+
+        const normalizedSender = bridgeEvent.sender.toLowerCase();
+        const normalizedClaimedAddress = userAddress.toLowerCase();
+
+        if (normalizedSender !== normalizedClaimedAddress) {
+          throw new Error(SENDER_MISMATCH_ERROR);
         }
 
         // Check if transaction already exists
@@ -531,7 +541,7 @@ export class OmniBridgeTransactionService {
         // Create the transaction record
         return await this.createTransaction({
           messageId: bridgeEvent.messageId,
-          userAddress: userAddress,
+          userAddress: normalizedSender,
           sourceChainId,
           targetChainId,
           sourceTxHash: txHash,
@@ -548,14 +558,16 @@ export class OmniBridgeTransactionService {
 
       return await work;
     } catch (error) {
-      console.error('Failed to create transaction from transaction hash:', error);
-      if (error instanceof Error && error.message === 'Transaction not found in bridge cache') {
+      if (
+        error instanceof Error &&
+        (error.message === BRIDGE_CACHE_MISS_ERROR || error.message === SENDER_MISMATCH_ERROR)
+      ) {
         throw error;
       }
 
+      console.error('Failed to create transaction from transaction hash:', error);
       throw new Error('Failed to create transaction from transaction hash');
     } finally {
-      const cacheKey = this.getFailureCacheKey(txHash, networkId);
       this.inflightTransactions.delete(cacheKey);
     }
   }
