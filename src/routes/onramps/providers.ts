@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { loadOnrampsJson } from "../../services/OnRampsStore";
 import { fillTemplate } from "../../utils/onrampLinks";
 import { sanitizeExternalUrl } from "../../utils/url";
+import { hostMatchesAllowlist, normalizeHost } from "../../utils/providerHosts";
 
 export default async function providersRoutes(fastify: FastifyInstance) {
   fastify.get("/providers", {
@@ -29,7 +30,6 @@ export default async function providersRoutes(fastify: FastifyInstance) {
       .slice()
       .sort((a, b) => a.priority - b.priority)
       .map(p => {
-        // Only template if a template exists; otherwise fallback to coverage/regulator URLs.
         const templated = fillTemplate(p.deeplink_template as any, { address, amount, fiat });
         const candidates = [
           templated,
@@ -38,23 +38,43 @@ export default async function providersRoutes(fastify: FastifyInstance) {
         ];
 
         let safeLink: string | null = null;
+        let safeHost: string | null = null;
         let hadCandidate = false;
+        let blockedHost: string | null = null;
 
         for (const candidate of candidates) {
           if (!candidate) continue;
           hadCandidate = true;
           const sanitized = sanitizeExternalUrl(candidate);
-          if (sanitized) {
+          if (!sanitized) continue;
+
+          let hostname: string | null = null;
+          try {
+            hostname = normalizeHost(new URL(sanitized).hostname);
+          } catch {
+            hostname = null;
+          }
+
+          if (hostname && hostMatchesAllowlist(p.id, hostname)) {
             safeLink = sanitized;
+            safeHost = hostname;
             break;
           }
+
+          blockedHost = hostname ?? blockedHost;
         }
+
+        const linkBlocked = hadCandidate && !safeLink ? true : undefined;
+        const blockedReason =
+          blockedHost && linkBlocked ? "hostname_mismatch" : linkBlocked ? "invalid_url" : undefined;
 
         return {
           ...p,
           deeplink: safeLink,
+          deeplink_host: safeHost ?? undefined,
           deeplink_available: Boolean(safeLink),
-          link_blocked: hadCandidate && !safeLink ? true : undefined
+          link_blocked: linkBlocked,
+          link_blocked_reason: blockedReason
         };
       });
 

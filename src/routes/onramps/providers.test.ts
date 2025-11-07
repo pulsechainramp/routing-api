@@ -1,10 +1,24 @@
 import fastify from "fastify";
-import providersRoutes from "./providers";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const buildApp = async () => {
+  const app = fastify({ logger: false });
+  const routes = (await import("./providers")).default;
+  await routes(app);
+  return app;
+};
 
 describe("/onramps/providers", () => {
   const originalMoonpaySecret = process.env.MOONPAY_SECRET_KEY;
   const originalRampKey = process.env.RAMP_HOST_API_KEY;
   const originalTransakKey = process.env.TRANSAK_KEY;
+
+  beforeEach(() => {
+    jest.resetModules();
+    delete process.env.ONRAMPS_JSON_PATH;
+  });
 
   afterEach(() => {
     process.env.MOONPAY_SECRET_KEY = originalMoonpaySecret;
@@ -17,8 +31,7 @@ describe("/onramps/providers", () => {
     process.env.RAMP_HOST_API_KEY = "ramp-secret";
     process.env.TRANSAK_KEY = "transak-secret";
 
-    const app = fastify({ logger: false });
-    await providersRoutes(app);
+    const app = await buildApp();
 
     const response = await app.inject({
       method: "GET",
@@ -43,5 +56,64 @@ describe("/onramps/providers", () => {
     expect(moonpay?.deeplink ?? "").not.toContain("signature=");
 
     await app.close();
+  });
+
+  it("blocks provider links whose host is not allowlisted", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "onramps-hosts-"));
+    const tmpJson = path.join(tmpDir, "providers.json");
+
+    const payload = {
+      version: "v1",
+      generated_at: new Date().toISOString(),
+      countries: [
+        {
+          iso2: "US",
+          providers: [
+            {
+              id: "simplex",
+              display_name: "Simplex",
+              type: "onramp",
+              priority: 1,
+              deeplink_template: "https://evil.example/pay",
+              coverage_url: "https://evil.example/",
+            },
+          ],
+        },
+      ],
+      globals: {
+        fallback_providers: [],
+        deeplink_placeholders: ["{address}", "{amount}", "{fiat}"],
+      },
+    };
+
+    fs.writeFileSync(tmpJson, JSON.stringify(payload), "utf8");
+    process.env.ONRAMPS_JSON_PATH = tmpJson;
+
+    const app = await buildApp();
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/providers?country=US",
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const body = JSON.parse(response.body) as {
+      providers: Array<{
+        id: string;
+        deeplink?: string | null;
+        link_blocked?: boolean;
+        link_blocked_reason?: string | null;
+      }>;
+    };
+
+    expect(body.providers).toHaveLength(1);
+    const provider = body.providers[0];
+    expect(provider.deeplink).toBeNull();
+    expect(provider.link_blocked).toBe(true);
+    expect(provider.link_blocked_reason).toBe("hostname_mismatch");
+
+    await app.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 });

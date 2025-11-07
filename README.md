@@ -37,6 +37,21 @@ docker compose up --build
 
 ---
 
+### Onramp Catalog & Allowlist Sync
+The onramp provider catalog lives at `src/data/onramps_providers.json`. After editing that file (adding/removing providers, changing domains, etc.), regenerate the derived hostname allowlists so both this API and the frontend enforce the same vetted hosts:
+
+```bash
+node scripts/sync-onramp-allowlist.js
+```
+
+The script rewrites:
+- `routing-api/src/data/allowedProviderHosts.ts`
+- `aggregator-frontend/src/data/allowedProviderHosts.ts`
+
+Commit the updated outputs in both repositories as part of the same change.
+
+---
+
 ## Installation & Setup
 
 ### Prerequisites
