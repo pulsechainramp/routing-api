@@ -1,8 +1,51 @@
-import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyPluginOptions } from 'fastify';
 import { ReferralFeeService } from '../services/ReferralFeeService';
 
 const feeReadRateLimit = Number(process.env.REFERRAL_FEES_RATE_LIMIT_MAX ?? 120);
 const feeReadRateWindow = process.env.REFERRAL_FEES_RATE_LIMIT_WINDOW ?? '1 minute';
+const referralFeeAdminAddresses = new Set(
+  (process.env.REFERRAL_FEES_ADMIN_ADDRESSES ?? '')
+    .split(',')
+    .map(address => address.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+function getUserSub(request: any): string | undefined {
+  return request?.user?.sub?.toLowerCase?.();
+}
+
+function verifyReferrerAccess(referrer: string, request: any, reply: FastifyReply) {
+  const userSub = getUserSub(request);
+  if (!userSub || userSub !== referrer.toLowerCase()) {
+    reply.status(401).send({
+      success: false,
+      error: 'Wallet authentication mismatch'
+    });
+    return false;
+  }
+  return true;
+}
+
+function verifyAdminAccess(request: any, reply: FastifyReply) {
+  const userSub = getUserSub(request);
+  if (!userSub) {
+    reply.status(401).send({
+      success: false,
+      error: 'Unauthorized'
+    });
+    return false;
+  }
+
+  if (!referralFeeAdminAddresses.has(userSub)) {
+    reply.status(403).send({
+      success: false,
+      error: 'Forbidden'
+    });
+    return false;
+  }
+
+  return true;
+}
 
 export default async function referralFeeRoutes(
   fastify: FastifyInstance,
@@ -14,10 +57,19 @@ export default async function referralFeeRoutes(
   fastify.get<{ Querystring: { referrer: string; token: string } }>(
     '/fee',
     {
+      preHandler: [
+        fastify.authenticate,
+        async (request, reply) => {
+          if (!verifyReferrerAccess(request.query.referrer, request, reply)) {
+            return reply;
+          }
+        }
+      ],
       config: {
         rateLimit: {
           max: feeReadRateLimit,
-          timeWindow: feeReadRateWindow
+          timeWindow: feeReadRateWindow,
+          keyGenerator: (req: any) => req.user?.sub?.toLowerCase()
         }
       },
       schema: {
@@ -68,13 +120,22 @@ export default async function referralFeeRoutes(
   );
 
   // Get all referral fees for a specific referrer
-  fastify.get<{ Querystring: { referrer: string } }>(
+  fastify.get<{ Params: { referrer: string } }>(
     '/referrer/:referrer',
     {
+      preHandler: [
+        fastify.authenticate,
+        async (request, reply) => {
+          if (!verifyReferrerAccess(request.params.referrer, request, reply)) {
+            return reply;
+          }
+        }
+      ],
       config: {
         rateLimit: {
           max: feeReadRateLimit,
-          timeWindow: feeReadRateWindow
+          timeWindow: feeReadRateWindow,
+          keyGenerator: (req: any) => req.user?.sub?.toLowerCase()
         }
       },
       schema: {
@@ -116,13 +177,22 @@ export default async function referralFeeRoutes(
   );
 
   // Get all referral fees for a specific token
-  fastify.get<{ Querystring: { token: string } }>(
+  fastify.get<{ Params: { token: string } }>(
     '/token/:token',
     {
+      preHandler: [
+        fastify.authenticate,
+        async (request, reply) => {
+          if (!verifyAdminAccess(request, reply)) {
+            return reply;
+          }
+        }
+      ],
       config: {
         rateLimit: {
           max: feeReadRateLimit,
-          timeWindow: feeReadRateWindow
+          timeWindow: feeReadRateWindow,
+          keyGenerator: (req: any) => req.user?.sub?.toLowerCase()
         }
       },
       schema: {
@@ -167,10 +237,19 @@ export default async function referralFeeRoutes(
   fastify.get(
     '/totals',
     {
+      preHandler: [
+        fastify.authenticate,
+        async (request, reply) => {
+          if (!verifyAdminAccess(request, reply)) {
+            return reply;
+          }
+        }
+      ],
       config: {
         rateLimit: {
           max: feeReadRateLimit,
-          timeWindow: feeReadRateWindow
+          timeWindow: feeReadRateWindow,
+          keyGenerator: (req: any) => req.user?.sub?.toLowerCase()
         }
       },
       schema: {

@@ -62,7 +62,7 @@ docker compose up --build
 | `DATABASE_URL` | `postgresql://routing_app:password@localhost:5432/routing?schema=public` | yes | Postgres DSN for Prisma/Prisma |
 | `PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Upstream aggregator used for quotes |
 | `CORS_ALLOWLIST` | `http://localhost:5173` |  | Comma-separated origins allowed by CORS |
-| `TRUST_PROXY` | `` |  | Optional Fastify `trustProxy` setting (boolean/number/list). Leave empty to disable |
+| `TRUST_PROXY` | `1` |  | Fastify `trustProxy` value that tells the server how many proxy hops (or which IPs/CIDRs) to trust when deriving the real client IP; leave empty only when the API is exposed directly. |
 | `RPC_URL` | `https://rpc.pulsechain.com` |  | PulseChain RPC endpoint (override default) |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
@@ -96,6 +96,7 @@ docker compose up --build
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_MAX` | `2` |  | Per-wallet POST `/exchange/omnibridge/sync` limit |
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW` | `10 minutes` |  | Window for OmniBridge sync rate limiting |
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_BAN` | *(unset)* |  | Optional ban threshold for repeated sync abuse |
+| `REFERRAL_FEES_ADMIN_ADDRESSES` | `` |  | Comma-separated wallets allowed to query referral-fee aggregates (`/token`, `/totals`) |
 
 > Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
@@ -236,8 +237,8 @@ routing-api/
 ---
 
 ## Networking & Rate Limits
-- When you deploy behind nginx or another trusted reverse proxy, set `TRUST_PROXY=1` (or list the proxy IPs/CIDRs) so Fastify honors the original client address forwarded by your edge.
-- Leave `TRUST_PROXY` empty when Fastify is exposed directly; this prevents spoofed `X-Forwarded-For` headers from bypassing the global or quote-specific rate limits.
+- `TRUST_PROXY` must mirror your deployment topology so Fastify and the rate limiter key off the real end-user IP. Example values: `TRUST_PROXY=1` when Fastify sits directly behind nginx or an ALB, `TRUST_PROXY=2` for Cloudflare → nginx → Fastify, or `TRUST_PROXY=103.21.244.0/22,173.245.48.0/20` to trust specific CDN CIDRs.
+- Leave `TRUST_PROXY` empty only when Fastify is exposed directly to the internet; in that mode spoofed `X-Forwarded-For` headers are ignored and rate limits bind to the socket IP.
 
 ---
 

@@ -3,7 +3,7 @@ import rateLimit from "@fastify/rate-limit";
 import { getClientIp } from "./utils/network";
 
 describe("rate limit key generation", () => {
-  it("uses raw socket IP so spoofed X-Forwarded-For headers do not bypass limits", async () => {
+  it("keys by Fastify's client IP when trustProxy is enabled", async () => {
     const app = fastify({ trustProxy: true });
 
     await app.register(rateLimit, {
@@ -26,7 +26,62 @@ describe("rate limit key generation", () => {
 
     await app.ready();
 
-    // Initial request should succeed
+    const clientAFirst = await app.inject({
+      method: "GET",
+      url: "/test",
+      remoteAddress: "203.0.113.5",
+      headers: {
+        "x-forwarded-for": "198.51.100.10",
+      },
+    });
+    expect(clientAFirst.statusCode).toBe(200);
+
+    const clientASecond = await app.inject({
+      method: "GET",
+      url: "/test",
+      remoteAddress: "203.0.113.5",
+      headers: {
+        "x-forwarded-for": "198.51.100.10",
+      },
+    });
+    expect(clientASecond.statusCode).toBe(429);
+
+    const clientB = await app.inject({
+      method: "GET",
+      url: "/test",
+      remoteAddress: "203.0.113.5",
+      headers: {
+        "x-forwarded-for": "198.51.100.11",
+      },
+    });
+    expect(clientB.statusCode).toBe(200);
+
+    await app.close();
+  });
+
+  it("falls back to socket IPs when trustProxy is disabled", async () => {
+    const app = fastify({ trustProxy: false });
+
+    await app.register(rateLimit, {
+      global: true,
+      max: 1,
+      timeWindow: "1 minute",
+      keyGenerator: (request) => getClientIp(request),
+    });
+
+    app.get("/test", {
+      config: {
+        rateLimit: {
+          max: 1,
+          timeWindow: "1 minute",
+          keyGenerator: (request: any) => getClientIp(request),
+        },
+      },
+      handler: async () => ({ ok: true }),
+    });
+
+    await app.ready();
+
     const first = await app.inject({
       method: "GET",
       url: "/test",
@@ -37,8 +92,7 @@ describe("rate limit key generation", () => {
     });
     expect(first.statusCode).toBe(200);
 
-    // Second request spoofing a new XFF value should still be limited
-    const second = await app.inject({
+    const spoofed = await app.inject({
       method: "GET",
       url: "/test",
       remoteAddress: "203.0.113.5",
@@ -46,10 +100,9 @@ describe("rate limit key generation", () => {
         "x-forwarded-for": "198.51.100.11",
       },
     });
-    expect(second.statusCode).toBe(429);
+    expect(spoofed.statusCode).toBe(429);
 
-    // Different socket IP should have its own quota
-    const third = await app.inject({
+    const differentSocket = await app.inject({
       method: "GET",
       url: "/test",
       remoteAddress: "203.0.113.99",
@@ -57,7 +110,7 @@ describe("rate limit key generation", () => {
         "x-forwarded-for": "198.51.100.12",
       },
     });
-    expect(third.statusCode).toBe(200);
+    expect(differentSocket.statusCode).toBe(200);
 
     await app.close();
   });

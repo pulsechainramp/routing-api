@@ -1,10 +1,15 @@
 import type { FastifyRequest } from "fastify";
 
 /**
- * Return the actual remote socket address without trusting XFF headers.
- * Falls back to Fastify's request.ip when socket information is unavailable.
+ * Return the end-user IP that Fastify resolved (proxy-aware when trustProxy is set),
+ * falling back to the raw socket address when proxy details are unavailable.
  */
 export function getClientIp(request: FastifyRequest): string {
+  const fastifyIp = normalizeIp(request.ip);
+  if (fastifyIp) {
+    return fastifyIp;
+  }
+
   const rawSocket = request.raw?.socket ?? (request.raw as any)?.connection;
   const remoteAddress: string | undefined = rawSocket?.remoteAddress;
 
@@ -12,7 +17,7 @@ export function getClientIp(request: FastifyRequest): string {
     return normalizeIp(remoteAddress);
   }
 
-  return normalizeIp(request.ip);
+  return "";
 }
 
 function normalizeIp(ip: string): string {
