@@ -215,13 +215,13 @@ Swagger UI is available in non-production environments at `/docs`.
 
 ### Authenticated Referral Flow
 1. **Challenge:**  
-   `GET /auth/challenge?address=0xAbC...`  
-   Returns a SIWE message + nonce for the wallet to sign.
+   `GET /auth/challenge?address=0xAbC...&clientId=<uuid>`  
+   Returns a SIWE message + nonce for the wallet to sign. `clientId` should be a stable, per-browser identifier (e.g., `localStorage` UUID).
 
 2. **Verify:**  
    `POST /auth/verify`  
    ```json
-   { "message": "<siwe message>", "signature": "<0x…>" }
+   { "message": "<siwe message>", "signature": "<0x…>", "clientId": "<uuid>" }
    ```  
    Responds with a short-lived JWT (`{ "token": "...", "address": "0xabc..." }`).
 

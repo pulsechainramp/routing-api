@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 
 interface NonceRecord {
   address: string;
+  clientId: string;
   expiresAt: number;
 }
 
@@ -13,15 +14,19 @@ export class AuthService {
     this.nonceTtlMs = ttlMs;
   }
 
-  generateNonce(address: string): string {
+  generateNonce(address: string, clientId: string): string {
     this.cleanupExpiredNonces();
     const nonce = randomBytes(16).toString('hex');
     const normalized = this.normalizeAddress(address);
-    this.nonces.set(nonce, { address: normalized, expiresAt: Date.now() + this.nonceTtlMs });
+    this.nonces.set(nonce, {
+      address: normalized,
+      clientId,
+      expiresAt: Date.now() + this.nonceTtlMs,
+    });
     return nonce;
   }
 
-  consumeNonce(nonce: string, address: string): boolean {
+  consumeNonce(nonce: string, address: string, clientId: string): boolean {
     this.cleanupExpiredNonces();
     const normalized = this.normalizeAddress(address);
     const record = this.nonces.get(nonce);
@@ -29,7 +34,11 @@ export class AuthService {
       return false;
     }
 
-    if (record.address !== normalized || record.expiresAt < Date.now()) {
+    if (
+      record.address !== normalized ||
+      record.clientId !== clientId ||
+      record.expiresAt < Date.now()
+    ) {
       this.nonces.delete(nonce);
       return false;
     }

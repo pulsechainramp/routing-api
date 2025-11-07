@@ -122,11 +122,13 @@ function getAllowedRequestDomain(
 
 interface ChallengeQuery {
   address: string;
+  clientId?: string;
 }
 
 interface VerifyBody {
   message: string;
   signature: string;
+  clientId: string;
 }
 
 export default async function authRoutes(
@@ -148,12 +150,17 @@ export default async function authRoutes(
       schema: {
         querystring: {
           type: 'object',
-          required: ['address'],
+          required: ['address', 'clientId'],
           properties: {
             address: {
               type: 'string',
               pattern: ADDRESS,
               maxLength: 42
+            },
+            clientId: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 128
             }
           },
           additionalProperties: false
@@ -171,13 +178,17 @@ export default async function authRoutes(
     },
     async (request, reply) => {
       try {
-        const { address } = request.query;
+        const { address, clientId } = request.query;
         let normalizedAddress: string;
         try {
           normalizedAddress = getAddress(address);
         } catch (addrErr) {
           request.log.warn({ err: addrErr, address }, 'Invalid address for SIWE challenge');
           return reply.status(400).send({ error: 'Invalid wallet address' });
+        }
+
+        if (!clientId || typeof clientId !== 'string') {
+          return reply.status(400).send({ error: 'clientId is required' });
         }
 
         const requestDomain = getAllowedRequestDomain(request, allowlistSet);
@@ -189,7 +200,7 @@ export default async function authRoutes(
           return reply.status(400).send({ error: 'Host header is not allowed' });
         }
 
-        const nonce = authService.generateNonce(normalizedAddress);
+        const nonce = authService.generateNonce(normalizedAddress, clientId);
 
         const message = new SiweMessage({
           domain: requestDomain,
@@ -225,7 +236,8 @@ export default async function authRoutes(
           required: ['message', 'signature'],
           properties: {
             message: { type: 'string', minLength: 1 },
-            signature: { type: 'string', minLength: 1 }
+            signature: { type: 'string', minLength: 1 },
+            clientId: { type: 'string', minLength: 1 },
           },
           additionalProperties: false
         },
@@ -248,7 +260,7 @@ export default async function authRoutes(
     },
     async (request, reply) => {
       try {
-        const { message, signature } = request.body;
+        const { message, signature, clientId } = request.body;
         const siweMessage = new SiweMessage(message);
         const requestDomain = getAllowedRequestDomain(request, allowlistSet);
         if (!requestDomain) {
@@ -259,6 +271,10 @@ export default async function authRoutes(
           return reply.status(401).send({ error: 'Host header is not allowed' });
         }
 
+        if (!clientId) {
+          return reply.status(401).send({ error: 'clientId is required' });
+        }
+
         const messageDomain = normalizeDomainCandidate(siweMessage.domain);
         if (!messageDomain || messageDomain !== requestDomain) {
           request.log.warn(
@@ -266,6 +282,22 @@ export default async function authRoutes(
             'SIWE domain mismatch between request and signed message'
           );
           return reply.status(401).send({ error: 'Invalid SIWE domain' });
+        }
+
+        if (siweMessage.uri !== siweUri) {
+          request.log.warn(
+            { uri: siweMessage.uri },
+            'SIWE URI mismatch'
+          );
+          return reply.status(401).send({ error: 'Invalid SIWE URI' });
+        }
+
+        if (Number(siweMessage.chainId) !== siweChainId) {
+          request.log.warn(
+            { chainId: siweMessage.chainId },
+            'SIWE chain mismatch'
+          );
+          return reply.status(401).send({ error: 'Invalid SIWE chain' });
         }
 
         const verification = await siweMessage.verify({
@@ -279,7 +311,11 @@ export default async function authRoutes(
         }
 
         const address = verification.data.address.toLowerCase();
-        const nonceValid = authService.consumeNonce(siweMessage.nonce, address);
+        const nonceValid = authService.consumeNonce(
+          siweMessage.nonce,
+          address,
+          clientId
+        );
         if (!nonceValid) {
           return reply.status(401).send({ error: 'Challenge expired or already used' });
         }

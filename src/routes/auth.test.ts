@@ -58,7 +58,7 @@ describe('auth routes host binding', () => {
     try {
       const response = await app.inject({
         method: 'GET',
-        url: `/auth/challenge?address=${walletAddress}`,
+        url: `/auth/challenge?address=${walletAddress}&clientId=test-client`,
         headers: {
           host: 'attacker.tld'
         }
@@ -76,7 +76,7 @@ describe('auth routes host binding', () => {
     try {
       const response = await app.inject({
         method: 'GET',
-        url: `/auth/challenge?address=${walletAddress}`,
+        url: `/auth/challenge?address=${walletAddress}&clientId=test-client`,
         headers: {
           host: 'pulsechainramp.com'
         }
@@ -85,7 +85,10 @@ describe('auth routes host binding', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.message).toContain('pulsechainramp.com');
-      expect(authServiceMock.generateNonce).toHaveBeenCalled();
+      expect(authServiceMock.generateNonce).toHaveBeenCalledWith(
+        walletAddress.toLowerCase(),
+        'test-client'
+      );
     } finally {
       await app.close();
     }
@@ -104,7 +107,8 @@ describe('auth routes host binding', () => {
         },
         payload: {
           message,
-          signature: '0xdead'
+          signature: '0xdead',
+          clientId: 'test-client'
         }
       });
 
@@ -128,7 +132,8 @@ describe('auth routes host binding', () => {
         },
         payload: {
           message,
-          signature: '0xdead'
+          signature: '0xdead',
+          clientId: 'test-client'
         }
       });
 
@@ -160,7 +165,8 @@ describe('auth routes host binding', () => {
         },
         payload: {
           message,
-          signature: '0xbeef'
+          signature: '0xbeef',
+          clientId: 'test-client'
         }
       });
 
@@ -168,13 +174,41 @@ describe('auth routes host binding', () => {
       const parsed = response.json();
       expect(parsed.address).toBe(walletAddress.toLowerCase());
       expect(typeof parsed.token).toBe('string');
-      expect(authServiceMock.consumeNonce).toHaveBeenCalledWith(nonce, walletAddress.toLowerCase());
+      expect(authServiceMock.consumeNonce).toHaveBeenCalledWith(
+        nonce,
+        walletAddress.toLowerCase(),
+        'test-client'
+      );
       expect(verifySpy).toHaveBeenCalledTimes(1);
       expect(verifySpy.mock.calls[0][0]).toMatchObject({
         domain: 'pulsechainramp.com'
       });
     } finally {
       verifySpy.mockRestore();
+      await app.close();
+    }
+  });
+
+  it('rejects SIWE verification when clientId is missing', async () => {
+    const { app } = await buildApp();
+    const message = buildMessage('pulsechainramp.com');
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/verify',
+        headers: {
+          'content-type': 'application/json',
+          host: 'pulsechainramp.com'
+        },
+        payload: {
+          message,
+          signature: '0xbeef'
+        }
+      });
+
+      expect(response.statusCode).toBe(401);
+    } finally {
       await app.close();
     }
   });
