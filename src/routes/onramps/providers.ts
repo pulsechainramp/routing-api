@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { loadOnrampsJson } from "../../services/OnRampsStore";
 import { fillTemplate } from "../../utils/onrampLinks";
+import { sanitizeExternalUrl } from "../../utils/url";
 
 export default async function providersRoutes(fastify: FastifyInstance) {
   fastify.get("/providers", {
@@ -30,15 +31,30 @@ export default async function providersRoutes(fastify: FastifyInstance) {
       .map(p => {
         // Only template if a template exists; otherwise fallback to coverage/regulator URLs.
         const templated = fillTemplate(p.deeplink_template as any, { address, amount, fiat });
-        let url = templated;
+        const candidates = [
+          templated,
+          p.coverage_url,
+          ...(p.regulator_links ?? [])
+        ];
 
-        // Fallbacks if no deeplink template (or after signing still null)
-        if (!url) url = p.coverage_url ?? (p.regulator_links?.[0] ?? null);
+        let safeLink: string | null = null;
+        let hadCandidate = false;
+
+        for (const candidate of candidates) {
+          if (!candidate) continue;
+          hadCandidate = true;
+          const sanitized = sanitizeExternalUrl(candidate);
+          if (sanitized) {
+            safeLink = sanitized;
+            break;
+          }
+        }
 
         return {
           ...p,
-          deeplink: url, // could be null if absolutely nothing available
-          deeplink_available: Boolean(url)
+          deeplink: safeLink,
+          deeplink_available: Boolean(safeLink),
+          link_blocked: hadCandidate && !safeLink ? true : undefined
         };
       });
 
