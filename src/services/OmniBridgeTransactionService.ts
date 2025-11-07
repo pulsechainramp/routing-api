@@ -488,7 +488,7 @@ export class OmniBridgeTransactionService {
           throw new Error('Transaction receipt not found');
         }
 
-        const bridgeEvent = this.blockchainService.extractTokensBridgingInitiatedEvent(receipt);
+        const bridgeEvent = this.blockchainService.extractTokensBridgingInitiatedEvent(receipt, networkId);
 
         if (!bridgeEvent) {
           this.rememberFailure(cacheKey);

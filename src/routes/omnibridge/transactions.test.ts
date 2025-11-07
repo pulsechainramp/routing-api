@@ -154,4 +154,36 @@ describe('OmniBridge transaction route security', () => {
       await app.close();
     }
   });
+
+  it('returns 400 when the transaction hash is rejected by the bridge parser', async () => {
+    const { app, createTransactionMock } = await buildApp();
+
+    createTransactionMock.mockRejectedValueOnce(
+      new Error('No TokensBridgingInitiated event found in transaction'),
+    );
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/exchange/omnibridge/transaction',
+        headers: {
+          authorization: `Bearer ${wallet}`,
+        },
+        payload: {
+          txHash,
+          networkId: 1,
+          userAddress: wallet,
+        },
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toMatchObject({
+        success: false,
+        error: 'No TokensBridgingInitiated event found in transaction',
+      });
+    } finally {
+      await app.close();
+    }
+  });
 });

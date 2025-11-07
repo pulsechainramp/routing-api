@@ -88,6 +88,8 @@ docker compose up --build
 | `OMNI_MISS_TTL_MS` | `600000` |  | Cache duration (ms) for failed OmniBridge lookups |
 | `RPC_ETH_MAX_CONCURRENCY` | `5` |  | Max concurrent Ethereum RPC calls for OmniBridge ingestion |
 | `RPC_PLS_MAX_CONCURRENCY` | `5` |  | Max concurrent PulseChain RPC calls for OmniBridge ingestion |
+| `OMNIBRIDGE_ETH_CONTRACTS` | `0x88ad09518695c6c3712ac10a214be5109a655671,0xe20e337db2a00b1c37139c873b92a0aad3f468bf` |  | Comma-separated list of trusted OmniBridge emitters on Ethereum (defaults provided) |
+| `OMNIBRIDGE_PLS_CONTRACTS` | `0x4fd0aaa7506f3d9cb8274bdb946ec42a1b8751ef,0x0e18d0d556b652794ef12bf68b2dc857ef5f3996` |  | Comma-separated list of trusted OmniBridge emitters on PulseChain (defaults provided) |
 
 > Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
