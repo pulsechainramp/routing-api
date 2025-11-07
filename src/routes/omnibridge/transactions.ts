@@ -36,10 +36,14 @@ interface TransactionPluginOptions extends FastifyPluginOptions {
 }
 
 type AuthenticatedCreateRequest = FastifyRequest<CreateTransactionRequest> & { user?: { sub?: string } };
+type AuthenticatedSyncRequest = FastifyRequest<SyncUserTransactionsRequest> & { user?: { sub?: string } };
 
 const createRateLimitMax = Number(process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX ?? 5);
 const createRateLimitWindow = process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW ?? '1 minute';
 const createRateLimitBan = Number(process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN ?? 0);
+const syncRateLimitMax = Number(process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_MAX ?? 2);
+const syncRateLimitWindow = process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW ?? '10 minutes';
+const syncRateLimitBan = Number(process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_BAN ?? 0);
 
 function isCreateEnabled(): boolean {
   const flag = process.env.OMNIBRIDGE_CREATE_ENABLED ?? 'true';
@@ -130,7 +134,36 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
   });
 
   // Sync user transactions (fetch from GraphQL and update database)
-  fastify.post('/sync', {
+  fastify.post<{ Querystring: SyncUserTransactionsRequest['Querystring'] }>('/sync', {
+    preHandler: [
+      fastify.authenticate,
+      async (request: AuthenticatedSyncRequest, reply: FastifyReply) => {
+        const userSub = request.user?.sub?.toLowerCase();
+        const queryAddress = request.query.userAddress.toLowerCase();
+
+        if (!userSub || userSub !== queryAddress) {
+          return reply.status(401).send({
+            success: false,
+            error: 'Wallet authentication mismatch'
+          });
+        }
+      }
+    ],
+    config: {
+      rateLimit: (() => {
+        const rateLimitConfig: any = {
+          max: syncRateLimitMax,
+          timeWindow: syncRateLimitWindow,
+          keyGenerator: (req: any) => (req.user?.sub?.toLowerCase()) || getClientIp(req)
+        };
+
+        if (syncRateLimitBan > 0) {
+          rateLimitConfig.ban = syncRateLimitBan;
+        }
+
+        return rateLimitConfig;
+      })()
+    },
     schema: {
       querystring: {
         type: 'object',
@@ -145,7 +178,7 @@ export async function transactionRoutes(fastify: FastifyInstance, options: Trans
         additionalProperties: false
       }
     }
-  }, async (request: FastifyRequest<SyncUserTransactionsRequest>, reply: FastifyReply) => {
+  }, async (request, reply: FastifyReply) => {
     try {
       const { userAddress } = request.query;
 

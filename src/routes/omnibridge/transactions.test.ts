@@ -10,28 +10,38 @@ describe('OmniBridge transaction route security', () => {
     rateMax: process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX,
     rateWindow: process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW,
     rateBan: process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN,
+    syncRateMax: process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_MAX,
+    syncRateWindow: process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW,
+    syncRateBan: process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_BAN,
   };
 
   afterAll(() => {
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX = originalEnv.rateMax;
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW = originalEnv.rateWindow;
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN = originalEnv.rateBan;
+    process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_MAX = originalEnv.syncRateMax;
+    process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW = originalEnv.syncRateWindow;
+    process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_BAN = originalEnv.syncRateBan;
   });
 
   async function buildApp() {
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX = '1';
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW = '1 minute';
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN = '0';
+    process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_MAX = '1';
+    process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW = '1 minute';
+    process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_BAN = '0';
 
     jest.resetModules();
     const { transactionRoutes } = await import('./transactions');
 
     const createTransactionMock = jest.fn().mockResolvedValue({ messageId: 'msg-1' });
+    const syncUserTransactionsMock = jest.fn().mockResolvedValue([{ messageId: 'msg-1' }]);
     const serviceMock = {
       createTransactionFromTxHash: createTransactionMock,
       getTransactionStatus: jest.fn(),
       getUserTransactions: jest.fn(),
-      syncUserTransactions: jest.fn(),
+      syncUserTransactions: syncUserTransactionsMock,
     } as unknown as OmniBridgeTransactionService;
 
     const app: FastifyInstance = fastify();
@@ -59,7 +69,7 @@ describe('OmniBridge transaction route security', () => {
       throw error;
     }
 
-    return { app, createTransactionMock };
+    return { app, createTransactionMock, syncUserTransactionsMock };
   }
 
   afterEach(async () => {
@@ -182,6 +192,75 @@ describe('OmniBridge transaction route security', () => {
         success: false,
         error: 'No TokensBridgingInitiated event found in transaction',
       });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('requires auth before syncing user transactions', async () => {
+    const { app, syncUserTransactionsMock } = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/exchange/omnibridge/sync?userAddress=${wallet}`,
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(syncUserTransactionsMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects sync requests when the JWT subject differs from the queried wallet', async () => {
+    const { app, syncUserTransactionsMock } = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/exchange/omnibridge/sync?userAddress=0x2222222222222222222222222222222222222222`,
+        headers: {
+          authorization: `Bearer ${wallet}`,
+        },
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(syncUserTransactionsMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('enforces per-wallet sync rate limits', async () => {
+    const { app, syncUserTransactionsMock } = await buildApp();
+
+    try {
+      const first = await app.inject({
+        method: 'POST',
+        url: `/exchange/omnibridge/sync?userAddress=${wallet}`,
+        headers: {
+          authorization: `Bearer ${wallet}`,
+        },
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(first.statusCode).toBe(200);
+      expect(syncUserTransactionsMock).toHaveBeenCalledTimes(1);
+
+      const second = await app.inject({
+        method: 'POST',
+        url: `/exchange/omnibridge/sync?userAddress=${wallet}`,
+        headers: {
+          authorization: `Bearer ${wallet}`,
+        },
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(second.statusCode).toBe(429);
+      expect(syncUserTransactionsMock).toHaveBeenCalledTimes(1);
     } finally {
       await app.close();
     }
