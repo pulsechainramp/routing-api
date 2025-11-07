@@ -120,4 +120,53 @@ export default async function quoteRoutes(
     },
     handler: quoteController.getQuote.bind(quoteController)
   });
-} 
+  
+  fastify.post('/attest', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['quote', 'context'],
+        properties: {
+          quote: {
+            type: 'object',
+            required: ['calldata', 'tokenInAddress', 'tokenOutAddress', 'outputAmount', 'gasUSDEstimated', 'route'],
+            properties: {
+              calldata: { type: 'string' },
+              tokenInAddress: { type: 'string', pattern: ADDRESS },
+              tokenOutAddress: { type: 'string', pattern: ADDRESS },
+              outputAmount: { type: 'string' },
+              gasUSDEstimated: { type: 'number' },
+              gasAmountEstimated: { type: 'number' },
+              route: { type: 'array' },
+            },
+          },
+          context: {
+            type: 'object',
+            required: [
+              'tokenInAddress',
+              'tokenOutAddress',
+              'amountInWei',
+              'minAmountOutWei',
+              'slippageBps',
+              'recipient',
+              'routerAddress',
+              'chainId',
+            ],
+            properties: {
+              tokenInAddress: { type: 'string', pattern: ADDRESS },
+              tokenOutAddress: { type: 'string', pattern: ADDRESS },
+              amountInWei: { type: 'string' },
+              minAmountOutWei: { type: 'string' },
+              slippageBps: { type: 'integer', minimum: 0, maximum: 10000 },
+              recipient: { type: 'string', pattern: ADDRESS },
+              routerAddress: { type: 'string', pattern: ADDRESS },
+              chainId: { type: 'integer', minimum: 0 },
+              referrerAddress: { type: 'string', pattern: ADDRESS },
+            },
+          },
+        },
+      },
+    },
+    handler: quoteController.attestQuote.bind(quoteController),
+  });
+}

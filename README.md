@@ -67,6 +67,10 @@ docker compose up --build
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
 | `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
+| `QUOTE_SIGNING_PRIVATE_KEY` | *(unset)* | yes | Backend key that signs quote attestations |
+| `QUOTE_SIGNER_ADDRESS` | *(unset)* | yes | Public address corresponding to `QUOTE_SIGNING_PRIVATE_KEY` |
+| `QUOTE_CHAIN_ID` | `369` |  | Chain ID enforced by `/quote/attest` |
+| `QUOTE_MAX_DEADLINE_SECONDS` | `600` |  | Longest deadline window (seconds) accepted during attestation |
 | `JWT_SECRET` | `super-secret-value` | yes | HMAC secret for SIWE-issued JWTs |
 | `JWT_EXPIRES_IN` | `1h` |  | Optional JWT lifetime (Fastify JWT format) |
 | `SIWE_DOMAIN` | `pulsechainramp.com` | yes | Comma-separated list of trusted SIWE hostnames. Requests with other Host headers are rejected. |
@@ -101,6 +105,26 @@ docker compose up --build
 > Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
 > Update `src/config/index.ts` before deploying so `AffiliateRouterAddress` (and other contract constants) match your target network.
+
+#### Quote signing (dev & prod)
+Quotes are now authenticated end-to-end. You need a dedicated signer key that both the API and the frontend trust:
+
+1. **Generate a signer**
+   ```bash
+   node -e "const { Wallet } = require('ethers'); const w = Wallet.createRandom(); console.log('QUOTE_SIGNING_PRIVATE_KEY=', w.privateKey); console.log('QUOTE_SIGNER_ADDRESS=', w.address);"
+   ```
+   Keep this key in your secret manager—never commit it to git.
+
+2. **Backend (`routing-api`)**
+   - Set `QUOTE_SIGNING_PRIVATE_KEY` to the private key above (via `.env` locally or your secret manager in staging/prod).
+   - Set `QUOTE_SIGNER_ADDRESS` to the printed address so startup can assert the key pair.
+
+3. **Frontend (`aggregator-frontend`)**
+   - Set `VITE_QUOTE_SIGNER_ADDRESS` to the same signer address; the UI refuses unsigned quotes before a swap executes.
+
+4. **Rotation tips**
+   - Deploy the new backend key first, verify quotes, then update the frontend env and redeploy.
+   - Avoid reusing the signer for wallets that control funds; it should exist solely for quote attestation.
 
 ---
 
@@ -149,6 +173,43 @@ GET /onramps/providers?country=US&address=0x1234&amount=200&fiat=USD
   ]
 }
 ```
+
+```http
+POST /quote/attest
+Content-Type: application/json
+
+{
+  "quote": {
+    "calldata": "0x...",
+    "tokenInAddress": "0xTokenIn",
+    "tokenOutAddress": "0xTokenOut",
+    "outputAmount": "1000000000000000000",
+    "gasUSDEstimated": 1.2,
+    "route": []
+  },
+  "context": {
+    "tokenInAddress": "0xTokenIn",
+    "tokenOutAddress": "0xTokenOut",
+    "amountInWei": "1000000000000000000",
+    "minAmountOutWei": "950000000000000000",
+    "slippageBps": 50,
+    "recipient": "0xUser",
+    "routerAddress": "0xAffiliateRouter",
+    "chainId": 369
+  }
+}
+```
+**Response**
+```json
+{
+  "integrity": {
+    "payload": { "...": "..." },
+    "signature": "0x...",
+    "signer": "0xSigner"
+  }
+}
+```
+Use this endpoint when the browser fetched a quote directly from Piteas and you need the backend to validate + sign the calldata before enabling the swap button.
 
 Swagger UI is available in non-production environments at `/docs`.
 

@@ -7,6 +7,7 @@ import PulsexFactoryAbi from "../abis/PulsexFactory.json";
 
 import { SwapRoute, SwapStep } from "../types/swapmanager";
 import { CombinedRoute, Route, PathToken, Swap, Subswap, PathInfo } from "../types/Quote";
+import { QuoteResponse } from "../types/QuoteResponse";
 import config from "../config";
 
 interface QuoteParams {
@@ -16,17 +17,6 @@ interface QuoteParams {
   allowedSlippage?: number;
   account?: string;
 }
-
-interface QuoteResponse {
-  calldata: string;
-  tokenInAdress: string;
-  tokenOutAddress: string;
-  outputAmount: string;
-  gasAmountEstimated: number;
-  gasUSDEstimated: number;
-  route: CombinedRoute;
-}
-
 
 export class PulseXQuoteService {
   private logger: Logger;
@@ -297,11 +287,15 @@ export class PulseXQuoteService {
     // Calculate gas estimation
     const gasEstimate = await this.estimateGas(route, params);
     
+    const amountIn = params.amount;
+    const minAmountOut = outputAmount;
+    const deadline = Math.floor(Date.now() / 1000) + 600; // 10 minutes
+
     const swapRoute: SwapRoute = {
       steps: [],
-      deadline: Math.floor(Date.now() / 1000 + 1000 * 10),
-      amountIn: params.amount,
-      amountOutMin: outputAmount, // Use calculated output amount
+      deadline,
+      amountIn,
+      amountOutMin: minAmountOut, // Use calculated output amount
       parentGroups: [],
       groupCount: 0,
       destination: ethers.ZeroAddress,
@@ -341,12 +335,15 @@ export class PulseXQuoteService {
 
     return {
       calldata: encodeSwapRoute(swapRoute),
-      tokenInAdress: this.formatResponseToken(originalTokenIn, params.tokenInAddress),
+      tokenInAddress: this.formatResponseToken(originalTokenIn, params.tokenInAddress),
       tokenOutAddress: this.formatResponseToken(originalTokenOut, params.tokenOutAddress),
-      outputAmount: outputAmount,
+      amountIn,
+      minAmountOut,
+      outputAmount,
+      deadline,
       gasAmountEstimated: gasEstimate.gasAmount,
       gasUSDEstimated: gasEstimate.gasUSD,
-      route: combineRoute(route)
+      route: combineRoute(route),
     };
   }
 

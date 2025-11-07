@@ -137,7 +137,7 @@ describe("PulseXQuoteService WPLS normalization", () => {
       TOKEN_OUT
     );
 
-    expect(response.tokenInAdress).toBe(ethers.ZeroAddress);
+    expect(response.tokenInAddress).toBe(ethers.ZeroAddress);
     expect(response.tokenOutAddress).toBe(TOKEN_OUT);
   });
 
@@ -186,7 +186,7 @@ describe("PulseXQuoteService WPLS normalization", () => {
       "PLS"
     );
 
-    expect(response.tokenInAdress).toBe(TOKEN_IN);
+    expect(response.tokenInAddress).toBe(TOKEN_IN);
     expect(response.tokenOutAddress).toBe(ethers.ZeroAddress);
   });
 });

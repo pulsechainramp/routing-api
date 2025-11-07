@@ -3,6 +3,11 @@ import { Logger } from '../utils/logger';
 import { PiteasService } from '../services/PiteasService';
 import { PulseXQuoteService } from '@/services/PulseXQuoteService';
 import { QUOTE_AMOUNT_REGEX } from '../constants/quote';
+import { QuoteAttestationRequest } from '../types/QuoteAttestation';
+import { QuoteResponse } from '../types/QuoteResponse';
+import { decodeSwapRouteSummary } from '../utils/routeEncoding';
+import { signQuoteResponse } from '../utils/quoteIntegrity';
+import config from '../config';
 
 const logger = new Logger('QuoteController');
 
@@ -19,6 +24,15 @@ class InvalidQuoteAmountError extends Error {
     super('Invalid quote amount');
   }
 }
+
+const normalizeAddress = (value: string | undefined | null): string =>
+  (value ?? '').trim().toLowerCase();
+
+const assertCondition = (condition: boolean, message: string): void => {
+  if (!condition) {
+    throw new Error(message);
+  }
+};
 
 export class QuoteController {
   constructor(private piteasService: PiteasService, private pulseXQuoteService: PulseXQuoteService) {}
@@ -43,7 +57,7 @@ export class QuoteController {
         account
       });
 
-      return quote;
+      return await signQuoteResponse(quote, { allowedSlippage });
     } catch (error) {
       if (error instanceof InvalidQuoteAmountError) {
         reply.code(400).send({ error: 'Invalid request' });
@@ -67,7 +81,7 @@ export class QuoteController {
         account
       });
 
-      return quote;
+      return await signQuoteResponse(quote, { allowedSlippage });
     } catch (error) {
       if (error instanceof InvalidQuoteAmountError) {
         reply.code(400).send({ error: 'Invalid request' });
@@ -75,6 +89,94 @@ export class QuoteController {
       }
       logger.error('Error fetching PulseX quote', { error });
       reply.code(500).send({ error: 'Failed to fetch PulseX quote' });
+    }
+  }
+
+  async attestQuote(request: FastifyRequest<{ Body: QuoteAttestationRequest }>, reply: FastifyReply) {
+    try {
+      const { quote, context } = request.body;
+
+      if (!quote || !context) {
+        reply.code(400).send({ error: 'Invalid request' });
+        return;
+      }
+
+      const summary = decodeSwapRouteSummary(quote.calldata);
+
+      const requestedTokenIn = normalizeAddress(context.tokenInAddress);
+      const requestedTokenOut = normalizeAddress(context.tokenOutAddress);
+
+      assertCondition(requestedTokenIn.length > 0, 'tokenInAddress is required');
+      assertCondition(requestedTokenOut.length > 0, 'tokenOutAddress is required');
+
+      const routerAddress = normalizeAddress(context.routerAddress);
+      assertCondition(routerAddress.length > 0, 'routerAddress is required');
+      assertCondition(
+        routerAddress === normalizeAddress(config.AffiliateRouterAddress),
+        'Router address mismatch'
+      );
+
+      const allowedChainId = Number(process.env.QUOTE_CHAIN_ID ?? 369);
+      assertCondition(context.chainId === allowedChainId, 'Unsupported chainId for attestation');
+
+      assertCondition(
+        normalizeAddress(quote.tokenInAddress) === requestedTokenIn,
+        'Quote tokenIn mismatch'
+      );
+      assertCondition(
+        normalizeAddress(quote.tokenOutAddress) === requestedTokenOut,
+        'Quote tokenOut mismatch'
+      );
+
+      assertCondition(
+        normalizeAddress(summary.tokenIn) === requestedTokenIn,
+        'Calldata tokenIn mismatch'
+      );
+      assertCondition(
+        normalizeAddress(summary.tokenOut) === requestedTokenOut,
+        'Calldata tokenOut mismatch'
+      );
+
+      const amountInWei = BigInt(summary.amountIn).toString();
+      assertCondition(
+        amountInWei === context.amountInWei,
+        'Calldata amountIn does not match UI amount'
+      );
+
+      const minAmountOutWei = BigInt(summary.amountOutMin).toString();
+      assertCondition(
+        BigInt(minAmountOutWei) >= BigInt(context.minAmountOutWei),
+        'Calldata minAmountOut is below UI tolerance'
+      );
+
+      assertCondition(
+        BigInt(quote.outputAmount) >= BigInt(minAmountOutWei),
+        'Quote output is below enforced minimum'
+      );
+
+      const deadline = Number(summary.deadline);
+      const now = Math.floor(Date.now() / 1000);
+      assertCondition(deadline > now, 'Quote deadline already expired');
+      const maxHorizon = Number(process.env.QUOTE_MAX_DEADLINE_SECONDS ?? 600);
+      assertCondition(deadline - now <= maxHorizon, 'Quote deadline exceeds policy window');
+
+      const normalizedQuote: QuoteResponse = {
+        ...quote,
+        amountIn: amountInWei,
+        minAmountOut: minAmountOutWei,
+        deadline,
+        gasAmountEstimated: quote.gasAmountEstimated ?? 0,
+        gasUSDEstimated: quote.gasUSDEstimated ?? 0,
+      };
+
+      const signedQuote = await signQuoteResponse(normalizedQuote, {
+        allowedSlippage: context.slippageBps / 100,
+      });
+
+      reply.send({ integrity: signedQuote.integrity });
+    } catch (error) {
+      logger.error('Quote attestation failed', { error });
+      reply.code(400).send({ error: 'Quote attestation failed' });
     }
   }
 

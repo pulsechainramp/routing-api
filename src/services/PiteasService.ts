@@ -10,6 +10,7 @@ import PulsexFactoryAbi from "../abis/PulsexFactory.json";
 
 import { SwapRoute, SwapStep } from "../types/swapmanager";
 import { CombinedRoute } from "../types/Quote";
+import { QuoteResponse } from "../types/QuoteResponse";
 import config from "../config";
 
 interface QuoteParams {
@@ -18,16 +19,6 @@ interface QuoteParams {
   amount: string;
   allowedSlippage?: number;
   account?: string;
-}
-
-interface QuoteResponse {
-  calldata: string;
-  tokenInAdress: string;
-  tokenOutAddress: string;
-  outputAmount: string;
-  gasAmountEstimated: number;
-  gasUSDEstimated: number;
-  route: CombinedRoute;
 }
 
 
@@ -91,11 +82,15 @@ export class PiteasService {
     } = piteasData;
 
     console.log(JSON.stringify(swaps));
+    const amountIn = ethers.getBigInt(srcAmount).toString();
+    const amountOutMin = ethers.getBigInt(destAmount).toString();
+    const deadline = Math.floor(Date.now() / 1000) + 600; // 10 minutes
+
     const route: SwapRoute = {
       steps: [],
-      deadline: Math.floor(Date.now() / 1000 + 1000 * 10),
-      amountIn: ethers.getBigInt(srcAmount).toString(),
-      amountOutMin: ethers.getBigInt(destAmount).toString(),
+      deadline,
+      amountIn,
+      amountOutMin,
       parentGroups: [],
       groupCount: 0,
       destination: ethers.ZeroAddress,
@@ -171,12 +166,15 @@ export class PiteasService {
 
     return {
       calldata: encodeSwapRoute(route),
-      tokenInAdress: srcToken.address,
+      tokenInAddress: srcToken.address,
       tokenOutAddress: destToken.address,
+      amountIn,
+      minAmountOut: amountOutMin,
       outputAmount: ethers.getBigInt(destAmount).toString(),
+      deadline,
       gasAmountEstimated: gasUseEstimate,
-      gasUSDEstimated: gasUseEstimateUSD,
-      route: combineRoute({ paths, swaps })
+      gasUSDEstimated: Number(gasUseEstimateUSD ?? 0),
+      route: combineRoute({ paths, swaps }),
     };
   }
 
