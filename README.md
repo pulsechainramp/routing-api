@@ -90,6 +90,9 @@ docker compose up --build
 | `RPC_PLS_MAX_CONCURRENCY` | `5` |  | Max concurrent PulseChain RPC calls for OmniBridge ingestion |
 | `OMNIBRIDGE_ETH_CONTRACTS` | `0x88ad09518695c6c3712ac10a214be5109a655671,0xe20e337db2a00b1c37139c873b92a0aad3f468bf` |  | Comma-separated list of trusted OmniBridge emitters on Ethereum (defaults provided) |
 | `OMNIBRIDGE_PLS_CONTRACTS` | `0x4fd0aaa7506f3d9cb8274bdb946ec42a1b8751ef,0x0e18d0d556b652794ef12bf68b2dc857ef5f3996` |  | Comma-separated list of trusted OmniBridge emitters on PulseChain (defaults provided) |
+| `OMNIBRIDGE_HISTORY_RATE_LIMIT_MAX` | `30` |  | Per-wallet GET `/exchange/omnibridge/transactions` limit |
+| `OMNIBRIDGE_HISTORY_RATE_LIMIT_WINDOW` | `1 minute` |  | Window for history lookups |
+| `OMNIBRIDGE_HISTORY_RATE_LIMIT_BAN` | *(unset)* |  | Optional ban threshold for repeated history abuse |
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_MAX` | `2` |  | Per-wallet POST `/exchange/omnibridge/sync` limit |
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW` | `10 minutes` |  | Window for OmniBridge sync rate limiting |
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_BAN` | *(unset)* |  | Optional ban threshold for repeated sync abuse |

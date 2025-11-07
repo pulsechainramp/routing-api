@@ -10,6 +10,9 @@ describe('OmniBridge transaction route security', () => {
     rateMax: process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX,
     rateWindow: process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW,
     rateBan: process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN,
+    historyRateMax: process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_MAX,
+    historyRateWindow: process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_WINDOW,
+    historyRateBan: process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_BAN,
     syncRateMax: process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_MAX,
     syncRateWindow: process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW,
     syncRateBan: process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_BAN,
@@ -19,6 +22,9 @@ describe('OmniBridge transaction route security', () => {
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX = originalEnv.rateMax;
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW = originalEnv.rateWindow;
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN = originalEnv.rateBan;
+    process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_MAX = originalEnv.historyRateMax;
+    process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_WINDOW = originalEnv.historyRateWindow;
+    process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_BAN = originalEnv.historyRateBan;
     process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_MAX = originalEnv.syncRateMax;
     process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW = originalEnv.syncRateWindow;
     process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_BAN = originalEnv.syncRateBan;
@@ -28,6 +34,9 @@ describe('OmniBridge transaction route security', () => {
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_MAX = '1';
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_WINDOW = '1 minute';
     process.env.OMNIBRIDGE_CREATE_RATE_LIMIT_BAN = '0';
+    process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_MAX = '1';
+    process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_WINDOW = '1 minute';
+    process.env.OMNIBRIDGE_HISTORY_RATE_LIMIT_BAN = '0';
     process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_MAX = '1';
     process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW = '1 minute';
     process.env.OMNIBRIDGE_SYNC_RATE_LIMIT_BAN = '0';
@@ -40,7 +49,7 @@ describe('OmniBridge transaction route security', () => {
     const serviceMock = {
       createTransactionFromTxHash: createTransactionMock,
       getTransactionStatus: jest.fn(),
-      getUserTransactions: jest.fn(),
+      getUserTransactions: jest.fn().mockResolvedValue([]),
       syncUserTransactions: syncUserTransactionsMock,
     } as unknown as OmniBridgeTransactionService;
 
@@ -69,7 +78,7 @@ describe('OmniBridge transaction route security', () => {
       throw error;
     }
 
-    return { app, createTransactionMock, syncUserTransactionsMock };
+    return { app, createTransactionMock, syncUserTransactionsMock, historyMock: serviceMock.getUserTransactions };
   }
 
   afterEach(async () => {
@@ -261,6 +270,75 @@ describe('OmniBridge transaction route security', () => {
 
       expect(second.statusCode).toBe(429);
       expect(syncUserTransactionsMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('requires auth before listing user transactions', async () => {
+    const { app, historyMock } = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/exchange/omnibridge/transactions?userAddress=${wallet}`,
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(historyMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects history requests when the JWT subject differs from the queried wallet', async () => {
+    const { app, historyMock } = await buildApp();
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/exchange/omnibridge/transactions?userAddress=0x2222222222222222222222222222222222222222`,
+        headers: {
+          authorization: `Bearer ${wallet}`,
+        },
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(historyMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('enforces per-wallet history rate limits', async () => {
+    const { app, historyMock } = await buildApp();
+
+    try {
+      const first = await app.inject({
+        method: 'GET',
+        url: `/exchange/omnibridge/transactions?userAddress=${wallet}`,
+        headers: {
+          authorization: `Bearer ${wallet}`,
+        },
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(first.statusCode).toBe(200);
+      expect(historyMock).toHaveBeenCalledTimes(1);
+
+      const second = await app.inject({
+        method: 'GET',
+        url: `/exchange/omnibridge/transactions?userAddress=${wallet}`,
+        headers: {
+          authorization: `Bearer ${wallet}`,
+        },
+        remoteAddress: '203.0.113.5',
+      });
+
+      expect(second.statusCode).toBe(429);
+      expect(historyMock).toHaveBeenCalledTimes(1);
     } finally {
       await app.close();
     }
