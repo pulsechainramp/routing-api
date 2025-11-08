@@ -95,15 +95,20 @@ describe('Quote route amount validation', () => {
   const buildRouteCalldata = (
     amountIn: string,
     minAmountOut: string,
-    deadline: number
-  ) =>
-    abiCoder.encode(SWAP_ROUTE_ABI, [
+    deadline: number,
+    overrides?: { tokenIn?: string; tokenOut?: string; destination?: string }
+  ) => {
+    const routeTokenIn = overrides?.tokenIn ?? tokenIn;
+    const routeTokenOut = overrides?.tokenOut ?? tokenOut;
+    const destination = overrides?.destination ?? ZeroAddress;
+
+    return abiCoder.encode(SWAP_ROUTE_ABI, [
       [
         [],
         [],
-        ZeroAddress,
-        tokenIn,
-        tokenOut,
+        destination,
+        routeTokenIn,
+        routeTokenOut,
         0,
         BigInt(deadline),
         BigInt(amountIn),
@@ -111,6 +116,7 @@ describe('Quote route amount validation', () => {
         false,
       ],
     ]);
+  };
 
   beforeAll(() => {
     process.env.QUOTE_SIGNING_PRIVATE_KEY = TEST_SIGNING_KEY;
@@ -201,6 +207,51 @@ describe('Quote route amount validation', () => {
       const body = JSON.parse(response.body) as { integrity: SignedQuoteIntegrity };
       expect(body.integrity).toBeDefined();
       expect(body.integrity.signature).toMatch(/^0x/);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('attests when the UI selects the native token alias but the quote routes through WPLS', async () => {
+    const { app } = await buildApp();
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+    const amountInWei = '2000000000000000000';
+    const minAmountOutWei = '1800000000000000000';
+    const calldata = buildRouteCalldata(amountInWei, minAmountOutWei, deadline, {
+      tokenIn: config.WPLS,
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/quote/attest',
+        payload: {
+          quote: {
+            calldata,
+            tokenInAddress: config.WPLS,
+            tokenOutAddress: tokenOut,
+            amountIn: amountInWei,
+            minAmountOut: minAmountOutWei,
+            outputAmount: '2100000000000000000',
+            deadline,
+            gasUSDEstimated: 1,
+            gasAmountEstimated: 210000,
+            route: [],
+          },
+          context: {
+            tokenInAddress: ZeroAddress,
+            tokenOutAddress: tokenOut,
+            amountInWei,
+            minAmountOutWei,
+            slippageBps: 50,
+            recipient: tokenIn,
+            routerAddress: config.AffiliateRouterAddress,
+            chainId: 369,
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
     } finally {
       await app.close();
     }

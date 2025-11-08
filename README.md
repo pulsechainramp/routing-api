@@ -337,6 +337,18 @@ routing-api/
 - **Prisma connection errors:** Confirm Postgres is running and `DATABASE_URL` targets the reachable host/port.
 - **Onramp catalog missing:** Ensure `src/data/onramps_providers.json` exists or set `ONRAMPS_JSON_PATH` to a valid file.
 
+### Resetting Referral Data (local testing)
+Wallets you tested earlier may remain bound to referral codes because the API stores them in Postgres. To clear those bindings when developing locally:
+
+```powershell
+# from routing-api/
+docker compose up -d
+docker compose exec db psql -U postgres -d routing `
+  -c "TRUNCATE TABLE referral_fees, indexing_states, users RESTART IDENTITY CASCADE;"
+```
+
+That keeps other tables intact while wiping referral codes, indexed fee snapshots, and indexer cursors. If you truly want a blank slate, remove the entire volume with `docker compose down -v && docker compose up -d` (note this deletes *all* persisted data).
+
 ---
 
 ## Contributing

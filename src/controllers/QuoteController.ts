@@ -25,8 +25,39 @@ class InvalidQuoteAmountError extends Error {
   }
 }
 
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 const normalizeAddress = (value: string | undefined | null): string =>
   (value ?? '').trim().toLowerCase();
+
+const isNativeAddress = (value: string): boolean => {
+  const normalized = normalizeAddress(value);
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    normalized === 'pls' ||
+    normalized === '0x0' ||
+    normalized === ZERO_ADDRESS ||
+    normalized === normalizeAddress(config.WPLS)
+  );
+};
+
+const addressesMatch = (a?: string | null, b?: string | null): boolean => {
+  const left = normalizeAddress(a);
+  const right = normalizeAddress(b);
+
+  if (!left || !right) {
+    return false;
+  }
+
+  if (left === right) {
+    return true;
+  }
+
+  return isNativeAddress(left) && isNativeAddress(right);
+};
 
 const assertCondition = (condition: boolean, message: string): void => {
   if (!condition) {
@@ -120,20 +151,20 @@ export class QuoteController {
       assertCondition(context.chainId === allowedChainId, 'Unsupported chainId for attestation');
 
       assertCondition(
-        normalizeAddress(quote.tokenInAddress) === requestedTokenIn,
+        addressesMatch(quote.tokenInAddress, context.tokenInAddress),
         'Quote tokenIn mismatch'
       );
       assertCondition(
-        normalizeAddress(quote.tokenOutAddress) === requestedTokenOut,
+        addressesMatch(quote.tokenOutAddress, context.tokenOutAddress),
         'Quote tokenOut mismatch'
       );
 
       assertCondition(
-        normalizeAddress(summary.tokenIn) === requestedTokenIn,
+        addressesMatch(summary.tokenIn, context.tokenInAddress),
         'Calldata tokenIn mismatch'
       );
       assertCondition(
-        normalizeAddress(summary.tokenOut) === requestedTokenOut,
+        addressesMatch(summary.tokenOut, context.tokenOutAddress),
         'Calldata tokenOut mismatch'
       );
 
