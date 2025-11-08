@@ -6,13 +6,24 @@ const DEFAULT_OMNIBRIDGE_CONTRACTS: Record<number, string[]> = {
   1: [
     // Ethereum Foreign OmniBridge proxy stack
     '0x88ad09518695c6c3712ac10a214be5109a655671',
-    '0xe20e337db2a00b1c37139c873b92a0aad3f468bf'
+    '0xe20e337db2a00b1c37139c873b92a0aad3f468bf',
+    // PulseBridge BridgeManager contracts (emit TokensBridgingInitiated)
+    '0x1715a3E4A142d8b698131108995174F37aEBA10D',
+    '0x8AC4ae65b3656e26dC4e0e69108B392283350f55'
   ],
   369: [
     // PulseChain Home OmniBridge contracts
     '0x4fd0aaa7506f3d9cb8274bdb946ec42a1b8751ef',
     '0x0e18d0d556b652794ef12bf68b2dc857ef5f3996'
   ]
+};
+
+const BRIDGE_MANAGER_CONTRACTS: Record<number, string[]> = {
+  1: [
+    '0x1715a3E4A142d8b698131108995174F37aEBA10D',
+    '0x8AC4ae65b3656e26dC4e0e69108B392283350f55'
+  ],
+  369: []
 };
 
 const OMNIBRIDGE_ENV_KEYS: Record<number, string> = {
@@ -46,6 +57,7 @@ export class BlockchainService {
   private ethLimiter: Bottleneck;
   private plsLimiter: Bottleneck;
   private omniBridgeContracts: Map<number, Set<string>>;
+  private bridgeManagerContracts: Map<number, Set<string>>;
 
   constructor() {
     this.ethProvider = new ethers.JsonRpcProvider('https://eth-mainnet.public.blastapi.io');
@@ -59,7 +71,9 @@ export class BlockchainService {
     this.plsLimiter = new Bottleneck({ maxConcurrent: plsConcurrency });
 
     this.omniBridgeContracts = new Map();
+    this.bridgeManagerContracts = new Map();
     this.configureOmniBridgeContracts();
+    this.configureBridgeManagerContracts();
   }
 
   private configureOmniBridgeContracts(): void {
@@ -72,21 +86,33 @@ export class BlockchainService {
     }
   }
 
+  private configureBridgeManagerContracts(): void {
+    for (const [networkIdString, defaults] of Object.entries(BRIDGE_MANAGER_CONTRACTS)) {
+      const networkId = Number(networkIdString);
+      const addressList = this.parseContractAddresses(undefined, defaults);
+      this.bridgeManagerContracts.set(networkId, new Set(addressList));
+    }
+  }
+
   private parseContractAddresses(override: string | undefined, defaults: string[]): string[] {
     const entries = (override ?? '')
       .split(',')
       .map(entry => entry.trim())
       .filter(Boolean);
 
-    const source = entries.length > 0 ? entries : defaults;
+    const source = [...defaults, ...entries];
+    const seen = new Set<string>();
 
-    return source.map(address => {
+    for (const address of source) {
       try {
-        return ethers.getAddress(address).toLowerCase();
+        const normalized = ethers.getAddress(address).toLowerCase();
+        seen.add(normalized);
       } catch {
         throw new Error(`Invalid OmniBridge contract address configured: ${address}`);
       }
-    });
+    }
+
+    return Array.from(seen);
   }
 
   private getAllowedOmniBridgeContracts(networkId: number): Set<string> {
@@ -95,6 +121,14 @@ export class BlockchainService {
       throw new Error(`OmniBridge contracts not configured for network ${networkId}`);
     }
     return contracts;
+  }
+
+  isBridgeManagerContract(networkId: number, address: string): boolean {
+    const contracts = this.bridgeManagerContracts.get(networkId);
+    if (!contracts || contracts.size === 0) {
+      return false;
+    }
+    return contracts.has(address.toLowerCase());
   }
 
   private getLimiter(networkId: number): Bottleneck {

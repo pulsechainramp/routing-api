@@ -52,6 +52,7 @@ describe('OmniBridgeTransactionService protections', () => {
       getTransactionReceipt: jest.fn().mockResolvedValue(null),
       extractTokensBridgingInitiatedEvent: jest.fn(),
       getBlockTimestamp: jest.fn(),
+      isBridgeManagerContract: jest.fn().mockReturnValue(false),
     };
 
     (service as any).blockchainService = blockchainStub;
@@ -92,6 +93,7 @@ describe('OmniBridgeTransactionService protections', () => {
       getTransactionReceipt: jest.fn().mockReturnValue(receiptPromise),
       extractTokensBridgingInitiatedEvent: jest.fn().mockReturnValue(bridgeEvent),
       getBlockTimestamp: jest.fn().mockResolvedValue(1700000000),
+      isBridgeManagerContract: jest.fn().mockReturnValue(false),
     };
 
     (service as any).blockchainService = blockchainStub;
@@ -135,6 +137,7 @@ describe('OmniBridgeTransactionService protections', () => {
       getTransactionReceipt: jest.fn().mockResolvedValue({ blockNumber: 123n, logs: [] }),
       extractTokensBridgingInitiatedEvent: jest.fn().mockReturnValue(bridgeEvent),
       getBlockTimestamp: jest.fn(),
+      isBridgeManagerContract: jest.fn().mockReturnValue(false),
     };
 
     (service as any).blockchainService = blockchainStub;
@@ -152,5 +155,39 @@ describe('OmniBridgeTransactionService protections', () => {
     expect(createTransactionSpy).not.toHaveBeenCalled();
     expect(blockchainStub.getBlockTimestamp).not.toHaveBeenCalled();
     expect((service as any).failedTransactionCache.size).toBe(0);
+  });
+
+  it('accepts bridge manager events when the transaction origin matches the user', async () => {
+    const service = new OmniBridgeTransactionService(prismaStub);
+    const bridgeManagerAddress = '0x' + 'a'.repeat(40);
+    const bridgeEvent = {
+      token: '0x0000000000000000000000000000000000000001',
+      sender: bridgeManagerAddress,
+      value: '1000',
+      messageId: '0x' + 'f'.repeat(64),
+    };
+
+    const blockchainStub = {
+      validateTransactionHash: jest.fn().mockReturnValue(true),
+      validateNetworkId: jest.fn().mockReturnValue(true),
+      getTransactionReceipt: jest.fn().mockResolvedValue({ blockNumber: 123n, logs: [], from: userAddress }),
+      extractTokensBridgingInitiatedEvent: jest.fn().mockReturnValue(bridgeEvent),
+      getBlockTimestamp: jest.fn().mockResolvedValue(1700000000),
+      isBridgeManagerContract: jest.fn().mockImplementation((_networkId, address) => {
+        return address === bridgeManagerAddress.toLowerCase();
+      }),
+    };
+
+    (service as any).blockchainService = blockchainStub;
+
+    jest.spyOn(service as any, 'getTransactionByMessageId').mockResolvedValue(null);
+    const createTransactionSpy = jest
+      .spyOn(service as any, 'createTransaction')
+      .mockResolvedValue({ messageId: bridgeEvent.messageId });
+
+    const result = await service.createTransactionFromTxHash(txHash, 1, userAddress);
+
+    expect(result).toEqual({ messageId: bridgeEvent.messageId });
+    expect(createTransactionSpy).toHaveBeenCalled();
   });
 });

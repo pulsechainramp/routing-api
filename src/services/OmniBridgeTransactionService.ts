@@ -495,10 +495,20 @@ export class OmniBridgeTransactionService {
           throw new Error('No TokensBridgingInitiated event found in transaction');
         }
 
-        const normalizedSender = bridgeEvent.sender.toLowerCase();
         const normalizedClaimedAddress = userAddress.toLowerCase();
+        const normalizedEventSender = bridgeEvent.sender.toLowerCase();
+        const normalizedTxOrigin = (receipt.from ?? '').toLowerCase();
 
-        if (normalizedSender !== normalizedClaimedAddress) {
+        let expectedSender = normalizedEventSender;
+
+        if (this.blockchainService.isBridgeManagerContract(networkId, normalizedEventSender)) {
+          if (!normalizedTxOrigin) {
+            throw new Error('Unable to determine transaction origin');
+          }
+          expectedSender = normalizedTxOrigin;
+        }
+
+        if (expectedSender !== normalizedClaimedAddress) {
           throw new Error(SENDER_MISMATCH_ERROR);
         }
 
@@ -541,7 +551,7 @@ export class OmniBridgeTransactionService {
         // Create the transaction record
         return await this.createTransaction({
           messageId: bridgeEvent.messageId,
-          userAddress: normalizedSender,
+          userAddress: userAddress,
           sourceChainId,
           targetChainId,
           sourceTxHash: txHash,

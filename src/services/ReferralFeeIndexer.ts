@@ -86,22 +86,30 @@ export class ReferralFeeIndexer extends IndexingService {
       
       // Get current block number
       const currentBlock = await this.provider.getBlockNumber();
-      
-      if (currentBlock <= lastIndexedBlock) {
-        console.log(`No new blocks to scan. Last indexed: ${lastIndexedBlock}, Current: ${currentBlock}`);
-        this.isInitialScanComplete = true;
-        return;
+      let effectiveLastIndexed = lastIndexedBlock;
+
+      if (currentBlock <= effectiveLastIndexed) {
+        if (currentBlock < effectiveLastIndexed) {
+          effectiveLastIndexed = await this.reconcileLastIndexedBlock(currentBlock, effectiveLastIndexed);
+        }
+
+        if (currentBlock <= effectiveLastIndexed) {
+          console.log(`No new blocks to scan. Last indexed: ${effectiveLastIndexed}, Current: ${currentBlock}`);
+          this.isInitialScanComplete = true;
+          return;
+        }
       }
 
-      console.log(`Performing initial scan from block ${lastIndexedBlock + 1} to ${currentBlock}`);
+      console.log(`Performing initial scan from block ${effectiveLastIndexed + 1} to ${currentBlock}`);
 
       // Process blocks in batches to avoid overwhelming the RPC
-      for (let blockNumber = lastIndexedBlock + 1; blockNumber <= currentBlock; blockNumber += this.blockRange) {
+      for (let blockNumber = effectiveLastIndexed + 1; blockNumber <= currentBlock; blockNumber += this.blockRange) {
         const endBlock = Math.min(blockNumber + this.blockRange - 1, currentBlock);
         await this.processBlockRange(blockNumber, endBlock);
         
         // Update the last indexed block after each batch
         await this.updateLastIndexedBlock(endBlock);
+        effectiveLastIndexed = endBlock;
         
         console.log(`Processed blocks ${blockNumber} to ${endBlock}`);
       }
@@ -141,16 +149,27 @@ export class ReferralFeeIndexer extends IndexingService {
     try {
       const currentBlock = await this.provider.getBlockNumber();
       const indexingState = await this.getIndexingState();
-      
-      if (!indexingState || currentBlock <= indexingState.lastIndexedBlock) {
-        return; // No new blocks
+      if (!indexingState) {
+        return;
       }
 
-      console.log(`Processing new blocks ${indexingState.lastIndexedBlock + 1} to ${currentBlock}`);
+      let lastIndexedBlock = indexingState.lastIndexedBlock;
+
+      if (currentBlock <= lastIndexedBlock) {
+        if (currentBlock < lastIndexedBlock) {
+          lastIndexedBlock = await this.reconcileLastIndexedBlock(currentBlock, lastIndexedBlock);
+        }
+
+        if (currentBlock <= lastIndexedBlock) {
+          return; // No new blocks even after reconciliation
+        }
+      }
+
+      console.log(`Processing new blocks ${lastIndexedBlock + 1} to ${currentBlock}`);
 
       // Process blocks in batches
       const batchSize = 10;
-      for (let blockNumber = indexingState.lastIndexedBlock + 1; blockNumber <= currentBlock; blockNumber += batchSize) {
+      for (let blockNumber = lastIndexedBlock + 1; blockNumber <= currentBlock; blockNumber += batchSize) {
         const endBlock = Math.min(blockNumber + batchSize - 1, currentBlock);
         await this.processBlockRange(blockNumber, endBlock);
         
@@ -303,4 +322,23 @@ export class ReferralFeeIndexer extends IndexingService {
       throw error;
     }
   }
-} 
+
+  /**
+   * Ensure the stored last indexed block is not ahead of the current chain height.
+   * This is important for local dev networks where block numbers may be lower
+   * than the configured start block.
+   */
+  private async reconcileLastIndexedBlock(currentBlock: number, lastIndexedBlock: number): Promise<number> {
+    if (currentBlock >= lastIndexedBlock) {
+      return lastIndexedBlock;
+    }
+
+    const fallback = currentBlock > 0 ? currentBlock - 1 : 0;
+    console.warn(
+      `ReferralFeeIndexer: last indexed block ${lastIndexedBlock} is ahead of current block ${currentBlock}. Resetting pointer to ${fallback}.`
+    );
+
+    await this.updateLastIndexedBlock(fallback);
+    return fallback;
+  }
+}
