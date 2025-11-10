@@ -1,5 +1,5 @@
 export default {
-  AffiliateRouterAddress: '0x7872B42710294ce16fEA60575da45Fde51db78e8',
+  AffiliateRouterAddress: '0xCf2B8a55c86790Ab8F04873033a6e46be99658a7',
   ReferralFeeIndexerName: 'referral_fee_indexer',
   ReferralFeeIndexStartBlock: 24366340,
   PulsexV1FactoryAddress: '0x1715a3e4a142d8b698131108995174f37aeba10d',
