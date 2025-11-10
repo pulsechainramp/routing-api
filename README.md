@@ -85,7 +85,7 @@ docker compose up --build
 | `QUOTE_SIGNING_PRIVATE_KEY` | *(unset)* | yes | Backend key that signs quote attestations |
 | `QUOTE_SIGNER_ADDRESS` | *(unset)* | yes | Public address corresponding to `QUOTE_SIGNING_PRIVATE_KEY` |
 | `QUOTE_CHAIN_ID` | `369` |  | Chain ID enforced by `/quote/attest` |
-| `QUOTE_MAX_DEADLINE_SECONDS` | `600` |  | Longest deadline window (seconds) accepted during attestation |
+| `QUOTE_MAX_DEADLINE_SECONDS` | `1800` |  | Longest deadline window (seconds) accepted during attestation |
 | `JWT_SECRET` | `super-secret-value` | yes | HMAC secret for SIWE-issued JWTs |
 | `JWT_EXPIRES_IN` | `1h` |  | Optional JWT lifetime (Fastify JWT format) |
 | `SIWE_DOMAIN` | `pulsechainramp.com` | yes | Comma-separated list of trusted SIWE hostnames. Requests with other Host headers are rejected. |
