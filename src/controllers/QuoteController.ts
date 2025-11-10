@@ -206,8 +206,17 @@ export class QuoteController {
 
       reply.send({ integrity: signedQuote.integrity });
     } catch (error) {
-      logger.error('Quote attestation failed', { error });
-      reply.code(400).send({ error: 'Quote attestation failed' });
+      const err =
+        error instanceof Error
+          ? { message: error.message, stack: error.stack }
+          : { message: String(error) };
+
+      logger.error('Quote attestation failed', err);
+
+      reply.code(400).send({
+        error: 'Quote attestation failed',
+        reason: error instanceof Error ? error.message : undefined,
+      });
     }
   }
 
