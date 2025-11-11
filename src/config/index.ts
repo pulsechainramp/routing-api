@@ -1,3 +1,5 @@
+import './env';
+
 const DEFAULT_PULSECHAIN_RPCS = [
   'https://rpc.pulsechain.com',
   'https://pulsechain-rpc.publicnode.com',

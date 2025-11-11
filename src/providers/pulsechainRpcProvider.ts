@@ -1,5 +1,23 @@
+import '../config/env';
 import { FallbackProvider, JsonRpcProvider, Provider, Network } from 'ethers';
 import { Logger } from '../utils/logger';
+
+const logger = new Logger('PulsechainRPC');
+
+const parseNumericEnv = (keys: string[], fallback: number): number => {
+  for (const key of keys) {
+    const raw = process.env[key];
+    if (raw === undefined) {
+      continue;
+    }
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.floor(parsed);
+    }
+    logger.warn('rpc.config.invalidNumber', { key, value: raw, fallback });
+  }
+  return fallback;
+};
 
 const DEFAULT_PULSECHAIN_RPCS = [
   'https://rpc.pulsechain.com',
@@ -7,12 +25,12 @@ const DEFAULT_PULSECHAIN_RPCS = [
   'https://rpc-pulsechain.g4mm4.io',
 ];
 
-const stallTimeoutMs = Math.max(0, Number(process.env.RPC_STALL_TIMEOUT_MS ?? 1200));
-const retryCount = Math.max(0, Number(process.env.RPC_RETRY_COUNT ?? 2));
-const retryDelayMs = Math.max(0, Number(process.env.RPC_RETRY_DELAY_MS ?? 200));
-const cooldownMs = Math.max(0, Number(process.env.RPC_COOLDOWN_MS ?? 30000));
+const pulsechainNetwork = Network.from({ chainId: 369, name: 'pulsechain' });
 
-const logger = new Logger('PulsechainRPC');
+const stallTimeoutMs = parseNumericEnv(['RPC_STALL_TIMEOUT_MS'], 1200);
+const retryCount = parseNumericEnv(['RPC_RETRY_COUNT'], 2);
+const retryDelayMs = parseNumericEnv(['RPC_RETRY_DELAY_MS'], 200);
+const cooldownMs = parseNumericEnv(['RPC_COOLDOWN_MS'], 30000);
 
 function parseRpcUrls(): string[] {
   const raw =
@@ -90,8 +108,7 @@ class CircuitBreakerJsonRpcProvider extends JsonRpcProvider {
   private failedUntil = 0;
 
   constructor(private readonly rpcUrl: string) {
-    const network = Network.from({ chainId: 369, name: 'pulsechain' });
-    super(rpcUrl, network, { staticNetwork: network });
+    super(rpcUrl, pulsechainNetwork);
   }
 
   override _getConnection() {
@@ -191,8 +208,6 @@ const createProviderEntries = (urls: string[]): ProviderEntry[] =>
     url,
     provider: new CircuitBreakerJsonRpcProvider(url),
   }));
-
-const pulsechainNetwork = Network.from({ chainId: 369, name: 'pulsechain' });
 
 const createFallbackProvider = (entries: ProviderEntry[]) =>
   new RetryingFallbackProvider(

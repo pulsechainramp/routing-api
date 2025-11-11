@@ -1,3 +1,4 @@
+import './config/env';
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -26,13 +27,9 @@ import { getPulsechainProvider, initializePulsechainRpcProvider } from './provid
 import { getEthereumProvider, initializeEthereumRpcProvider } from './providers/ethereumRpcProvider';
 import { setPulsechainProviderForWeb3 } from './utils/web3';
 
-import dotenv from 'dotenv';
 import config from './config';
 import { setupSwagger } from './plugins/swagger';
 import { getClientIp } from './utils/network';
-
-// Load environment variables
-dotenv.config();
 
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const PORT = Number(process.env.PORT ?? 3000);

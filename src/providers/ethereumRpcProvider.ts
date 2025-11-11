@@ -1,19 +1,35 @@
+import '../config/env';
 import { FallbackProvider, JsonRpcProvider, Provider, Network } from 'ethers';
 import { Logger } from '../utils/logger';
 
+const logger = new Logger('EthereumRPC');
+const parseNumericEnv = (keys: string[], fallback: number): number => {
+  for (const key of keys) {
+    const raw = process.env[key];
+    if (raw === undefined) {
+      continue;
+    }
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.floor(parsed);
+    }
+    logger.warn('eth.rpc.config.invalidNumber', { key, value: raw, fallback });
+  }
+  return fallback;
+};
+
+const ethereumNetwork = Network.from({ chainId: 1, name: 'homestead' });
+
 const DEFAULT_ETHEREUM_RPCS = [
   'https://ethereum-rpc.publicnode.com',
-  'https://rpc.ankr.com/eth',
   'https://ethereum.public.blockpi.network/v1/rpc/public',
   'https://eth.drpc.org',
 ];
 
-const stallTimeoutMs = Math.max(0, Number(process.env.ETH_RPC_STALL_TIMEOUT_MS ?? process.env.RPC_STALL_TIMEOUT_MS ?? 1200));
-const retryCount = Math.max(0, Number(process.env.ETH_RPC_RETRY_COUNT ?? process.env.RPC_RETRY_COUNT ?? 2));
-const retryDelayMs = Math.max(0, Number(process.env.ETH_RPC_RETRY_DELAY_MS ?? process.env.RPC_RETRY_DELAY_MS ?? 200));
-const cooldownMs = Math.max(0, Number(process.env.ETH_RPC_COOLDOWN_MS ?? process.env.RPC_COOLDOWN_MS ?? 30000));
-
-const logger = new Logger('EthereumRPC');
+const stallTimeoutMs = parseNumericEnv(['ETH_RPC_STALL_TIMEOUT_MS', 'RPC_STALL_TIMEOUT_MS'], 1200);
+const retryCount = parseNumericEnv(['ETH_RPC_RETRY_COUNT', 'RPC_RETRY_COUNT'], 2);
+const retryDelayMs = parseNumericEnv(['ETH_RPC_RETRY_DELAY_MS', 'RPC_RETRY_DELAY_MS'], 200);
+const cooldownMs = parseNumericEnv(['ETH_RPC_COOLDOWN_MS', 'RPC_COOLDOWN_MS'], 30000);
 
 function parseRpcUrls(): string[] {
   const raw =
@@ -73,8 +89,7 @@ class CircuitBreakerJsonRpcProvider extends JsonRpcProvider {
   private failedUntil = 0;
 
   constructor(private readonly rpcUrl: string) {
-    const network = Network.from({ chainId: 1, name: 'homestead' });
-    super(rpcUrl, network, { staticNetwork: network });
+    super(rpcUrl, ethereumNetwork);
   }
 
   override _getConnection() {
@@ -169,8 +184,6 @@ const createProviderEntries = (urls: string[]): ProviderEntry[] =>
     url,
     provider: new CircuitBreakerJsonRpcProvider(url),
   }));
-
-const ethereumNetwork = Network.from({ chainId: 1, name: 'homestead' });
 
 const createFallbackProvider = (entries: ProviderEntry[]) =>
   new RetryingFallbackProvider(
