@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, type Provider } from 'ethers';
 import Bottleneck from 'bottleneck';
 import OmniBridgeABI from '../abis/OmniBridge.json';
 
@@ -51,17 +51,27 @@ export interface TokensBridgingInitiatedEvent {
 }
 
 export class BlockchainService {
-  private ethProvider: ethers.JsonRpcProvider;
-  private plsProvider: ethers.JsonRpcProvider;
+  private ethProvider: Provider;
+  private plsProvider: Provider;
   private omniBridgeInterface: ethers.Interface;
   private ethLimiter: Bottleneck;
   private plsLimiter: Bottleneck;
   private omniBridgeContracts: Map<number, Set<string>>;
   private bridgeManagerContracts: Map<number, Set<string>>;
 
-  constructor() {
-    this.ethProvider = new ethers.JsonRpcProvider('https://eth-mainnet.public.blastapi.io');
-    this.plsProvider = new ethers.JsonRpcProvider('https://rpc.pulsechain.com');
+  constructor(
+    ethProvider: Provider,
+    pulsechainProvider: Provider
+  ) {
+    if (!ethProvider) {
+      throw new Error('BlockchainService requires an Ethereum provider');
+    }
+    if (!pulsechainProvider) {
+      throw new Error('BlockchainService requires a PulseChain provider');
+    }
+
+    this.ethProvider = ethProvider;
+    this.plsProvider = pulsechainProvider;
     this.omniBridgeInterface = new ethers.Interface(OmniBridgeABI);
 
     const ethConcurrency = Math.max(1, Number(process.env.RPC_ETH_MAX_CONCURRENCY ?? 5));
@@ -143,7 +153,7 @@ export class BlockchainService {
   }
 
   // Get provider based on network ID
-  private getProvider(networkId: number): ethers.JsonRpcProvider {
+  private getProvider(networkId: number): Provider {
     switch (networkId) {
       case 1: // Ethereum
         return this.ethProvider;

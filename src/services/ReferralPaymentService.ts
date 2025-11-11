@@ -1,4 +1,4 @@
-import { Contract, JsonRpcProvider, getAddress, type InterfaceAbi } from 'ethers';
+import { Contract, getAddress, type InterfaceAbi, type Provider } from 'ethers';
 import AffiliateRouterArtifact from '../abis/AffiliateRouter.json';
 import config from '../config';
 
@@ -6,10 +6,9 @@ export class ReferralPaymentService {
   private readonly contract: Contract;
 
   constructor(
-    rpcUrl: string = config.RPC_URL,
+    provider: Provider,
     contractAddress: string = config.AffiliateRouterAddress
   ) {
-    const provider = new JsonRpcProvider(rpcUrl);
     const abi = (AffiliateRouterArtifact as { abi: InterfaceAbi }).abi;
     this.contract = new Contract(contractAddress, abi, provider);
   }

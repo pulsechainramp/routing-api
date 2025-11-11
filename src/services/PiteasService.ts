@@ -2,7 +2,7 @@ import { AxiosInstance } from "axios";
 import { Logger } from "../utils/logger";
 import { RateLimiter } from "./RateLimiter";
 import { ProxyManager } from "./ProxyManager";
-import { ethers } from "ethers";
+import { ethers, type Provider } from "ethers";
 import { combineRoute, encodeSwapRoute, toCorrectDexName } from "../utils/web3";
 
 import PulseXStableSwapPoolAbi from "../abis/PulseXStableSwapPool.json";
@@ -31,7 +31,8 @@ export class PiteasService {
   constructor(
     baseUrl: string,
     proxyManager: ProxyManager,
-    rateLimiter: RateLimiter
+    rateLimiter: RateLimiter,
+    private readonly provider: Provider
   ) {
     this.logger = new Logger("PiteasService");
     this.rateLimiter = rateLimiter;
@@ -114,7 +115,7 @@ export class PiteasService {
             const StablePool = new ethers.Contract(
               path.address,
               PulseXStableSwapPoolAbi,
-              new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.pulsechain.com")
+              this.provider
             );
             for (let i = 0; i <= 2; i++) {
               const token = await StablePool.coins(i);
@@ -182,13 +183,13 @@ export class PiteasService {
     const pulsexV1Factory = new ethers.Contract(
       config.PulsexV1FactoryAddress,
       PulsexFactoryAbi,
-      new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.pulsechain.com")
+      this.provider
     );
 
     const pulsexV2Factory = new ethers.Contract(
       config.PulsexV2FactoryAddress,
       PulsexFactoryAbi,
-      new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc.pulsechain.com")
+      this.provider
     );
 
     const pulsexV1Pair = await pulsexV1Factory.getPair(step.path[0], step.path[1]);

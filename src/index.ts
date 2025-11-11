@@ -22,6 +22,9 @@ import { RouteRegistry } from './routes/registry';
 import { PulseXQuoteService } from './services/PulseXQuoteService';
 import { AuthService } from './services/AuthService';
 import { ReferralPaymentService } from './services/ReferralPaymentService';
+import { getPulsechainProvider, initializePulsechainRpcProvider } from './providers/pulsechainRpcProvider';
+import { getEthereumProvider, initializeEthereumRpcProvider } from './providers/ethereumRpcProvider';
+import { setPulsechainProviderForWeb3 } from './utils/web3';
 
 import dotenv from 'dotenv';
 import config from './config';
@@ -124,30 +127,13 @@ const rateLimiter = new RateLimiter(
   parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10)
 );
 
-const piteasService = new PiteasService(
-  process.env.PITEAS_API_BASE_URL || '',
-  proxyManager,
-  rateLimiter
-);
-
 const changeNowService = new ChangeNowService();
 const omniBridgeService = new OmniBridgeService();
-const blockchainService = new BlockchainService();
-const omniBridgeTransactionService = new OmniBridgeTransactionService(prisma);
 const rateService = new RateService(prisma);
 const transactionService = new TransactionService(prisma);
 const referralService = new ReferralService(prisma);
 const referralFeeService = new ReferralFeeService(prisma);
-const pulseXQuoteService = new PulseXQuoteService();
 const authService = new AuthService();
-const referralPaymentService = new ReferralPaymentService();
-
-// Initialize IndexerManager with environment variables
-const indexerManager = new IndexerManager(
-  prisma,
-  process.env.RPC_URL || 'https://rpc.pulsechain.com',
-  config.AffiliateRouterAddress
-);
 
 // ---- Security headers (Helmet) ----------------------------------------------
 // NOTE: Default CSP can break some UIs; start with CSP disabled and tune later.
@@ -206,22 +192,6 @@ app.decorate('authenticate', async function (request: any, reply: any) {
   }
 });
 
-// Register all routes using the registry
-const routeRegistry = new RouteRegistry(app, {
-  prisma,
-  piteasService,
-  changeNowService,
-  omniBridgeService,
-  omniBridgeTransactionService,
-  rateService,
-  transactionService,
-  referralService,
-  referralFeeService,
-  pulseXQuoteService,
-  authService,
-  referralPaymentService
-});
-
 // ---- Global error handler (no leaky details) --------------------------------
 app.setErrorHandler((err: any, req, reply) => {
   // Preserve explicit HTTP status if present; otherwise 500
@@ -251,24 +221,60 @@ app.setErrorHandler((err: any, req, reply) => {
     .send({ error: message, requestId: req.id });
 });
 
-// Start server
 const start = async () => {
   try {
-    // Register all routes
+    await initializePulsechainRpcProvider();
+    await initializeEthereumRpcProvider();
+
+    const pulsechainProvider = getPulsechainProvider();
+    const ethereumProvider = getEthereumProvider();
+    setPulsechainProviderForWeb3(pulsechainProvider);
+
+    const blockchainService = new BlockchainService(ethereumProvider, pulsechainProvider);
+    const omniBridgeTransactionService = new OmniBridgeTransactionService(prisma, blockchainService);
+    const piteasService = new PiteasService(
+      process.env.PITEAS_API_BASE_URL || '',
+      proxyManager,
+      rateLimiter,
+      pulsechainProvider
+    );
+    const pulseXQuoteService = new PulseXQuoteService(pulsechainProvider);
+    const referralPaymentService = new ReferralPaymentService(pulsechainProvider);
+    const indexerManager = new IndexerManager(
+      prisma,
+      pulsechainProvider,
+      config.AffiliateRouterAddress
+    );
+
+    const routeRegistry = new RouteRegistry(app, {
+      prisma,
+      piteasService,
+      changeNowService,
+      omniBridgeService,
+      omniBridgeTransactionService,
+      rateService,
+      transactionService,
+      referralService,
+      referralFeeService,
+      pulseXQuoteService,
+      authService,
+      referralPaymentService
+    });
+
     await routeRegistry.registerAllRoutes();
-    
+
     await app.listen({ port: PORT, host: '0.0.0.0' });
     logger.info(`Server listening on port ${PORT} (env=${NODE_ENV})`);
 
-    // Start the referral fee indexer automatically
     logger.info('Starting referral fee indexer...');
     await indexerManager.startAllIndexers();
     logger.info('Referral fee indexer started successfully');
-
   } catch (err) {
     logger.error('Error starting server', { error: err });
     process.exit(1);
   }
 };
 
-start(); 
+start();
+
+// Start server

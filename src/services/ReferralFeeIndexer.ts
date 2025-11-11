@@ -1,11 +1,11 @@
-import { ethers } from 'ethers';
+import { ethers, type Provider } from 'ethers';
 import { ReferralFeeService } from './ReferralFeeService';
 import { IndexingService } from './IndexingService';
 import { ReferralFeeUpdateEvent } from '../types/referral';
 import config from '../config';
 
 export class ReferralFeeIndexer extends IndexingService {
-  private provider: ethers.JsonRpcProvider;
+  private provider: Provider;
   private affiliateRouterContract: ethers.Contract;
   private referralFeeService: ReferralFeeService;
   private isIndexing: boolean = false;
@@ -14,14 +14,14 @@ export class ReferralFeeIndexer extends IndexingService {
   private blockRange: number = 1000;
 
   constructor(
-    rpcUrl: string,
+    provider: Provider,
     affiliateRouterAddress: string,
     referralFeeService: ReferralFeeService,
     prisma: any,
     indexerName: string = config.ReferralFeeIndexerName
   ) {
     super(prisma, indexerName);
-    this.provider = new ethers.JsonRpcProvider(rpcUrl);
+    this.provider = provider;
     this.affiliateRouterContract = new ethers.Contract(
       affiliateRouterAddress,
       ['event ReferralFeeAmountUpdated(address referrer, address token, uint256 amount)'],
