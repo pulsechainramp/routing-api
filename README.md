@@ -87,7 +87,7 @@ docker compose up --build
 | `RPC_URL` / `ETH_RPC_URL` | `https://rpc.pulsechain.com` / `https://ethereum-rpc.publicnode.com` |  | Legacy single-endpoint overrides (defaults to first entry in the respective lists). |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 
-> `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereum; leave them commented out to inherit the PulseChain defaults.
+> `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereum; leave them commented out to inherit the shared `RPC_*` defaults (i.e., use the same RPC configuration as PulseChain).
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
 | `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
 | `QUOTE_SIGNING_PRIVATE_KEY` | *(unset)* | yes | Backend key that signs quote attestations |

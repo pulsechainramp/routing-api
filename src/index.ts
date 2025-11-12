@@ -220,8 +220,7 @@ app.setErrorHandler((err: any, req, reply) => {
 
 const start = async () => {
   try {
-    await initializePulsechainRpcProvider();
-    await initializeEthereumRpcProvider();
+    await initializeRpcProviders();
 
     const pulsechainProvider = getPulsechainProvider();
     const ethereumProvider = getEthereumProvider();
@@ -273,5 +272,27 @@ const start = async () => {
 };
 
 start();
+const initializeRpcProviders = async () => {
+  const tasks = [
+    { name: 'PulseChain RPC providers', init: initializePulsechainRpcProvider },
+    { name: 'Ethereum RPC providers', init: initializeEthereumRpcProvider },
+  ];
 
-// Start server
+  const results = await Promise.allSettled(tasks.map((task) => task.init()));
+  const failures = results
+    .map((result, index) =>
+      result.status === 'rejected' ? { task: tasks[index], reason: result.reason } : null
+    )
+    .filter((entry): entry is { task: (typeof tasks)[number]; reason: unknown } => Boolean(entry));
+
+  if (failures.length > 0) {
+    failures.forEach(({ task, reason }) => {
+      logger.error(`Failed to initialize ${task.name}`, {
+        error: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+      });
+    });
+    throw new Error(
+      `RPC provider initialization failed for: ${failures.map(({ task }) => task.name).join(', ')}`
+    );
+  }
+};
