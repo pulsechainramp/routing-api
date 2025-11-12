@@ -178,7 +178,13 @@ export const getEthereumProvider = (): Provider => {
 
 export const getEthereumRpcUrls = (): string[] => providerEntries.map((entry) => entry.url);
 
-export const getPrimaryEthereumRpcUrl = (): string => getEthereumRpcUrls()[0];
+export const getPrimaryEthereumRpcUrl = (): string => {
+  const urls = getEthereumRpcUrls();
+  if (urls.length === 0) {
+    throw new Error('No Ethereum RPC providers are available');
+  }
+  return urls[0];
+};
 
 export const getEthereumRpcConfig = () => ({
   urls: getEthereumRpcUrls(),

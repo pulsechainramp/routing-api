@@ -84,10 +84,11 @@ docker compose up --build
 | `RPC_RETRY_COUNT` / `ETH_RPC_RETRY_COUNT` | `2` |  | Number of additional retry rounds across the pool (PulseChain / Ethereum override). |
 | `RPC_RETRY_DELAY_MS` / `ETH_RPC_RETRY_DELAY_MS` | `200` |  | Delay (ms) between retry rounds for transient failures. |
 | `RPC_COOLDOWN_MS` / `ETH_RPC_COOLDOWN_MS` | `30000` |  | Cooldown interval (ms) before a failing RPC re-enters rotation. |
+| `RPC_RATE_LIMIT_COOLDOWN_MS` | `max(RPC_COOLDOWN_MS * 2, 60000)` |  | Optional PulseChain-only override that lengthens the cooldown applied when an RPC returns 429/rate-limit responses. |
 | `RPC_URL` / `ETH_RPC_URL` | `https://rpc.pulsechain.com` / `https://ethereum-rpc.publicnode.com` |  | Legacy single-endpoint overrides (defaults to first entry in the respective lists). |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 
-> `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereum; leave them commented out to inherit the shared `RPC_*` defaults (i.e., use the same RPC configuration as PulseChain).
+_Note:_ `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereum; leave them commented out to inherit the shared defaults (i.e., PulseChain configuration).
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
 | `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
 | `QUOTE_SIGNING_PRIVATE_KEY` | *(unset)* | yes | Backend key that signs quote attestations |

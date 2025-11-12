@@ -143,7 +143,13 @@ export const getPulsechainProvider = (): Provider => {
 
 export const getPulsechainRpcUrls = (): string[] => providerEntries.map((entry) => entry.url);
 
-export const getPrimaryPulsechainRpcUrl = (): string => getPulsechainRpcUrls()[0];
+export const getPrimaryPulsechainRpcUrl = (): string => {
+  const urls = getPulsechainRpcUrls();
+  if (urls.length === 0) {
+    throw new Error('No PulseChain RPC providers are available');
+  }
+  return urls[0];
+};
 
 export const getPulsechainRpcConfig = () => ({
   urls: getPulsechainRpcUrls(),
