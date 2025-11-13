@@ -272,7 +272,7 @@ const start = async () => {
 };
 
 start();
-const initializeRpcProviders = async () => {
+async function initializeRpcProviders(): Promise<void> {
   const tasks = [
     { name: 'PulseChain RPC providers', init: initializePulsechainRpcProvider },
     { name: 'Ethereum RPC providers', init: initializeEthereumRpcProvider },
@@ -295,4 +295,4 @@ const initializeRpcProviders = async () => {
       `RPC provider initialization failed for: ${failures.map(({ task }) => task.name).join(', ')}`
     );
   }
-};
+}
