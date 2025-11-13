@@ -43,9 +43,6 @@ describe('OmniBridgeTransactionService protections', () => {
   });
 
   it('caches failed lookups to avoid repeated RPC calls', async () => {
-    const service = new OmniBridgeTransactionService(prismaStub);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     const blockchainStub = {
       validateTransactionHash: jest.fn().mockReturnValue(true),
       validateNetworkId: jest.fn().mockReturnValue(true),
@@ -55,7 +52,8 @@ describe('OmniBridgeTransactionService protections', () => {
       isBridgeManagerContract: jest.fn().mockReturnValue(false),
     };
 
-    (service as any).blockchainService = blockchainStub;
+    const service = new OmniBridgeTransactionService(prismaStub, blockchainStub as any);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(service.createTransactionFromTxHash(txHash, 1, userAddress)).rejects.toThrow(
       'Failed to create transaction from transaction hash',
@@ -72,8 +70,6 @@ describe('OmniBridgeTransactionService protections', () => {
   });
 
   it('deduplicates in-flight requests for the same transaction hash', async () => {
-    const service = new OmniBridgeTransactionService(prismaStub);
-
     const receipt: any = { blockNumber: 123n, logs: [] };
     let resolveReceipt: ((value: any) => void) | undefined;
     const receiptPromise = new Promise<any>((resolve) => {
@@ -96,7 +92,7 @@ describe('OmniBridgeTransactionService protections', () => {
       isBridgeManagerContract: jest.fn().mockReturnValue(false),
     };
 
-    (service as any).blockchainService = blockchainStub;
+    const service = new OmniBridgeTransactionService(prismaStub, blockchainStub as any);
 
     const getTransactionSpy = jest
       .spyOn(service as any, 'getTransactionByMessageId')
@@ -122,7 +118,6 @@ describe('OmniBridgeTransactionService protections', () => {
   });
 
   it('rejects when the on-chain sender differs from the authenticated wallet', async () => {
-    const service = new OmniBridgeTransactionService(prismaStub);
     const victimAddress = '0x' + 'd'.repeat(40);
     const bridgeEvent = {
       token: '0x0000000000000000000000000000000000000001',
@@ -140,7 +135,7 @@ describe('OmniBridgeTransactionService protections', () => {
       isBridgeManagerContract: jest.fn().mockReturnValue(false),
     };
 
-    (service as any).blockchainService = blockchainStub;
+    const service = new OmniBridgeTransactionService(prismaStub, blockchainStub as any);
 
     const getTransactionSpy = jest
       .spyOn(service as any, 'getTransactionByMessageId')
@@ -158,7 +153,6 @@ describe('OmniBridgeTransactionService protections', () => {
   });
 
   it('accepts bridge manager events when the transaction origin matches the user', async () => {
-    const service = new OmniBridgeTransactionService(prismaStub);
     const bridgeManagerAddress = '0x' + 'a'.repeat(40);
     const bridgeEvent = {
       token: '0x0000000000000000000000000000000000000001',
@@ -178,7 +172,7 @@ describe('OmniBridgeTransactionService protections', () => {
       }),
     };
 
-    (service as any).blockchainService = blockchainStub;
+    const service = new OmniBridgeTransactionService(prismaStub, blockchainStub as any);
 
     jest.spyOn(service as any, 'getTransactionByMessageId').mockResolvedValue(null);
     const createTransactionSpy = jest

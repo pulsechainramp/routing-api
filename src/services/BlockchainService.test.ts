@@ -16,7 +16,8 @@ describe('BlockchainService.extractTokensBridgingInitiatedEvent', () => {
   let encodedLog: { topics: string[]; data: string };
 
   beforeEach(() => {
-    service = new BlockchainService();
+    const mockProvider = {} as any;
+    service = new BlockchainService(mockProvider, mockProvider);
     const iface = (service as any).omniBridgeInterface as ethers.Interface;
     encodedLog = iface.encodeEventLog('TokensBridgingInitiated', [
       tokenAddress,

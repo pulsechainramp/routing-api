@@ -1,6 +1,7 @@
 import { ReferralFeeIndexer } from './ReferralFeeIndexer';
 import { ReferralFeeService } from './ReferralFeeService';
 import { PrismaClient } from '../generated/prisma-client';
+import type { Provider } from 'ethers';
 
 export class IndexerManager {
   private referralFeeIndexer: ReferralFeeIndexer;
@@ -8,12 +9,12 @@ export class IndexerManager {
 
   constructor(
     prisma: PrismaClient,
-    rpcUrl: string,
+    provider: Provider,
     affiliateRouterAddress: string
   ) {
     const referralFeeService = new ReferralFeeService(prisma);
     this.referralFeeIndexer = new ReferralFeeIndexer(
-      rpcUrl,
+      provider,
       affiliateRouterAddress,
       referralFeeService,
       prisma

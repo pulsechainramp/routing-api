@@ -24,9 +24,12 @@ export class OmniBridgeTransactionService {
   private inflightTransactions: Map<string, Promise<any>>;
   private failureCacheTtlMs: number;
 
-  constructor(prisma: PrismaClient) {
+  constructor(prisma: PrismaClient, blockchainService: BlockchainService) {
+    if (!blockchainService) {
+      throw new Error('OmniBridgeTransactionService requires a BlockchainService instance');
+    }
     this.prisma = prisma;
-    this.blockchainService = new BlockchainService();
+    this.blockchainService = blockchainService;
     this.ethereumGraphUrl = 'https://graph.ethereum.pulsechain.com/subgraphs/name/ethereum/bridge';
     this.pulsechainGraphUrl = 'https://graph.pulsechain.com/subgraphs/name/pulsechain/bridge';
     

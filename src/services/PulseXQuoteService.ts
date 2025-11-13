@@ -1,5 +1,5 @@
 import { Logger } from "../utils/logger";
-import { ethers } from "ethers";
+import { ethers, type Provider } from "ethers";
 import { combineRoute, encodeSwapRoute, toCorrectDexName, getTokenDecimals, getTokenSymbol } from "../utils/web3";
 
 import PulseXStableSwapPoolAbi from "../abis/PulseXStableSwapPool.json";
@@ -20,15 +20,13 @@ interface QuoteParams {
 
 export class PulseXQuoteService {
   private logger: Logger;
-  private provider: ethers.JsonRpcProvider;
   private pulsexV1Factory: ethers.Contract;
   private pulsexV2Factory: ethers.Contract;
   private pulsexV1Router: ethers.Contract;
   private pulsexV2Router: ethers.Contract;
 
-  constructor() {
+  constructor(private readonly provider: Provider) {
     this.logger = new Logger("PulseXQuoteService");
-    this.provider = new ethers.JsonRpcProvider(config.RPC_URL);
     this.pulsexV1Factory = new ethers.Contract(
       config.PulsexV1FactoryAddress,
       PulsexFactoryAbi,

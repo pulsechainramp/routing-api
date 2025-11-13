@@ -78,7 +78,14 @@ docker compose up --build
 | `PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Upstream aggregator used for quotes |
 | `CORS_ALLOWLIST` | `http://localhost:5173` |  | Comma-separated origins allowed by CORS |
 | `TRUST_PROXY` | `1` |  | Fastify `trustProxy` value that tells the server how many proxy hops (or which IPs/CIDRs) to trust when deriving the real client IP; leave empty only when the API is exposed directly. |
-| `RPC_URL` | `https://rpc.pulsechain.com` |  | PulseChain RPC endpoint (override default) |
+| `PULSECHAIN_RPC_URLS` | `https://rpc.pulsechain.com,https://pulsechain-rpc.publicnode.com,https://rpc-pulsechain.g4mm4.io,https://pulsechain.rpc.thirdweb.com,https://evex.cloud/pulserpc` | yes | Comma-separated PulseChain RPC pool (leftmost has highest priority). |
+| `ETHEREUM_RPC_URLS` | `https://ethereum-rpc.publicnode.com,https://ethereum.public.blockpi.network/v1/rpc/public,https://eth.drpc.org` |  | Comma-separated Ethereum RPC pool used by bridge/indexer fallbacks. |
+| `RPC_STALL_TIMEOUT_MS` / `ETH_RPC_STALL_TIMEOUT_MS` | `1200` |  | Milliseconds before a stalled RPC is marked failed (PulseChain / Ethereum override). |
+| `RPC_RETRY_COUNT` / `ETH_RPC_RETRY_COUNT` | `2` |  | Number of additional retry rounds across the pool (PulseChain / Ethereum override). |
+| `RPC_RETRY_DELAY_MS` / `ETH_RPC_RETRY_DELAY_MS` | `200` |  | Delay (ms) between retry rounds for transient failures. |
+| `RPC_COOLDOWN_MS` / `ETH_RPC_COOLDOWN_MS` | `30000` |  | Cooldown interval (ms) before a failing RPC re-enters rotation. |
+| `RPC_RATE_LIMIT_COOLDOWN_MS` | `max(RPC_COOLDOWN_MS * 2, 60000)` |  | Optional PulseChain-only override that lengthens the cooldown applied when an RPC returns 429/rate-limit responses. |
+| `RPC_URL` / `ETH_RPC_URL` | `https://rpc.pulsechain.com` / `https://ethereum-rpc.publicnode.com` |  | Legacy single-endpoint overrides (defaults to first entry in the respective lists). |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
 | `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
@@ -116,6 +123,8 @@ docker compose up --build
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW` | `10 minutes` |  | Window for OmniBridge sync rate limiting |
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_BAN` | *(unset)* |  | Optional ban threshold for repeated sync abuse |
 | `REFERRAL_FEES_ADMIN_ADDRESSES` | `` |  | Comma-separated wallets allowed to query referral-fee aggregates (`/token`, `/totals`) |
+
+_Note:_ `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereum; leave them commented out to inherit the shared defaults (i.e., PulseChain configuration).
 
 > Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.

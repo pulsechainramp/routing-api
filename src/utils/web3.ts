@@ -1,7 +1,6 @@
 import { SwapRoute } from "../types/swapmanager";
 import { Route, CombinedRoute } from "../types/Quote";
-import { AbiCoder, ParamType } from "ethers";
-import { ethers } from "ethers";
+import { AbiCoder, ParamType, ethers, type Provider } from "ethers";
 
 export const toCorrectDexName = (dex: string) => {
   if (dex === "PulseX V1") return "pulsexV1";
@@ -95,15 +94,18 @@ const ERC20_ABI = [
   'function decimals() view returns (uint8)'
 ];
 
-// Provider instance for token contract calls
-let provider: ethers.JsonRpcProvider | null = null;
+let provider: Provider | null = null;
+
+export const setPulsechainProviderForWeb3 = (nextProvider: Provider) => {
+  provider = nextProvider;
+};
 
 /**
- * Get the provider instance, creating it if it doesn't exist
+ * Get the provider instance
  */
-function getProvider(): ethers.JsonRpcProvider {
+function getProvider() {
   if (!provider) {
-    provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'https://rpc.pulsechain.com');
+    throw new Error('PulseChain provider has not been initialized for web3 utilities');
   }
   return provider;
 }

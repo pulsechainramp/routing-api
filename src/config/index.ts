@@ -1,3 +1,8 @@
+import './env';
+import { resolvePulsechainRpcUrls } from './pulsechainRpcUrls';
+
+const pulsechainRpcUrls = resolvePulsechainRpcUrls();
+
 export default {
   AffiliateRouterAddress: '0xCf2B8a55c86790Ab8F04873033a6e46be99658a7',
   ReferralFeeIndexerName: 'referral_fee_indexer',
@@ -16,5 +21,6 @@ export default {
   // PulseX 3‑pool (USDT/USDC/DAI) used by StableThreePoolQuoter
   PulsexStablePoolAddress: '0xE3acFA6C40d53C3faf2aa62D0a715C737071511c',
 
-  RPC_URL: process.env.RPC_URL || 'https://rpc.pulsechain.com',
+  RPC_URL: pulsechainRpcUrls[0],
+  PULSECHAIN_RPC_URLS: pulsechainRpcUrls,
 };

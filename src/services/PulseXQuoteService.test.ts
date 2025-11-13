@@ -12,9 +12,10 @@ describe("PulseXQuoteService WPLS normalization", () => {
     paths: [],
     swaps: [],
   });
+  const dummyProvider = new ethers.JsonRpcProvider("http://localhost:8545");
 
   it("bridges through WPLS when direct route is missing", async () => {
-    const service = new PulseXQuoteService();
+    const service = new PulseXQuoteService(dummyProvider);
     const tokenInToWplsRoute = createRoute();
     const wplsToTokenOutRoute = createRoute();
     const combinedRoute = createRoute();
@@ -64,7 +65,7 @@ describe("PulseXQuoteService WPLS normalization", () => {
   });
 
   it("normalizes native tokens to WPLS for router amount checks", async () => {
-    const service = new PulseXQuoteService();
+    const service = new PulseXQuoteService(dummyProvider);
 
     const pulsexV2Router = {
       getAmountsOut: jest.fn().mockResolvedValue([BigInt(1), BigInt(200)]),
@@ -93,7 +94,7 @@ describe("PulseXQuoteService WPLS normalization", () => {
   });
 
   it("formats native token input as zero address in the response", async () => {
-    const service = new PulseXQuoteService();
+    const service = new PulseXQuoteService(dummyProvider);
     const TOKEN_OUT = "0x0000000000000000000000000000000000000011";
     const PAIR = "0x00000000000000000000000000000000000000aa";
     const route: Route = {
@@ -142,7 +143,7 @@ describe("PulseXQuoteService WPLS normalization", () => {
   });
 
   it("formats native token output as zero address in the response", async () => {
-    const service = new PulseXQuoteService();
+    const service = new PulseXQuoteService(dummyProvider);
     const TOKEN_IN = "0x0000000000000000000000000000000000000005";
     const PAIR = "0x00000000000000000000000000000000000000bb";
     const route: Route = {
