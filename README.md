@@ -87,8 +87,6 @@ docker compose up --build
 | `RPC_RATE_LIMIT_COOLDOWN_MS` | `max(RPC_COOLDOWN_MS * 2, 60000)` |  | Optional PulseChain-only override that lengthens the cooldown applied when an RPC returns 429/rate-limit responses. |
 | `RPC_URL` / `ETH_RPC_URL` | `https://rpc.pulsechain.com` / `https://ethereum-rpc.publicnode.com` |  | Legacy single-endpoint overrides (defaults to first entry in the respective lists). |
 | `ONRAMPS_JSON_PATH` | `./src/data/onramps_providers.json` |  | Path to onramp provider catalog |
-
-_Note:_ `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereum; leave them commented out to inherit the shared defaults (i.e., PulseChain configuration).
 | `USE_PROXY` | `false` |  | Toggle proxy routing (with `PROXY_*` creds) |
 | `CHANGENOW_API_KEY` | `changexxxx` |  | Optional: enable legacy ChangeNOW routes |
 | `QUOTE_SIGNING_PRIVATE_KEY` | *(unset)* | yes | Backend key that signs quote attestations |
@@ -125,6 +123,8 @@ _Note:_ `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereu
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_WINDOW` | `10 minutes` |  | Window for OmniBridge sync rate limiting |
 | `OMNIBRIDGE_SYNC_RATE_LIMIT_BAN` | *(unset)* |  | Optional ban threshold for repeated sync abuse |
 | `REFERRAL_FEES_ADMIN_ADDRESSES` | `` |  | Comma-separated wallets allowed to query referral-fee aggregates (`/token`, `/totals`) |
+
+_Note:_ `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereum; leave them commented out to inherit the shared defaults (i.e., PulseChain configuration).
 
 > Copy `.env.example` to `.env` and populate secrets before running locally or via Docker.
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.

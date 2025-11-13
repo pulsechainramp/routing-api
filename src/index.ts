@@ -218,6 +218,31 @@ app.setErrorHandler((err: any, req, reply) => {
     .send({ error: message, requestId: req.id });
 });
 
+async function initializeRpcProviders(): Promise<void> {
+  const tasks = [
+    { name: 'PulseChain RPC providers', init: initializePulsechainRpcProvider },
+    { name: 'Ethereum RPC providers', init: initializeEthereumRpcProvider },
+  ];
+
+  const results = await Promise.allSettled(tasks.map((task) => task.init()));
+  const failures = results
+    .map((result, index) =>
+      result.status === 'rejected' ? { task: tasks[index], reason: result.reason } : null
+    )
+    .filter((entry): entry is { task: (typeof tasks)[number]; reason: unknown } => Boolean(entry));
+
+  if (failures.length > 0) {
+    failures.forEach(({ task, reason }) => {
+      logger.error(`Failed to initialize ${task.name}`, {
+        error: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+      });
+    });
+    throw new Error(
+      `RPC provider initialization failed for: ${failures.map(({ task }) => task.name).join(', ')}`
+    );
+  }
+}
+
 const start = async () => {
   try {
     await initializeRpcProviders();
@@ -272,27 +297,3 @@ const start = async () => {
 };
 
 start();
-async function initializeRpcProviders(): Promise<void> {
-  const tasks = [
-    { name: 'PulseChain RPC providers', init: initializePulsechainRpcProvider },
-    { name: 'Ethereum RPC providers', init: initializeEthereumRpcProvider },
-  ];
-
-  const results = await Promise.allSettled(tasks.map((task) => task.init()));
-  const failures = results
-    .map((result, index) =>
-      result.status === 'rejected' ? { task: tasks[index], reason: result.reason } : null
-    )
-    .filter((entry): entry is { task: (typeof tasks)[number]; reason: unknown } => Boolean(entry));
-
-  if (failures.length > 0) {
-    failures.forEach(({ task, reason }) => {
-      logger.error(`Failed to initialize ${task.name}`, {
-        error: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
-      });
-    });
-    throw new Error(
-      `RPC provider initialization failed for: ${failures.map(({ task }) => task.name).join(', ')}`
-    );
-  }
-}
