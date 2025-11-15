@@ -68,9 +68,7 @@ const BASE_CONFIG: PulsexConfig = {
   cacheTtlMs: {
     reserves: 1_000,
     stableIndex: 1_000,
-  },
-  priceOracle: {
-    cacheTtlMs: 5_000,
+    priceOracle: 5_000,
   },
   quoteEvaluation: {
     timeoutMs: 1_000,

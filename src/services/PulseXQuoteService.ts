@@ -31,6 +31,9 @@ interface RouteEntry {
 const DEFAULT_SLIPPAGE_PERCENT = 0.5;
 const DEADLINE_BUFFER_SECONDS = 600;
 const TEN_THOUSAND = 10_000n;
+const PULSEX_DEBUG_LOGGING_ENABLED =
+  process.env.PULSEX_DEBUG_LOGGING === 'true';
+export const PULSEX_QUOTE_TIMEOUT_ERROR = 'PulseX quote timed out';
 
 export class PulseXQuoteService {
   private readonly logger = new Logger('PulseXQuoteService');
@@ -49,14 +52,53 @@ export class PulseXQuoteService {
   }
 
   public async getQuote(params: QuoteParams): Promise<QuoteResponse> {
+    const startTime = Date.now();
+    let globalTimeoutHit = false;
+    let success = false;
+    let timeoutHandle: NodeJS.Timeout | undefined;
     try {
       const slippageBps = this.normalizeSlippageBps(params.allowedSlippage);
       const request = await this.buildQuoteRequest(params, slippageBps);
-      const quote = await this.quoter.quoteBestExactIn(request);
-      return this.buildQuoteResponse(params, request, quote, slippageBps);
+      const totalTimeoutMs = Number(
+        process.env.PULSEX_QUOTE_TOTAL_TIMEOUT_MS ?? 6_000,
+      );
+      const quotePromise = this.quoter.quoteBestExactIn(request);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new Error(PULSEX_QUOTE_TIMEOUT_ERROR)),
+          totalTimeoutMs,
+        );
+      });
+      const quote = await Promise.race([quotePromise, timeoutPromise]);
+      const response = this.buildQuoteResponse(params, request, quote, slippageBps);
+      success = true;
+      return response;
     } catch (error) {
-      this.logger.error('Failed to build PulseX quote', { error });
+      if (
+        error instanceof Error &&
+        error.message === PULSEX_QUOTE_TIMEOUT_ERROR
+      ) {
+        globalTimeoutHit = true;
+        this.logger.warn('PulseX quote timed out', {
+          timeoutMs: Number(
+            process.env.PULSEX_QUOTE_TOTAL_TIMEOUT_MS ?? 6_000,
+          ),
+        });
+      } else {
+        this.logger.error('Failed to build PulseX quote', { error });
+      }
       throw error;
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+      if (PULSEX_DEBUG_LOGGING_ENABLED) {
+        this.logger.debug('PulseXQuoteService.getQuote metrics', {
+          durationMs: Date.now() - startTime,
+          globalTimeoutHit,
+          success,
+        });
+      }
     }
   }
 
@@ -170,21 +212,21 @@ export class PulseXQuoteService {
   ): SwapRoute {
     const parentGroups: Group[] = entries.map((entry, index) => ({
       id: index,
-      percent: Math.round(entry.shareBps / 100), // convert bps (0-10_000) to percent (0-100)
+      percent: this.toSwapManagerPercent(entry.shareBps),
     }));
 
     const steps: SwapStep[] = [];
     let nextGroupId = parentGroups.length;
 
     entries.forEach((entry, entryIndex) => {
-      const entryPercent = Math.round(entry.shareBps / 100);
+      const entryPercent = parentGroups[entryIndex]?.percent ?? 0;
       entry.legs.forEach((leg, legIdx) => {
         const id = nextGroupId++;
         steps.push({
           dex: toCorrectDexName(this.protocolDisplayName(leg.protocol)),
           path: [leg.tokenIn.address, leg.tokenOut.address],
           pool: leg.poolAddress,
-          percent: legIdx === 0 ? entryPercent : 100,
+          percent: legIdx === 0 ? entryPercent : 100_000,
           groupId: id,
           parentGroupId: legIdx === 0 ? parentGroups[entryIndex].id : id - 1,
           userData: '0x',
@@ -204,6 +246,17 @@ export class PulseXQuoteService {
       amountOutMin: minAmountOut,
       isETHOut: isEthOut,
     };
+  }
+
+  private toSwapManagerPercent(shareBps: number): number {
+    if (shareBps <= 0) {
+      return 0;
+    }
+    const scaled = Math.round((shareBps * 100_000) / 10_000);
+    if (scaled > 100_000) {
+      return 100_000;
+    }
+    return scaled;
   }
 
   private toCombinedPath(leg: RouteLegSummary): CombinedPath {

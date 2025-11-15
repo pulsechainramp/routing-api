@@ -10,6 +10,8 @@ jest.mock('../utils/web3', () => ({
   encodeSwapRoute: jest.fn().mockReturnValue('0xdeadbeef'),
   toCorrectDexName: jest.fn((dex: string) => dex),
 }));
+const encodeSwapRouteMock =
+  jest.requireMock('../utils/web3').encodeSwapRoute as jest.Mock;
 
 const createLeg = (
   tokenIn: string,
@@ -211,5 +213,42 @@ describe('PulseXQuoteService', () => {
 
     expect(quote.outputAmount).toBe('5000');
     expect(quote.minAmountOut).toBe('4900');
+  });
+
+  it('encodes swap route percents using swap manager scale', async () => {
+    encodeSwapRouteMock.mockClear();
+    const connector = '0x0000000000000000000000000000000000000f01';
+    const target = '0x0000000000000000000000000000000000000f02';
+    const legs = [
+      createLeg(
+        pulsexConfig.connectorTokens.find((token) => token.isNative)!.address,
+        connector,
+        '0x0000000000000000000000000000000000000f11',
+        'PULSEX_V2',
+      ),
+      createLeg(
+        connector,
+        target,
+        '0x0000000000000000000000000000000000000f22',
+        'PULSEX_V2',
+      ),
+    ];
+    const quoter = {
+      quoteBestExactIn: jest.fn().mockResolvedValue(baseQuoteResult(legs)),
+    };
+
+    const service = new PulseXQuoteService(provider, quoter as any);
+    await service.getQuote({
+      tokenInAddress: legs[0].tokenIn.address,
+      tokenOutAddress: target,
+      amount: '1000',
+    });
+
+    expect(encodeSwapRouteMock).toHaveBeenCalled();
+    const routeArg = encodeSwapRouteMock.mock.calls[0][0];
+    expect(routeArg.parentGroups[0].percent).toBe(100_000);
+    expect(routeArg.steps).toHaveLength(2);
+    expect(routeArg.steps[0].percent).toBe(100_000);
+    expect(routeArg.steps[1].percent).toBe(100_000);
   });
 });

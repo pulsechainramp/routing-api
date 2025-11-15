@@ -2,7 +2,7 @@ import fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import quoteRoutes from './quote';
 import { PiteasService } from '../services/PiteasService';
-import { PulseXQuoteService } from '@/services/PulseXQuoteService';
+import { PulseXQuoteService } from '../services/PulseXQuoteService';
 import { AbiCoder, ParamType, Wallet, ZeroAddress } from 'ethers';
 import config from '../config';
 import { SignedQuoteIntegrity } from '../types/QuoteResponse';

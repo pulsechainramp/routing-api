@@ -1,7 +1,10 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { Logger } from '../utils/logger';
 import { PiteasService } from '../services/PiteasService';
-import { PulseXQuoteService } from '@/services/PulseXQuoteService';
+import {
+  PulseXQuoteService,
+  PULSEX_QUOTE_TIMEOUT_ERROR,
+} from '../services/PulseXQuoteService';
 import { QUOTE_AMOUNT_REGEX } from '../constants/quote';
 import { QuoteAttestationRequest } from '../types/QuoteAttestation';
 import { QuoteResponse } from '../types/QuoteResponse';
@@ -118,6 +121,17 @@ export class QuoteController {
     } catch (error) {
       if (error instanceof InvalidQuoteAmountError) {
         reply.code(400).send({ error: 'Invalid request' });
+        return;
+      }
+      if (
+        error instanceof Error &&
+        error.message === PULSEX_QUOTE_TIMEOUT_ERROR
+      ) {
+        logger.warn('PulseX quote timed out', {
+          tokenInAddress: request.query.tokenInAddress,
+          tokenOutAddress: request.query.tokenOutAddress,
+        });
+        reply.code(504).send({ error: PULSEX_QUOTE_TIMEOUT_ERROR });
         return;
       }
       logger.error('Error fetching PulseX quote', { error });

@@ -4,6 +4,7 @@ import { StableThreePoolQuoter } from './StableThreePoolQuoter';
 import { PulseXPriceOracle } from './PulseXPriceOracle';
 import { PulsexGasEstimator } from './gasEstimator';
 import { getAmountOutCpmm } from './cpmmMath';
+import { Logger } from '../utils/logger';
 import type { PulsexConfig } from '../config/pulsex';
 import type {
   ExactInQuoteRequest,
@@ -23,6 +24,8 @@ const PAIR_ABI = [
 
 const ROUTE_RANK_LIMIT = 3;
 const ZERO_ADDRESS = ZeroAddress.toLowerCase();
+const PULSEX_DEBUG_LOGGING_ENABLED =
+  process.env.PULSEX_DEBUG_LOGGING === 'true';
 
 interface RouteLeg {
   protocol: PulsexProtocol;
@@ -57,7 +60,17 @@ interface SimulatedRouteResult {
   legs: RouteLegSummary[];
 }
 
+interface QuoteDebugMetrics {
+  startTimeMs: number;
+  routeCandidatesTotal?: number;
+  routeCandidatesEvaluated?: number;
+  uniqueCpmmPairs?: number;
+  reserveCacheMisses: number;
+  success?: boolean;
+}
+
 export class PulseXQuoter {
+  private readonly logger = new Logger('PulseXQuoter');
   private readonly stableQuoter: StableThreePoolQuoter;
   private readonly priceOracle: PulseXPriceOracle;
   private readonly gasEstimator: PulsexGasEstimator;
@@ -72,6 +85,7 @@ export class PulseXQuoter {
 
   private readonly reserveCache = new Map<string, ReserveCacheEntry>();
   private readonly splitAmountCache = new Map<string, Map<string, bigint>>();
+  private readonly debugLoggingEnabled = PULSEX_DEBUG_LOGGING_ENABLED;
 
   constructor(
     private readonly provider: Provider,
@@ -118,70 +132,101 @@ export class PulseXQuoter {
     request: ExactInQuoteRequest,
   ): Promise<PulsexQuoteResult> {
     this.splitAmountCache.clear();
+    const debugContext = this.debugLoggingEnabled
+      ? this.createDebugContext()
+      : undefined;
+    let success = false;
+    let candidates: RouteCandidate[] = [];
     const normalizedRequest = this.normalizeRequest(request);
     if (normalizedRequest.amountIn <= 0n) {
       throw new Error('amountIn must be greater than zero');
     }
 
-    const candidates = this.generateRouteCandidates(
-      normalizedRequest.tokenIn,
-      normalizedRequest.tokenOut,
-    );
-
-    if (!candidates.length) {
-      throw new Error('No candidate PulseX routes found');
-    }
-
-    const simulations = await this.evaluateRoutes(
-      candidates,
-      normalizedRequest.amountIn,
-    );
-
-    if (!simulations.length) {
-      throw new Error('No valid PulseX routes after simulation');
-    }
-
-    const preferStableRoutes = this.shouldPreferStableRoutes(
-      normalizedRequest.tokenIn,
-      normalizedRequest.tokenOut,
-    );
-
-    const rankedRoutes = this.rankSimulations(simulations, preferStableRoutes);
-    const topRanked = rankedRoutes.slice(0, ROUTE_RANK_LIMIT);
-    const bestSingle = topRanked[0];
-    if (!bestSingle) {
-      throw new Error('Unable to rank PulseX routes');
-    }
-
-    let totalAmountOut = bestSingle.amountOut;
-    let singleRoute: RouteLegSummary[] | undefined = bestSingle.legs;
-    let splitRoutes: SplitRouteMeta[] | undefined;
-
-    if (this.config.splitConfig.enabled) {
-      const bestSplit = await this.findBestSplit(
-        normalizedRequest.amountIn,
-        topRanked,
+    try {
+      const allCandidates = this.generateRouteCandidates(
+        normalizedRequest.tokenIn,
+        normalizedRequest.tokenOut,
       );
-      if (bestSplit && bestSplit.totalAmountOut > totalAmountOut) {
-        totalAmountOut = bestSplit.totalAmountOut;
-        splitRoutes = bestSplit.routes;
-        singleRoute = undefined;
+      const maxRoutes = this.config.quoteEvaluation.maxRoutes ?? 0;
+      candidates =
+        maxRoutes > 0 ? allCandidates.slice(0, maxRoutes) : allCandidates;
+      if (debugContext) {
+        debugContext.routeCandidatesTotal = allCandidates.length;
+        debugContext.routeCandidatesEvaluated = candidates.length;
+        debugContext.uniqueCpmmPairs =
+          this.countUniqueCpmmPairs(allCandidates);
+      }
+
+      if (!candidates.length) {
+        throw new Error('No candidate PulseX routes found');
+      }
+
+      await this.prewarmReserves(candidates);
+
+      const simulations = await this.evaluateRoutes(
+        candidates,
+        normalizedRequest.amountIn,
+        debugContext,
+      );
+
+      if (!simulations.length) {
+        throw new Error('No valid PulseX routes after simulation');
+      }
+
+      const preferStableRoutes = this.shouldPreferStableRoutes(
+        normalizedRequest.tokenIn,
+        normalizedRequest.tokenOut,
+      );
+
+      const rankedRoutes = this.rankSimulations(
+        simulations,
+        preferStableRoutes,
+      );
+      const topRanked = rankedRoutes.slice(0, ROUTE_RANK_LIMIT);
+      const bestSingle = topRanked[0];
+      if (!bestSingle) {
+        throw new Error('Unable to rank PulseX routes');
+      }
+
+      let totalAmountOut = bestSingle.amountOut;
+      let singleRoute: RouteLegSummary[] | undefined = bestSingle.legs;
+      let splitRoutes: SplitRouteMeta[] | undefined;
+
+      if (this.config.splitConfig.enabled) {
+        const bestSplit = await this.findBestSplit(
+          normalizedRequest.amountIn,
+          topRanked,
+          debugContext,
+        );
+        if (bestSplit && bestSplit.totalAmountOut > totalAmountOut) {
+          totalAmountOut = bestSplit.totalAmountOut;
+          splitRoutes = bestSplit.routes;
+          singleRoute = undefined;
+        }
+      }
+
+      const result = {
+        request: normalizedRequest,
+        totalAmountOut,
+        routerAddress: this.config.routers.default,
+        singleRoute,
+        splitRoutes,
+        ...(await this.buildGasEstimates(singleRoute, splitRoutes)),
+      };
+      success = true;
+      return result;
+    } finally {
+      if (debugContext) {
+        debugContext.success = success;
+        this.logQuoteMetrics(debugContext);
       }
     }
-
-    return {
-      request: normalizedRequest,
-      totalAmountOut,
-      routerAddress: this.config.routers.default,
-      singleRoute,
-      splitRoutes,
-      ...(await this.buildGasEstimates(singleRoute, splitRoutes)),
-    };
   }
 
   public async simulateRoute(
     route: RouteCandidate,
     amountIn: bigint,
+    metrics?: QuoteDebugMetrics,
   ): Promise<{ amountOut: bigint; legs: RouteLegSummary[] } | null> {
     let cursorAmount = amountIn;
     const summaries: RouteLegSummary[] = [];
@@ -212,6 +257,7 @@ export class PulseXQuoter {
         leg.protocol,
         leg.tokenIn,
         leg.tokenOut,
+        metrics,
       );
 
       if (!reserves) {
@@ -396,6 +442,7 @@ export class PulseXQuoter {
     protocol: PulsexProtocol,
     tokenIn: PulsexToken,
     tokenOut: PulsexToken,
+    metrics?: QuoteDebugMetrics,
   ): Promise<PairReserves | null> {
     if (protocol === 'PULSEX_STABLE') {
       return null;
@@ -407,44 +454,19 @@ export class PulseXQuoter {
       return this.mapCachedReserves(existing.value, tokenIn, tokenOut);
     }
 
-    const factory = this.factoryContracts[protocol];
-    if (!factory) {
-      return null;
+    if (metrics) {
+      metrics.reserveCacheMisses += 1;
     }
 
-    const pairAddress: string = await factory.getPair(
-      tokenIn.address,
-      tokenOut.address,
+    const entry = await this.loadPairReservesFromChain(
+      protocol,
+      tokenIn,
+      tokenOut,
+      cacheKey,
     );
-
-    if (!pairAddress || pairAddress === '0x0000000000000000000000000000000000000000') {
-      this.reserveCache.set(cacheKey, {
-        expiresAt: Date.now() + this.config.cacheTtlMs.reserves,
-        value: null,
-      });
+    if (!entry) {
       return null;
     }
-
-    const pairContract = new Contract(pairAddress, PAIR_ABI, this.provider);
-    const token0 = (await pairContract.token0()) as string;
-    const token1 = (await pairContract.token1()) as string;
-
-    const [reserve0, reserve1] = await pairContract.getReserves();
-
-    const entry: PairReserves = {
-      pairAddress,
-      token0: token0 as Address,
-      token1: token1 as Address,
-      reserve0: BigInt(reserve0),
-      reserve1: BigInt(reserve1),
-      reserveIn: 0n,
-      reserveOut: 0n,
-    };
-
-    this.reserveCache.set(cacheKey, {
-      expiresAt: Date.now() + this.config.cacheTtlMs.reserves,
-      value: entry,
-    });
 
     return this.mapCachedReserves(entry, tokenIn, tokenOut);
   }
@@ -459,6 +481,125 @@ export class PulseXQuoter {
       tokenOut.address.toLowerCase(),
     ].sort();
     return `${protocol}:${tokens[0]}>${tokens[1]}`;
+  }
+
+  private async loadPairReservesFromChain(
+    protocol: PulsexProtocol,
+    tokenIn: PulsexToken,
+    tokenOut: PulsexToken,
+    cacheKey?: string,
+  ): Promise<PairReserves | null> {
+    if (protocol === 'PULSEX_STABLE') {
+      return null;
+    }
+
+    const key =
+      cacheKey ?? this.buildReserveCacheKey(protocol, tokenIn, tokenOut);
+    const factory = this.factoryContracts[protocol];
+    if (!factory) {
+      return null;
+    }
+
+    const { value: pairAddress, timedOut: pairTimedOut } = await this.withTimeout(
+      factory.getPair(tokenIn.address, tokenOut.address),
+      this.config.quoteEvaluation.timeoutMs,
+      {
+        context: {
+          tokenIn: tokenIn.address,
+          tokenOut: tokenOut.address,
+          protocol,
+          call: 'getPair',
+        },
+      },
+    );
+
+    if (pairTimedOut) {
+      this.logger.warn('Timed out fetching PulseX pair address', {
+        protocol,
+        tokenIn: tokenIn.address,
+        tokenOut: tokenOut.address,
+      });
+      this.storeReserveCacheEntry(key, null);
+      return null;
+    }
+
+    if (!pairAddress || this.isZeroAddress(pairAddress)) {
+      this.storeReserveCacheEntry(key, null);
+      return null;
+    }
+
+    const pairContract = new Contract(pairAddress, PAIR_ABI, this.provider);
+    const timeoutMs = this.config.quoteEvaluation.timeoutMs;
+
+    const [token0Result, token1Result, reservesResult] = await Promise.all([
+      this.withTimeout(pairContract.token0() as Promise<string>, timeoutMs, {
+        context: { pairAddress, protocol, call: 'token0' },
+      }),
+      this.withTimeout(pairContract.token1() as Promise<string>, timeoutMs, {
+        context: { pairAddress, protocol, call: 'token1' },
+      }),
+      this.withTimeout(
+        pairContract.getReserves() as Promise<
+          readonly [reserve0: bigint, reserve1: bigint, blockTimestampLast: number]
+        >,
+        timeoutMs,
+        {
+          context: { pairAddress, protocol, call: 'getReserves' },
+        },
+      ),
+    ]);
+
+    if (token0Result.timedOut || !token0Result.value) {
+      this.logger.warn('Failed to load token0 for PulseX pair', {
+        protocol,
+        pairAddress,
+      });
+      this.storeReserveCacheEntry(key, null);
+      return null;
+    }
+
+    if (token1Result.timedOut || !token1Result.value) {
+      this.logger.warn('Failed to load token1 for PulseX pair', {
+        protocol,
+        pairAddress,
+      });
+      this.storeReserveCacheEntry(key, null);
+      return null;
+    }
+
+    if (reservesResult.timedOut || !reservesResult.value) {
+      this.logger.warn('Failed to load reserves for PulseX pair', {
+        protocol,
+        pairAddress,
+      });
+      this.storeReserveCacheEntry(key, null);
+      return null;
+    }
+
+    const [reserve0, reserve1] = reservesResult.value;
+
+    const entry: PairReserves = {
+      pairAddress,
+      token0: token0Result.value as Address,
+      token1: token1Result.value as Address,
+      reserve0: BigInt(reserve0),
+      reserve1: BigInt(reserve1),
+      reserveIn: 0n,
+      reserveOut: 0n,
+    };
+
+    this.storeReserveCacheEntry(key, entry);
+    return entry;
+  }
+
+  private storeReserveCacheEntry(
+    cacheKey: string,
+    value: PairReserves | null,
+  ): void {
+    this.reserveCache.set(cacheKey, {
+      expiresAt: Date.now() + this.config.cacheTtlMs.reserves,
+      value,
+    });
   }
 
   private isStableToken(address: string): boolean {
@@ -554,9 +695,18 @@ export class PulseXQuoter {
     return false;
   }
 
+  private isZeroAddress(value: string | undefined): boolean {
+    if (!value) {
+      return true;
+    }
+    const normalized = value.toLowerCase();
+    return normalized === '0x0' || normalized === ZERO_ADDRESS;
+  }
+
   private async evaluateRoutes(
     candidates: RouteCandidate[],
     amountIn: bigint,
+    metrics?: QuoteDebugMetrics,
   ): Promise<SimulatedRouteResult[]> {
     const results: SimulatedRouteResult[] = [];
     const concurrency = Math.max(
@@ -569,9 +719,10 @@ export class PulseXQuoter {
       const batch = candidates.slice(i, i + concurrency);
       const batchResults = await Promise.all(
         batch.map(async (candidate) => {
-          const simulation = await this.withTimeout(
-            this.simulateRoute(candidate, amountIn),
+          const { value: simulation } = await this.withTimeout(
+            this.simulateRoute(candidate, amountIn, metrics),
             timeoutMs,
+            { logOnError: false },
           );
 
           if (!simulation || simulation.amountOut <= 0n) {
@@ -637,6 +788,7 @@ export class PulseXQuoter {
   private async findBestSplit(
     totalAmountIn: bigint,
     simulations: SimulatedRouteResult[],
+    metrics?: QuoteDebugMetrics,
   ): Promise<{ totalAmountOut: bigint; routes: SplitRouteMeta[] } | undefined> {
     if (simulations.length < 2) {
       return undefined;
@@ -669,10 +821,12 @@ export class PulseXQuoter {
       const amountOutFirst = await this.simulateAmountWithCache(
         first.candidate,
         amountInFirst,
+        metrics,
       );
       const amountOutSecond = await this.simulateAmountWithCache(
         second.candidate,
         amountInSecond,
+        metrics,
       );
 
       if (amountOutFirst <= 0n || amountOutSecond <= 0n) {
@@ -712,6 +866,7 @@ export class PulseXQuoter {
   private async simulateAmountWithCache(
     candidate: RouteCandidate,
     amountIn: bigint,
+    metrics?: QuoteDebugMetrics,
   ): Promise<bigint> {
     const routeCache =
       this.splitAmountCache.get(candidate.id) ??
@@ -723,16 +878,134 @@ export class PulseXQuoter {
       return routeCache.get(cacheKey)!;
     }
 
-    const simulation = await this.simulateRoute(candidate, amountIn);
+    const simulation = await this.simulateRoute(
+      candidate,
+      amountIn,
+      metrics,
+    );
     const amountOut = simulation?.amountOut ?? 0n;
     routeCache.set(cacheKey, amountOut);
     return amountOut;
   }
 
+  private collectUniqueCpmmLegs(
+    candidates: RouteCandidate[],
+  ): Array<{ protocol: PulsexProtocol; tokenIn: PulsexToken; tokenOut: PulsexToken }> {
+    const unique = new Map<string, { protocol: PulsexProtocol; tokenIn: PulsexToken; tokenOut: PulsexToken }>();
+    for (const candidate of candidates) {
+      for (const leg of candidate.legs) {
+        if (leg.protocol === 'PULSEX_STABLE') {
+          continue;
+        }
+        const key = this.buildReserveCacheKey(
+          leg.protocol,
+          leg.tokenIn,
+          leg.tokenOut,
+        );
+        if (!unique.has(key)) {
+          unique.set(key, {
+            protocol: leg.protocol,
+            tokenIn: leg.tokenIn,
+            tokenOut: leg.tokenOut,
+          });
+        }
+      }
+    }
+    return Array.from(unique.values());
+  }
+
+  private async prewarmReserves(candidates: RouteCandidate[]): Promise<void> {
+    if (!candidates.length) {
+      return;
+    }
+    const uniqueLegs = this.collectUniqueCpmmLegs(candidates);
+    if (!uniqueLegs.length) {
+      return;
+    }
+
+    const legsToLoad = uniqueLegs.filter((leg) => {
+      const cacheKey = this.buildReserveCacheKey(
+        leg.protocol,
+        leg.tokenIn,
+        leg.tokenOut,
+      );
+      const existing = this.reserveCache.get(cacheKey);
+      return !existing || existing.expiresAt <= Date.now();
+    });
+
+    if (!legsToLoad.length) {
+      return;
+    }
+
+    const concurrency = Math.max(
+      1,
+      this.config.quoteEvaluation.concurrency ?? 1,
+    );
+
+    for (let i = 0; i < legsToLoad.length; i += concurrency) {
+      const batch = legsToLoad.slice(i, i + concurrency);
+      await Promise.all(
+        batch.map(async (leg) => {
+          try {
+            await this.loadPairReservesFromChain(
+              leg.protocol,
+              leg.tokenIn,
+              leg.tokenOut,
+            );
+          } catch (error) {
+            this.logger.debug('Failed to prewarm PulseX pair reserves', {
+              protocol: leg.protocol,
+              tokenIn: leg.tokenIn.address,
+              tokenOut: leg.tokenOut.address,
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }),
+      );
+    }
+  }
+
+  private createDebugContext(): QuoteDebugMetrics {
+    return {
+      startTimeMs: Date.now(),
+      reserveCacheMisses: 0,
+    };
+  }
+
+  private countUniqueCpmmPairs(candidates: RouteCandidate[]): number {
+    const seen = new Set<string>();
+    for (const candidate of candidates) {
+      for (const leg of candidate.legs) {
+        if (leg.protocol === 'PULSEX_STABLE') {
+          continue;
+        }
+        const [tokenA, tokenB] = [
+          leg.tokenIn.address.toLowerCase(),
+          leg.tokenOut.address.toLowerCase(),
+        ].sort();
+        seen.add(`${leg.protocol}:${tokenA}-${tokenB}`);
+      }
+    }
+    return seen.size;
+  }
+
+  private logQuoteMetrics(context: QuoteDebugMetrics): void {
+    this.logger.debug('PulseXQuoter.quoteBestExactIn metrics', {
+      routeCandidatesTotal: context.routeCandidatesTotal ?? 0,
+      routeCandidatesEvaluated: context.routeCandidatesEvaluated ?? 0,
+      uniqueCpmmPairs: context.uniqueCpmmPairs ?? 0,
+      reserveCacheMisses: context.reserveCacheMisses,
+      durationMs: Date.now() - context.startTimeMs,
+      success: context.success ?? false,
+    });
+  }
+
   private async withTimeout<T>(
     promise: Promise<T>,
     timeoutMs: number,
-  ): Promise<T | null> {
+    options?: { logOnError?: boolean; context?: Record<string, unknown> },
+  ): Promise<{ value: T | null; timedOut: boolean }> {
+    const { logOnError = true, context } = options ?? {};
     let timeoutHandle: NodeJS.Timeout | undefined;
     return Promise.race([
       promise
@@ -740,16 +1013,25 @@ export class PulseXQuoter {
           if (timeoutHandle) {
             clearTimeout(timeoutHandle);
           }
-          return value;
+          return { value, timedOut: false };
         })
-        .catch(() => {
+        .catch((error) => {
           if (timeoutHandle) {
             clearTimeout(timeoutHandle);
           }
-          return null;
+          if (logOnError) {
+            this.logger.warn('Pulsex RPC call failed', {
+              message: error instanceof Error ? error.message : String(error),
+              ...(context ?? {}),
+            });
+          }
+          return { value: null, timedOut: false };
         }),
-      new Promise<null>((resolve) => {
-        timeoutHandle = setTimeout(() => resolve(null), timeoutMs);
+      new Promise<{ value: null; timedOut: boolean }>((resolve) => {
+        timeoutHandle = setTimeout(
+          () => resolve({ value: null, timedOut: true }),
+          timeoutMs,
+        );
       }),
     ]);
   }

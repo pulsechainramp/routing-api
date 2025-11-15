@@ -19,7 +19,7 @@ import * as changenowRoutes from './changenow';
 import * as omnibridgeRoutes from './omnibridge';
 import referralRoutes from './referral';
 import referralFeeRoutes from './referralFees';
-import { PulseXQuoteService } from '@/services/PulseXQuoteService';
+import { PulseXQuoteService } from '../services/PulseXQuoteService';
 import onrampsRoutes from './onramps';
 import authRoutes from './auth';
 

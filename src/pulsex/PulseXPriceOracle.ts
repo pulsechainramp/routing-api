@@ -59,7 +59,7 @@ export class PulseXPriceOracle {
     const price = await this.loadPrice();
     this.cache = {
       value: price,
-      expiresAt: Date.now() + this.config.priceOracle.cacheTtlMs,
+      expiresAt: Date.now() + this.config.cacheTtlMs.priceOracle,
     };
     return price;
   }
