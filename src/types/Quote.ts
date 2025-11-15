@@ -27,6 +27,7 @@ export type Route = {
 };
 
 export type CombinedPath = Omit<PathInfo, "address"> & {
+  pool?: string;
   tokens: PathToken[];
 };
 

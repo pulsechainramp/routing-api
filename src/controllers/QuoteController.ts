@@ -88,7 +88,8 @@ export class QuoteController {
         account
       });
 
-      return await signQuoteResponse(quote, { allowedSlippage });
+      const signedQuote = await signQuoteResponse(quote, { allowedSlippage });
+      return reply.send(signedQuote);
     } catch (error) {
       if (error instanceof InvalidQuoteAmountError) {
         reply.code(400).send({ error: 'Invalid request' });
@@ -112,7 +113,8 @@ export class QuoteController {
         account
       });
 
-      return await signQuoteResponse(quote, { allowedSlippage });
+      const signedQuote = await signQuoteResponse(quote, { allowedSlippage });
+      return reply.send(signedQuote);
     } catch (error) {
       if (error instanceof InvalidQuoteAmountError) {
         reply.code(400).send({ error: 'Invalid request' });

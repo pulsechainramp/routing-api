@@ -1,193 +1,215 @@
-import { ethers } from "ethers";
-import config from "../config";
-import { PulseXQuoteService } from "./PulseXQuoteService";
-import { Route } from "../types/Quote";
+import { ethers } from 'ethers';
+import pulsexConfig from '../config/pulsex';
+import type { PulsexProtocol, PulsexQuoteResult, RouteLegSummary, SplitRouteMeta } from '../types/pulsex';
+import { PulseXQuoteService } from './PulseXQuoteService';
 
-afterEach(() => {
-  jest.restoreAllMocks();
+jest.mock('../utils/web3', () => ({
+  setPulsechainProviderForWeb3: jest.fn(),
+  getTokenDecimals: jest.fn().mockResolvedValue(18),
+  getTokenSymbol: jest.fn().mockResolvedValue('TOK'),
+  encodeSwapRoute: jest.fn().mockReturnValue('0xdeadbeef'),
+  toCorrectDexName: jest.fn((dex: string) => dex),
+}));
+
+const createLeg = (
+  tokenIn: string,
+  tokenOut: string,
+  pool: string,
+  protocol: PulsexProtocol = 'PULSEX_V2',
+): RouteLegSummary => ({
+  protocol,
+  tokenIn: {
+    address: tokenIn as `0x${string}`,
+    decimals: 18,
+    symbol: 'IN',
+  },
+  tokenOut: {
+    address: tokenOut as `0x${string}`,
+    decimals: 18,
+    symbol: 'OUT',
+  },
+  poolAddress: pool as `0x${string}`,
 });
 
-describe("PulseXQuoteService WPLS normalization", () => {
-  const createRoute = (): Route => ({
-    paths: [],
-    swaps: [],
-  });
-  const dummyProvider = new ethers.JsonRpcProvider("http://localhost:8545");
+const baseQuoteResult = (
+  legs: RouteLegSummary[],
+  overrides: Partial<PulsexQuoteResult> = {},
+): PulsexQuoteResult => ({
+  request: {} as any,
+  totalAmountOut: 2_000n,
+  routerAddress: pulsexConfig.routers.default,
+  singleRoute: legs,
+  gasEstimate: 150_000n,
+  gasUsd: 0.42,
+  ...overrides,
+});
 
-  it("bridges through WPLS when direct route is missing", async () => {
-    const service = new PulseXQuoteService(dummyProvider);
-    const tokenInToWplsRoute = createRoute();
-    const wplsToTokenOutRoute = createRoute();
-    const combinedRoute = createRoute();
+const createSplitRoute = (shareBps: number, legs: RouteLegSummary[]): SplitRouteMeta => ({
+  shareBps,
+  amountIn: BigInt(shareBps),
+  amountOut: BigInt(shareBps * 2),
+  legs,
+});
 
-    const findDirectRouteMock = jest
-      .spyOn<any, any>(service as any, "findDirectRoute")
-      .mockResolvedValueOnce(tokenInToWplsRoute)
-      .mockResolvedValueOnce(wplsToTokenOutRoute);
+describe('PulseXQuoteService', () => {
+  const provider = new ethers.JsonRpcProvider();
 
-    const getAmountOutMock = jest
-      .spyOn<any, any>(service as any, "getAmountOut")
-      .mockResolvedValue("123");
-
-    const combineRoutesMock = jest
-      .spyOn<any, any>(service as any, "combineRoutes")
-      .mockReturnValue(combinedRoute);
-
-    const result = await (service as any).findRouteThroughPLS(
-      "0xTokenIn",
-      "0xTokenOut",
-      "1000"
-    );
-
-    expect(findDirectRouteMock).toHaveBeenNthCalledWith(
-      1,
-      "0xTokenIn",
-      config.WPLS,
-      "1000"
-    );
-    expect(getAmountOutMock).toHaveBeenCalledWith(
-      "0xTokenIn",
-      config.WPLS,
-      "1000",
-      tokenInToWplsRoute
-    );
-    expect(findDirectRouteMock).toHaveBeenNthCalledWith(
-      2,
-      config.WPLS,
-      "0xTokenOut",
-      "123"
-    );
-    expect(combineRoutesMock).toHaveBeenCalledWith(
-      tokenInToWplsRoute,
-      wplsToTokenOutRoute
-    );
-    expect(result).toBe(combinedRoute);
-  });
-
-  it("normalizes native tokens to WPLS for router amount checks", async () => {
-    const service = new PulseXQuoteService(dummyProvider);
-
-    const pulsexV2Router = {
-      getAmountsOut: jest.fn().mockResolvedValue([BigInt(1), BigInt(200)]),
+  it('normalizes native tokens before requesting a quote', async () => {
+    const quoter = {
+      quoteBestExactIn: jest.fn().mockResolvedValue(baseQuoteResult([createLeg('0x1', '0x2', '0x3')])),
     };
 
-    const pulsexV1Router = {
-      getAmountsOut: jest.fn(),
+    const service = new PulseXQuoteService(provider, quoter as any);
+    await service.getQuote({
+      tokenInAddress: 'PLS',
+      tokenOutAddress: '0x0000000000000000000000000000000000000011',
+      amount: '1000',
+    });
+
+    expect(quoter.quoteBestExactIn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tokenIn: expect.objectContaining({
+          address: pulsexConfig.connectorTokens.find((token) => token.isNative)?.address,
+        }),
+      }),
+    );
+  });
+
+  it('maps PulsexQuoteResult into a QuoteResponse shape', async () => {
+    const legs = [
+      createLeg(
+        pulsexConfig.connectorTokens.find((token) => token.isNative)!.address,
+        '0x00000000000000000000000000000000000000bb',
+        '0x00000000000000000000000000000000000000aa',
+      ),
+    ];
+    const quoter = {
+      quoteBestExactIn: jest.fn().mockResolvedValue(baseQuoteResult(legs)),
     };
 
-    (service as any).pulsexV2Router = pulsexV2Router;
-    (service as any).pulsexV1Router = pulsexV1Router;
+    const service = new PulseXQuoteService(provider, quoter as any);
+    const quote = await service.getQuote({
+      tokenInAddress: 'PLS',
+      tokenOutAddress: '0x00000000000000000000000000000000000000bb',
+      amount: '1000',
+      allowedSlippage: 1,
+    });
 
-    const amount = await (service as any).getAmountOut(
-      ethers.ZeroAddress,
-      "0xTokenOut",
-      "1000",
-      createRoute()
-    );
+    expect(quote.tokenInAddress).toBe(ethers.ZeroAddress);
+    expect(quote.tokenOutAddress).toBe('0x00000000000000000000000000000000000000bb');
+    expect(quote.outputAmount).toBe('2000');
+    expect(quote.gasAmountEstimated).toBe(150_000);
+    expect(quote.gasUSDEstimated).toBeCloseTo(0.42);
+    expect(quote.route).toHaveLength(1);
+    expect(quote.calldata).toBe('0xdeadbeef');
+  });
 
-    expect(pulsexV2Router.getAmountsOut).toHaveBeenCalledWith("1000", [
-      config.WPLS,
-      "0xTokenOut",
+  it('builds multi-hop connector routes into CombinedRoute output', async () => {
+    const connector = '0x0000000000000000000000000000000000000c01';
+    const target = '0x0000000000000000000000000000000000000c02';
+    const legs = [
+      createLeg(
+        pulsexConfig.connectorTokens.find((token) => token.isNative)!.address,
+        connector,
+        '0x0000000000000000000000000000000000000c11',
+        'PULSEX_V2',
+      ),
+      createLeg(connector, target, '0x0000000000000000000000000000000000000c22', 'PULSEX_V1'),
+    ];
+
+    const quoter = {
+      quoteBestExactIn: jest.fn().mockResolvedValue(baseQuoteResult(legs)),
+    };
+
+    const service = new PulseXQuoteService(provider, quoter as any);
+    const quote = await service.getQuote({
+      tokenInAddress: 'PLS',
+      tokenOutAddress: target,
+      amount: '1000',
+      allowedSlippage: 0.5,
+    });
+
+    expect(quote.route).toHaveLength(1);
+    const [combined] = quote.route;
+    expect(combined.subroutes).toHaveLength(legs.length);
+    expect(combined.subroutes[0].paths[0].tokens.map((t) => t.address)).toEqual([
+      legs[0].tokenIn.address,
+      legs[0].tokenOut.address,
     ]);
-    expect(pulsexV1Router.getAmountsOut).not.toHaveBeenCalled();
-    expect(amount).toBe("200");
+    expect(combined.subroutes[1].paths[0].tokens.map((t) => t.address)).toEqual([
+      legs[1].tokenIn.address,
+      legs[1].tokenOut.address,
+    ]);
   });
 
-  it("formats native token input as zero address in the response", async () => {
-    const service = new PulseXQuoteService(dummyProvider);
-    const TOKEN_OUT = "0x0000000000000000000000000000000000000011";
-    const PAIR = "0x00000000000000000000000000000000000000aa";
-    const route: Route = {
-      paths: [
-        [
-          { address: config.WPLS, symbol: "WPLS", decimals: 18, chainId: 369 },
-          { address: TOKEN_OUT, symbol: "TOUT", decimals: 18, chainId: 369 },
-        ],
-      ],
-      swaps: [
-        {
-          percent: 100000,
-          subswaps: [
-            {
-              percent: 100000,
-              paths: [
-                { percent: 100000, address: PAIR, exchange: "PulseX V2" },
-              ],
-            },
-          ],
-        },
-      ],
-    };
-
-    jest
-      .spyOn<any, any>(service as any, "calculateRouteOutput")
-      .mockResolvedValue("200");
-    jest
-      .spyOn<any, any>(service as any, "estimateGas")
-      .mockResolvedValue({ gasAmount: 100000, gasUSD: 1 });
-
-    const response = await (service as any).transformToQuoteResponse(
-      route,
-      {
-        tokenInAddress: config.WPLS,
-        tokenOutAddress: TOKEN_OUT,
-        amount: "1000",
-      },
-      false,
-      "PLS",
-      TOKEN_OUT
+  it('prefers split routes and preserves share weights / stable dex labels', async () => {
+    const stableLeg = createLeg(
+      '0x0000000000000000000000000000000000000d01',
+      '0x0000000000000000000000000000000000000d02',
+      '0x0000000000000000000000000000000000000d11',
+      'PULSEX_STABLE',
+    );
+    const v2Leg = createLeg(
+      '0x0000000000000000000000000000000000000d03',
+      '0x0000000000000000000000000000000000000d04',
+      '0x0000000000000000000000000000000000000d22',
+      'PULSEX_V2',
     );
 
-    expect(response.tokenInAddress).toBe(ethers.ZeroAddress);
-    expect(response.tokenOutAddress).toBe(TOKEN_OUT);
+    const splitRoutes = [
+      createSplitRoute(7000, [stableLeg]),
+      createSplitRoute(3000, [v2Leg]),
+    ];
+
+    const quoter = {
+      quoteBestExactIn: jest.fn().mockResolvedValue(
+        baseQuoteResult([], {
+          splitRoutes,
+          singleRoute: undefined,
+        }),
+      ),
+    };
+
+    const service = new PulseXQuoteService(provider, quoter as any);
+    const quote = await service.getQuote({
+      tokenInAddress: stableLeg.tokenIn.address,
+      tokenOutAddress: v2Leg.tokenOut.address,
+      amount: '10000',
+    });
+
+    expect(quote.route).toHaveLength(2);
+    expect(quote.route[0].percent).toBe(70);
+    expect(quote.route[1].percent).toBe(30);
+    expect(quote.route[0].subroutes[0].paths[0].exchange).toBe('PulseX Stable');
   });
 
-  it("formats native token output as zero address in the response", async () => {
-    const service = new PulseXQuoteService(dummyProvider);
-    const TOKEN_IN = "0x0000000000000000000000000000000000000005";
-    const PAIR = "0x00000000000000000000000000000000000000bb";
-    const route: Route = {
-      paths: [
-        [
-          { address: TOKEN_IN, symbol: "TIN", decimals: 18, chainId: 369 },
-          { address: config.WPLS, symbol: "WPLS", decimals: 18, chainId: 369 },
-        ],
-      ],
-      swaps: [
-        {
-          percent: 100000,
-          subswaps: [
-            {
-              percent: 100000,
-              paths: [
-                { percent: 100000, address: PAIR, exchange: "PulseX V2" },
-              ],
-            },
-          ],
-        },
-      ],
+  it('computes golden minAmountOut based on slippage input', async () => {
+    const legs = [
+      createLeg(
+        pulsexConfig.connectorTokens.find((token) => token.isNative)!.address,
+        '0x0000000000000000000000000000000000000e01',
+        '0x0000000000000000000000000000000000000e11',
+        'PULSEX_V2',
+      ),
+    ];
+
+    const quoter = {
+      quoteBestExactIn: jest.fn().mockResolvedValue(
+        baseQuoteResult(legs, {
+          totalAmountOut: 5_000n,
+        }),
+      ),
     };
 
-    jest
-      .spyOn<any, any>(service as any, "calculateRouteOutput")
-      .mockResolvedValue("200");
-    jest
-      .spyOn<any, any>(service as any, "estimateGas")
-      .mockResolvedValue({ gasAmount: 100000, gasUSD: 1 });
+    const service = new PulseXQuoteService(provider, quoter as any);
+    const quote = await service.getQuote({
+      tokenInAddress: 'PLS',
+      tokenOutAddress: '0x0000000000000000000000000000000000000e01',
+      amount: '1000',
+      allowedSlippage: 2,
+    });
 
-    const response = await (service as any).transformToQuoteResponse(
-      route,
-      {
-        tokenInAddress: TOKEN_IN,
-        tokenOutAddress: config.WPLS,
-        amount: "1000",
-      },
-      true,
-      TOKEN_IN,
-      "PLS"
-    );
-
-    expect(response.tokenInAddress).toBe(TOKEN_IN);
-    expect(response.tokenOutAddress).toBe(ethers.ZeroAddress);
+    expect(quote.outputAmount).toBe('5000');
+    expect(quote.minAmountOut).toBe('4900');
   });
 });
