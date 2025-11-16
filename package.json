@@ -18,7 +18,8 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:deploy": "prisma migrate deploy",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "stress:pulsex": "tsc --project tsconfig.scripts.json && node dist/scripts/stress/pulsexQuote.stress.js"
   },
   "dependencies": {
     "@fastify/cors": "11.0.1",
@@ -45,6 +46,7 @@
     "@types/geoip-lite": "1.4.4",
     "@types/jest": "29.5.14",
     "@types/node": "20.19.7",
+    "autocannon": "^7.14.0",
     "jest": "29.7.0",
     "prisma": "5.22.0",
     "ts-jest": "29.3.4",

@@ -2,9 +2,9 @@ import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { PiteasService } from '../services/PiteasService';
 import { QuoteController } from '../controllers/QuoteController';
 import { ADDRESS } from '../schemas/common';
-import { PulseXQuoteService } from '@/services/PulseXQuoteService';
+import { PulseXQuoteService } from '../services/PulseXQuoteService';
 import { getClientIp } from '../utils/network';
-import { QUOTE_AMOUNT_MAX_DIGITS, QUOTE_AMOUNT_PATTERN } from '../constants/quote';
+import { QUOTE_AMOUNT_MAX_DIGITS, QUOTE_AMOUNT_REGEX } from '../constants/quote';
 
 interface QuotePluginOptions extends FastifyPluginOptions {
   piteasService: PiteasService;
@@ -49,7 +49,7 @@ export default async function quoteRoutes(
           },
           amount: { 
             type: 'string',
-            pattern: QUOTE_AMOUNT_PATTERN,
+            pattern: QUOTE_AMOUNT_REGEX.source,
             maxLength: QUOTE_AMOUNT_MAX_DIGITS
           },
           allowedSlippage: { 
@@ -100,7 +100,7 @@ export default async function quoteRoutes(
           },
           amount: { 
             type: 'string',
-            pattern: QUOTE_AMOUNT_PATTERN,
+            pattern: QUOTE_AMOUNT_REGEX.source,
             maxLength: QUOTE_AMOUNT_MAX_DIGITS
           },
           allowedSlippage: { 

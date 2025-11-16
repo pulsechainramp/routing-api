@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist",
+    "typeRoots": [
+      "./scripts/types",
+      "./node_modules/@types"
+    ]
+  },
+  "include": [
+    "scripts/stress/**/*",
+    "scripts/types/**/*"
+  ]
+}

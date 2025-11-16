@@ -1,14 +1,19 @@
-import { Logger } from "../utils/logger";
-import { ethers, type Provider } from "ethers";
-import { combineRoute, encodeSwapRoute, toCorrectDexName, getTokenDecimals, getTokenSymbol } from "../utils/web3";
-
-import PulseXStableSwapPoolAbi from "../abis/PulseXStableSwapPool.json";
-import PulsexFactoryAbi from "../abis/PulsexFactory.json";
-
-import { SwapRoute, SwapStep } from "../types/swapmanager";
-import { CombinedRoute, Route, PathToken, Swap, Subswap, PathInfo } from "../types/Quote";
-import { QuoteResponse } from "../types/QuoteResponse";
-import config from "../config";
+import { ethers, type Provider } from 'ethers';
+import { Logger } from '../utils/logger';
+import { encodeSwapRoute, getTokenDecimals, getTokenSymbol, setPulsechainProviderForWeb3, toCorrectDexName } from '../utils/web3';
+import pulsexConfig from '../config/pulsex';
+import { PulseXQuoter } from '../pulsex/PulseXQuoter';
+import type {
+  Address,
+  ExactInQuoteRequest,
+  PulsexQuoteResult,
+  PulsexToken,
+  RouteLegSummary,
+  SplitRouteMeta,
+} from '../types/pulsex';
+import type { QuoteResponse } from '../types/QuoteResponse';
+import type { CombinedRoute, CombinedPath, CombinedSubswap, CombinedSwap } from '../types/Quote';
+import type { SwapRoute, SwapStep, Group } from '../types/swapmanager';
 
 interface QuoteParams {
   tokenInAddress: string;
@@ -18,402 +23,311 @@ interface QuoteParams {
   account?: string;
 }
 
+interface RouteEntry {
+  shareBps: number;
+  legs: RouteLegSummary[];
+}
+
+const DEFAULT_SLIPPAGE_PERCENT = 0.5;
+const DEADLINE_BUFFER_SECONDS = 600;
+const TEN_THOUSAND = 10_000n;
+const PULSEX_DEBUG_LOGGING_ENABLED =
+  process.env.PULSEX_DEBUG_LOGGING === 'true';
+export const PULSEX_QUOTE_TIMEOUT_ERROR = 'PulseX quote timed out';
+
 export class PulseXQuoteService {
-  private logger: Logger;
-  private pulsexV1Factory: ethers.Contract;
-  private pulsexV2Factory: ethers.Contract;
-  private pulsexV1Router: ethers.Contract;
-  private pulsexV2Router: ethers.Contract;
+  private readonly logger = new Logger('PulseXQuoteService');
+  private readonly quoter: PulseXQuoter;
+  private readonly wrappedNativeAddress: Address;
 
-  constructor(private readonly provider: Provider) {
-    this.logger = new Logger("PulseXQuoteService");
-    this.pulsexV1Factory = new ethers.Contract(
-      config.PulsexV1FactoryAddress,
-      PulsexFactoryAbi,
-      this.provider
-    );
-    this.pulsexV2Factory = new ethers.Contract(
-      config.PulsexV2FactoryAddress,
-      PulsexFactoryAbi,
-      this.provider
-    );
-    
-    // Standard PancakeSwap router ABI for getAmountsOut
-    const routerABI = [
-      "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)",
-      "function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts)",
-      "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
-      "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)",
-      "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)"
-    ];
-    
-    this.pulsexV1Router = new ethers.Contract(
-      config.PulsexV1RouterAddress,
-      routerABI,
-      this.provider
-    );
-    this.pulsexV2Router = new ethers.Contract(
-      config.PulsexV2RouterAddress,
-      routerABI,
-      this.provider
-    );
-  }
-
-  private isNativeToken(tokenAddress: string | undefined): boolean {
-    if (!tokenAddress) {
-      return false;
+  constructor(private readonly provider: Provider, quoter?: PulseXQuoter) {
+    setPulsechainProviderForWeb3(provider);
+    this.quoter = quoter ?? new PulseXQuoter(provider, pulsexConfig);
+    const nativeToken = pulsexConfig.connectorTokens.find((token) => token.isNative);
+    this.wrappedNativeAddress = (nativeToken?.address ??
+      pulsexConfig.connectorTokens[0]?.address) as Address;
+    if (!this.wrappedNativeAddress) {
+      throw new Error('Unable to determine wrapped native token address');
     }
-
-    const normalized = tokenAddress.toLowerCase();
-    return tokenAddress === "PLS" || normalized === "pls" || normalized === "0x0" || normalized === ethers.ZeroAddress.toLowerCase();
-  }
-
-  private normalizeTokenAddress(tokenAddress: string): string {
-    if (this.isNativeToken(tokenAddress)) {
-      return config.WPLS;
-    }
-    return tokenAddress;
-  }
-
-  private formatResponseToken(originalToken: string, normalizedToken: string): string {
-    return this.isNativeToken(originalToken) ? ethers.ZeroAddress : normalizedToken;
   }
 
   public async getQuote(params: QuoteParams): Promise<QuoteResponse> {
+    const startTime = Date.now();
+    let globalTimeoutHit = false;
+    let success = false;
+    let timeoutHandle: NodeJS.Timeout | undefined;
+    const clearTimeoutHandle = () => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = undefined;
+      }
+    };
+
     try {
-      this.logger.info("Getting PulseX quote", { 
-        tokenIn: params.tokenInAddress, 
-        tokenOut: params.tokenOutAddress, 
-        amount: params.amount 
-      });
-
-      const originalTokenIn = params.tokenInAddress;
-      const originalTokenOut = params.tokenOutAddress;
-
-      const normalizedTokenIn = this.normalizeTokenAddress(originalTokenIn);
-      const normalizedTokenOut = this.normalizeTokenAddress(originalTokenOut);
-      const normalizedParams: QuoteParams = {
-        ...params,
-        tokenInAddress: normalizedTokenIn,
-        tokenOutAddress: normalizedTokenOut,
-      };
-
-      const isEthOut = this.isNativeToken(originalTokenOut);
-      
-      // First, try direct liquidity between tokenIn and tokenOut
-      let route = await this.findDirectRoute(normalizedTokenIn, normalizedTokenOut, params.amount);
-      
-      // If no direct route, try through PLS
-      if (!route) {
-        this.logger.info("No direct route found, trying through PLS");
-        route = await this.findRouteThroughPLS(normalizedTokenIn, normalizedTokenOut, params.amount);
-      }
-
-      if (!route) {
-        throw new Error("No liquidity found for this token pair");
-      }
-
-      return await this.transformToQuoteResponse(
-        route,
-        normalizedParams,
-        isEthOut,
-        originalTokenIn,
-        originalTokenOut
+      const slippageBps = this.normalizeSlippageBps(params.allowedSlippage);
+      const request = await this.buildQuoteRequest(params, slippageBps);
+      const totalTimeoutMs = Number(
+        process.env.PULSEX_QUOTE_TOTAL_TIMEOUT_MS ?? 6_000,
       );
+      const quotePromise = this.quoter.quoteBestExactIn(request);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new Error(PULSEX_QUOTE_TIMEOUT_ERROR)),
+          totalTimeoutMs,
+        );
+      });
+      const quote = await Promise.race([quotePromise, timeoutPromise]);
+      clearTimeoutHandle();
+      const response = this.buildQuoteResponse(params, request, quote, slippageBps);
+      success = true;
+      return response;
     } catch (error) {
-      this.logger.error("Failed to get PulseX quote", { error });
+      clearTimeoutHandle();
+      if (
+        error instanceof Error &&
+        error.message === PULSEX_QUOTE_TIMEOUT_ERROR
+      ) {
+        globalTimeoutHit = true;
+        this.logger.warn('PulseX quote timed out', {
+          timeoutMs: Number(
+            process.env.PULSEX_QUOTE_TOTAL_TIMEOUT_MS ?? 6_000,
+          ),
+        });
+      } else {
+        this.logger.error('Failed to build PulseX quote', { error });
+      }
       throw error;
+    } finally {
+      clearTimeoutHandle();
+      if (PULSEX_DEBUG_LOGGING_ENABLED) {
+        this.logger.debug('PulseXQuoteService.getQuote metrics', {
+          durationMs: Date.now() - startTime,
+          globalTimeoutHit,
+          success,
+        });
+      }
     }
   }
 
-  private async findDirectRoute(tokenIn: string, tokenOut: string, amount: string): Promise<Route | null> {
-    try {
-      // Check PulseX V2 first
-      const v2Pair = await this.pulsexV2Factory.getPair(tokenIn, tokenOut);
-      if (v2Pair !== ethers.ZeroAddress) {
-        this.logger.info("Found PulseX V2 direct pair", { pair: v2Pair });
-        return await this.createDirectRoute(tokenIn, tokenOut, amount, v2Pair, "PulseX V2");
-      }
-
-      // Check PulseX V1
-      const v1Pair = await this.pulsexV1Factory.getPair(tokenIn, tokenOut);
-      if (v1Pair !== ethers.ZeroAddress) {
-        this.logger.info("Found PulseX V1 direct pair", { pair: v1Pair });
-        return await this.createDirectRoute(tokenIn, tokenOut, amount, v1Pair, "PulseX V1");
-      }
-
-      return null;
-    } catch (error) {
-      this.logger.error("Error finding direct route", { error });
-      return null;
-    }
-  }
-
-  private async findRouteThroughPLS(tokenIn: string, tokenOut: string, amount: string): Promise<Route | null> {
-    try {
-      const plsAddress = config.WPLS;
-      const tokenInLower = tokenIn.toLowerCase();
-      const tokenOutLower = tokenOut.toLowerCase();
-      const plsLower = plsAddress.toLowerCase();
-
-      // If either side is already WPLS, there is no additional PLS bridge to attempt
-      if (tokenInLower === plsLower || tokenOutLower === plsLower) {
-        return null;
-      }
-      
-      // Check if we can go tokenIn -> PLS
-      const tokenInToPLS = await this.findDirectRoute(tokenIn, plsAddress, amount);
-      if (!tokenInToPLS) {
-        return null;
-      }
-
-      // Get the output amount from tokenIn -> PLS
-      const plsAmount = await this.getAmountOut(tokenIn, plsAddress, amount, tokenInToPLS);
-      if (!plsAmount) {
-        return null;
-      }
-
-      // Check if we can go PLS -> tokenOut
-      const plsToTokenOut = await this.findDirectRoute(plsAddress, tokenOut, plsAmount);
-      if (!plsToTokenOut) {
-        return null;
-      }
-
-      // Combine the routes
-      return this.combineRoutes(tokenInToPLS, plsToTokenOut);
-    } catch (error) {
-      this.logger.error("Error finding route through PLS", { error });
-      return null;
-    }
-  }
-
-  private async createDirectRoute(tokenIn: string, tokenOut: string, amount: string, pairAddress: string, exchange: string): Promise<Route> {
-    const tokenInInfo = await this.getTokenInfo(tokenIn);
-    const tokenOutInfo = await this.getTokenInfo(tokenOut);
-
-    const path: PathToken[] = [tokenInInfo, tokenOutInfo];
-    const pathInfo: PathInfo = {
-      percent: 100000, // 100% in basis points (100000 = 100%)
-      address: pairAddress,
-      exchange: exchange
-    };
-
-    const subswap: Subswap = {
-      percent: 100000,
-      paths: [pathInfo]
-    };
-
-    const swap: Swap = {
-      percent: 100000,
-      subswaps: [subswap]
-    };
-
-    return {
-      paths: [path],
-      swaps: [swap]
-    };
-  }
-
-  private async getTokenInfo(tokenAddress: string): Promise<PathToken> {
-    const decimals = await getTokenDecimals(tokenAddress);
-    const symbol = await getTokenSymbol(tokenAddress);
-    return {
-      address: tokenAddress,
-      symbol: symbol,
-      decimals: decimals,
-      chainId: 369 // PulseChain chain ID
-    };
-  }
-
-  private async getAmountOut(tokenIn: string, tokenOut: string, amountIn: string, route: Route): Promise<string | null> {
-    try {
-      const normalizedTokenIn = this.normalizeTokenAddress(tokenIn);
-      const normalizedTokenOut = this.normalizeTokenAddress(tokenOut);
-      const path = [normalizedTokenIn, normalizedTokenOut];
-      
-      // Try PulseX V2 first
-      try {
-        const amounts = await this.pulsexV2Router.getAmountsOut(amountIn, path);
-        if (amounts && amounts.length > 1) {
-          return amounts[1].toString();
-        }
-      } catch (error) {
-        this.logger.debug("PulseX V2 getAmountsOut failed, trying V1", { error });
-      }
-      
-      // Try PulseX V1
-      try {
-        const amounts = await this.pulsexV1Router.getAmountsOut(amountIn, path);
-        if (amounts && amounts.length > 1) {
-          return amounts[1].toString();
-        }
-      } catch (error) {
-        this.logger.error("Both PulseX V1 and V2 getAmountsOut failed", { error });
-      }
-      
-      return null;
-    } catch (error) {
-      this.logger.error("Error getting amount out", { error });
-      return null;
-    }
-  }
-
-  private combineRoutes(route1: Route, route2: Route): Route {
-    // Combine two routes into one
-    const combinedPaths: PathToken[][] = [...route1.paths, ...route2.paths];
-    const combinedSwaps: Swap[] = [...route1.swaps, ...route2.swaps];
-    
-    return {
-      paths: combinedPaths,
-      swaps: combinedSwaps
-    };
-  }
-
-  private async transformToQuoteResponse(
-    route: Route,
+  private async buildQuoteRequest(
     params: QuoteParams,
-    isEthOut: boolean,
-    originalTokenIn: string,
-    originalTokenOut: string
-  ): Promise<QuoteResponse> {
-    // Calculate actual output amount
-    const outputAmount = await this.calculateRouteOutput(route, params.amount);
-    if (!outputAmount) {
-      throw new Error("Failed to calculate output amount for route");
-    }
+    slippageBps: number,
+  ): Promise<ExactInQuoteRequest> {
+    const normalizedIn = this.normalizeTokenAddress(params.tokenInAddress);
+    const normalizedOut = this.normalizeTokenAddress(params.tokenOutAddress);
 
-    // Calculate gas estimation
-    const gasEstimate = await this.estimateGas(route, params);
-    
-    const amountIn = params.amount;
-    const minAmountOut = outputAmount;
-    const deadline = Math.floor(Date.now() / 1000) + 600; // 10 minutes
-
-    const swapRoute: SwapRoute = {
-      steps: [],
-      deadline,
-      amountIn,
-      amountOutMin: minAmountOut, // Use calculated output amount
-      parentGroups: [],
-      groupCount: 0,
-      destination: ethers.ZeroAddress,
-      tokenIn: params.tokenInAddress,
-      tokenOut: params.tokenOutAddress,
-      isETHOut: isEthOut,
+    return {
+      chainId: pulsexConfig.chainId,
+      tokenIn: await this.buildPulsexToken(normalizedIn, params.tokenInAddress),
+      tokenOut: await this.buildPulsexToken(normalizedOut, params.tokenOutAddress),
+      amountIn: BigInt(params.amount),
+      slippageBps,
+      recipient: (params.account ?? pulsexConfig.routers.default) as Address,
+      deadlineSeconds: Math.floor(Date.now() / 1000) + DEADLINE_BUFFER_SECONDS,
     };
+  }
 
-    let currentGroupId = 0;
-    for (const [swapIndex, swap] of route.swaps.entries()) {
-      const parentGroupId = currentGroupId++;
-      swapRoute.parentGroups.push({ id: parentGroupId, percent: swap.percent });
+  private async buildPulsexToken(address: string, original: string): Promise<PulsexToken> {
+    const [decimals, symbol] = await Promise.all([
+      getTokenDecimals(address),
+      getTokenSymbol(address),
+    ]);
 
-      for (const [subswapIndex, subswap] of swap.subswaps.entries()) {
-        const groupId = currentGroupId++;
-        for (const [pathIndex, path] of subswap.paths.entries()) {
-          const dexName = toCorrectDexName(path.exchange);
-          
-          const step: SwapStep = {
-            dex: dexName,
-            path: [
-              route.paths[swapIndex][subswapIndex].address,
-              route.paths[swapIndex][subswapIndex + 1]?.address || route.paths[swapIndex][subswapIndex].address,
-            ],
-            percent: path.percent,
-            pool: path.address,
-            userData: "0x",
-            groupId: groupId,
-            parentGroupId: pathIndex === 0 && subswapIndex === 0 ? parentGroupId : groupId - 1,
-          };
+    return {
+      address: address as Address,
+      decimals,
+      symbol,
+      isNative: this.isNativeToken(original),
+    };
+  }
 
-          swapRoute.steps.push(step);
-        }
-      }
-    }
-    swapRoute.groupCount = currentGroupId;
+  private buildQuoteResponse(
+    params: QuoteParams,
+    request: ExactInQuoteRequest,
+    result: PulsexQuoteResult,
+    slippageBps: number,
+  ): QuoteResponse {
+    const deadline = request.deadlineSeconds ?? Math.floor(Date.now() / 1000) + DEADLINE_BUFFER_SECONDS;
+    const minAmountOut = this.computeMinAmountOut(result.totalAmountOut, slippageBps);
+    const isEthOut = this.isNativeToken(params.tokenOutAddress);
+    const routeEntries = this.buildRouteEntries(result);
+    const combinedRoute = this.buildCombinedRoute(routeEntries);
+    const swapRoute = this.buildSwapRoute(
+      routeEntries,
+      params,
+      request,
+      minAmountOut.toString(),
+      deadline,
+      isEthOut,
+    );
 
     return {
       calldata: encodeSwapRoute(swapRoute),
-      tokenInAddress: this.formatResponseToken(originalTokenIn, params.tokenInAddress),
-      tokenOutAddress: this.formatResponseToken(originalTokenOut, params.tokenOutAddress),
-      amountIn,
-      minAmountOut,
-      outputAmount,
+      tokenInAddress: this.formatResponseToken(params.tokenInAddress, request.tokenIn.address),
+      tokenOutAddress: this.formatResponseToken(params.tokenOutAddress, request.tokenOut.address),
+      amountIn: params.amount,
+      minAmountOut: minAmountOut.toString(),
+      outputAmount: result.totalAmountOut.toString(),
       deadline,
-      gasAmountEstimated: gasEstimate.gasAmount,
-      gasUSDEstimated: gasEstimate.gasUSD,
-      route: combineRoute(route),
+      gasAmountEstimated: Number(result.gasEstimate ?? 0n),
+      gasUSDEstimated: result.gasUsd ?? 0,
+      route: combinedRoute,
     };
   }
 
-  private async calculateRouteOutput(route: Route, amountIn: string): Promise<string | null> {
-    try {
-      let currentAmount = amountIn;
-      
-      for (const [swapIndex, swap] of route.swaps.entries()) {
-        for (const [subswapIndex, subswap] of swap.subswaps.entries()) {
-          for (const [pathIndex, path] of subswap.paths.entries()) {
-            const tokenIn = route.paths[swapIndex][subswapIndex].address;
-            const tokenOut = route.paths[swapIndex][subswapIndex + 1]?.address;
-            
-            if (!tokenOut) continue;
-            
-            const pathAmount = await this.getAmountOut(tokenIn, tokenOut, currentAmount, route);
-            if (!pathAmount) {
-              this.logger.error("Failed to get amount out for path", { tokenIn, tokenOut, currentAmount });
-              return null;
-            }
-            
-            // Apply the percentage for this path
-            const pathPercent = path.percent / 100000; // Convert from basis points
-            currentAmount = (BigInt(pathAmount) * BigInt(Math.floor(pathPercent * 100000)) / BigInt(100000)).toString();
-          }
-        }
-      }
-      
-      return currentAmount;
-    } catch (error) {
-      this.logger.error("Error calculating route output", { error });
-      return null;
+  private buildRouteEntries(result: PulsexQuoteResult): RouteEntry[] {
+    if (result.splitRoutes && result.splitRoutes.length > 0) {
+      return result.splitRoutes.map((route) => ({
+        shareBps: route.shareBps,
+        legs: route.legs,
+      }));
     }
+
+    if (!result.singleRoute || result.singleRoute.length === 0) {
+      throw new Error('Pulsex quote did not return any route legs');
+    }
+
+    return [
+      {
+        shareBps: 10_000,
+        legs: result.singleRoute,
+      },
+    ];
   }
 
-  private async estimateGas(route: Route, params: QuoteParams): Promise<{ gasAmount: number; gasUSD: number }> {
-    try {
-      // Base gas for swap operations
-      let baseGas = 150000; // Base gas for a simple swap
-      
-      // Add gas for each step in the route
-      const stepGas = 50000; // Additional gas per step
-      const totalSteps = route.swaps.reduce((total, swap) => 
-        total + swap.subswaps.reduce((subTotal, subswap) => subTotal + subswap.paths.length, 0), 0
-      );
-      
-      const estimatedGas = baseGas + (totalSteps * stepGas);
-      
-      // Get current gas price
-      const feeData = await this.provider.getFeeData();
-      const gasPrice = feeData.gasPrice || BigInt(1000000000); // 1 gwei default
-      
-      // Calculate gas cost in wei
-      const gasCostWei = BigInt(estimatedGas) * gasPrice;
-      
-      // Convert to USD (simplified - you might want to get actual PLS price)
-      const gasCostPLS = Number(ethers.formatEther(gasCostWei));
-      const plsPriceUSD = 0.0001; // Placeholder PLS price in USD
-      const gasCostUSD = gasCostPLS * plsPriceUSD;
-      
+  private buildCombinedRoute(entries: RouteEntry[]): CombinedRoute {
+    return entries.map((entry) => {
+      const subroutes: CombinedSubswap[] = entry.legs.map((leg) => ({
+        percent: 100,
+        paths: [this.toCombinedPath(leg)],
+      }));
+
       return {
-        gasAmount: estimatedGas,
-        gasUSD: gasCostUSD
-      };
-    } catch (error) {
-      this.logger.error("Error estimating gas", { error });
-      // Return fallback values
-      return {
-        gasAmount: 200000,
-        gasUSD: 0.1
-      };
-    }
+        percent: entry.shareBps / 100,
+        subroutes,
+      } as CombinedSwap;
+    });
   }
 
+  private buildSwapRoute(
+    entries: RouteEntry[],
+    params: QuoteParams,
+    request: ExactInQuoteRequest,
+    minAmountOut: string,
+    deadline: number,
+    isEthOut: boolean,
+  ): SwapRoute {
+    const parentGroups: Group[] = entries.map((entry, index) => ({
+      id: index,
+      percent: this.toSwapManagerPercent(entry.shareBps),
+    }));
+
+    const steps: SwapStep[] = [];
+    let nextGroupId = parentGroups.length;
+
+    entries.forEach((entry, entryIndex) => {
+      const entryPercent = parentGroups[entryIndex]?.percent ?? 0;
+      entry.legs.forEach((leg, legIdx) => {
+        const id = nextGroupId++;
+        steps.push({
+          dex: toCorrectDexName(this.protocolDisplayName(leg.protocol)),
+          path: [leg.tokenIn.address, leg.tokenOut.address],
+          pool: leg.poolAddress,
+          percent: legIdx === 0 ? entryPercent : 100_000,
+          groupId: id,
+          parentGroupId: legIdx === 0 ? parentGroups[entryIndex].id : id - 1,
+          userData: '0x',
+        });
+      });
+    });
+
+    return {
+      steps,
+      parentGroups,
+      groupCount: nextGroupId,
+      destination: params.account ?? ethers.ZeroAddress,
+      tokenIn: request.tokenIn.address,
+      tokenOut: request.tokenOut.address,
+      deadline,
+      amountIn: request.amountIn.toString(),
+      amountOutMin: minAmountOut,
+      isETHOut: isEthOut,
+    };
+  }
+
+  private toSwapManagerPercent(shareBps: number): number {
+    if (shareBps <= 0) {
+      return 0;
+    }
+    const scaled = Math.round((shareBps * 100_000) / 10_000);
+    if (scaled > 100_000) {
+      return 100_000;
+    }
+    return scaled;
+  }
+
+  private toCombinedPath(leg: RouteLegSummary): CombinedPath {
+    return {
+      percent: 100,
+      exchange: this.protocolDisplayName(leg.protocol),
+      pool: leg.poolAddress,
+      tokens: [this.toPathToken(leg.tokenIn), this.toPathToken(leg.tokenOut)],
+    };
+  }
+
+  private toPathToken(token: PulsexToken) {
+    return {
+      address: token.address,
+      symbol: token.symbol ?? token.address.slice(0, 6),
+      decimals: token.decimals,
+      chainId: pulsexConfig.chainId,
+    };
+  }
+
+  private protocolDisplayName(protocol: RouteLegSummary['protocol']): string {
+    if (protocol === 'PULSEX_V1') {
+      return 'PulseX V1';
+    }
+    if (protocol === 'PULSEX_V2') {
+      return 'PulseX V2';
+    }
+    return 'PulseX Stable';
+  }
+
+  private computeMinAmountOut(amountOut: bigint, slippageBps: number): bigint {
+    return (amountOut * (TEN_THOUSAND - BigInt(slippageBps))) / TEN_THOUSAND;
+  }
+
+  private normalizeSlippageBps(value?: number): number {
+    if (value === undefined) {
+      return this.normalizeSlippageBps(DEFAULT_SLIPPAGE_PERCENT);
+    }
+    if (!Number.isFinite(value) || value < 0) {
+      return 0;
+    }
+    if (value > 100) {
+      return 10_000;
+    }
+    return Math.round(value * 100);
+  }
+
+  private isNativeToken(address?: string): boolean {
+    if (!address) {
+      return false;
+    }
+    const normalized = address.toLowerCase();
+    return (
+      normalized === 'pls' ||
+      normalized === ethers.ZeroAddress.toLowerCase() ||
+      normalized === '0x0'
+    );
+  }
+
+  private normalizeTokenAddress(address: string): string {
+    return this.isNativeToken(address) ? this.wrappedNativeAddress : address;
+  }
+
+  private formatResponseToken(original: string, normalized: string): string {
+    return this.isNativeToken(original) ? ethers.ZeroAddress : normalized;
+  }
 }
