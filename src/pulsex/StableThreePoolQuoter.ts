@@ -31,6 +31,10 @@ export class StableThreePoolQuoter {
       throw new Error('amountIn must be non-negative');
     }
 
+    if (amountIn === 0n) {
+      return 0n;
+    }
+
     const indexMap = await this.loadIndexMap();
     const tokenInIndex = indexMap.get(tokenIn.toLowerCase());
     if (tokenInIndex === undefined) {
@@ -40,10 +44,6 @@ export class StableThreePoolQuoter {
     const tokenOutIndex = indexMap.get(tokenOut.toLowerCase());
     if (tokenOutIndex === undefined) {
       throw new Error(`Token ${tokenOut} is not supported by the stable pool`);
-    }
-
-    if (amountIn === 0n) {
-      return 0n;
     }
 
     if (tokenInIndex === tokenOutIndex) {

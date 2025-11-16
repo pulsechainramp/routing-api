@@ -513,17 +513,14 @@ export class PulseXQuoter {
       },
     );
 
-    if (pairTimedOut) {
-      this.logger.warn('Timed out fetching PulseX pair address', {
-        protocol,
-        tokenIn: tokenIn.address,
-        tokenOut: tokenOut.address,
-      });
-      this.storeReserveCacheEntry(key, null);
-      return null;
-    }
-
-    if (!pairAddress || this.isZeroAddress(pairAddress)) {
+    if (pairTimedOut || !pairAddress || this.isZeroAddress(pairAddress)) {
+      if (pairTimedOut) {
+        this.logger.warn('Timed out fetching PulseX pair address', {
+          protocol,
+          tokenIn: tokenIn.address,
+          tokenOut: tokenOut.address,
+        });
+      }
       this.storeReserveCacheEntry(key, null);
       return null;
     }

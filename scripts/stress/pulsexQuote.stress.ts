@@ -1,7 +1,7 @@
 import { config as loadEnv } from 'dotenv';
 import axios from 'axios';
 import autocannon, { AutocannonResult, RequestOptions } from 'autocannon';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 
 loadEnv();
@@ -45,8 +45,21 @@ const parseNumericEnv = (key: string, defaultValue: number, options?: { allowZer
   return parsed > 0 ? parsed : defaultValue;
 };
 
+const resolvePayloadFile = (): string => {
+  const candidates = [
+    path.resolve(__dirname, 'pulsexQuote.payloads.json'),
+    path.resolve(process.cwd(), 'scripts/stress/pulsexQuote.payloads.json')
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`Unable to find pulsexQuote.payloads.json. Looked in: ${candidates.join(', ')}`);
+};
+
 const loadPayloads = (): QuotePayload[] => {
-  const payloadFile = path.resolve(__dirname, 'pulsexQuote.payloads.json');
+  const payloadFile = resolvePayloadFile();
   const content = readFileSync(payloadFile, 'utf8');
   const parsed: unknown = JSON.parse(content);
 

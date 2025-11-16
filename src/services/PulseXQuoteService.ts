@@ -56,6 +56,13 @@ export class PulseXQuoteService {
     let globalTimeoutHit = false;
     let success = false;
     let timeoutHandle: NodeJS.Timeout | undefined;
+    const clearTimeoutHandle = () => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = undefined;
+      }
+    };
+
     try {
       const slippageBps = this.normalizeSlippageBps(params.allowedSlippage);
       const request = await this.buildQuoteRequest(params, slippageBps);
@@ -70,10 +77,12 @@ export class PulseXQuoteService {
         );
       });
       const quote = await Promise.race([quotePromise, timeoutPromise]);
+      clearTimeoutHandle();
       const response = this.buildQuoteResponse(params, request, quote, slippageBps);
       success = true;
       return response;
     } catch (error) {
+      clearTimeoutHandle();
       if (
         error instanceof Error &&
         error.message === PULSEX_QUOTE_TIMEOUT_ERROR
@@ -89,9 +98,7 @@ export class PulseXQuoteService {
       }
       throw error;
     } finally {
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle);
-      }
+      clearTimeoutHandle();
       if (PULSEX_DEBUG_LOGGING_ENABLED) {
         this.logger.debug('PulseXQuoteService.getQuote metrics', {
           durationMs: Date.now() - startTime,
@@ -237,7 +244,7 @@ export class PulseXQuoteService {
     return {
       steps,
       parentGroups,
-      groupCount: parentGroups.length + steps.length,
+      groupCount: nextGroupId,
       destination: params.account ?? ethers.ZeroAddress,
       tokenIn: request.tokenIn.address,
       tokenOut: request.tokenOut.address,

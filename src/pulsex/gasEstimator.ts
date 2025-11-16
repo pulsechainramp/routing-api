@@ -1,4 +1,4 @@
-import { ethers, formatEther, type Provider } from 'ethers';
+import { formatEther, type Provider } from 'ethers';
 import type { PulsexConfig } from '../config/pulsex';
 
 const FALLBACK_GAS_PRICE = 1_000_000_000n; // 1 gwei

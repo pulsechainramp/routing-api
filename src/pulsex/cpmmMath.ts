@@ -24,9 +24,5 @@ export function getAmountOutCpmm(
   const numerator = amountInWithFee * reserveOut;
   const denominator = reserveIn * FEE_BPS_DENOMINATOR + amountInWithFee;
 
-  if (denominator === 0n) {
-    throw new Error('Invalid CPMM denominator');
-  }
-
   return numerator / denominator;
 }
