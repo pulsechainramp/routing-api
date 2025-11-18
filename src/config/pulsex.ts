@@ -122,6 +122,19 @@ if (!usdStableToken) {
   throw new Error('USDC metadata missing from connector tokens; cannot configure PulseX oracle');
 }
 
+const stableRoutingDefaults = {
+  enabled: parseBooleanEnv('PULSEX_STABLE_ROUTING_ENABLED', true),
+  useStableForStableToStable: parseBooleanEnv(
+    'PULSEX_STABLE_ROUTING_USE_STABLE_FOR_STABLE',
+    true,
+  ),
+  useStableAsConnectorToPLS: parseBooleanEnv(
+    'PULSEX_STABLE_ROUTING_USE_STABLE_CONNECTOR_FOR_PLS',
+    true,
+  ),
+  maxStablePivots: Math.max(1, parseNumberEnv('PULSEX_STABLE_ROUTING_MAX_PIVOTS', 3)),
+};
+
 export const PULSEX_CONNECTOR_TOKENS = uniqueConnectorTokens.map((token) => token.address);
 export const PULSEX_STABLE_TOKENS = stableTokens.map((token) => token.address);
 export const MAX_CONNECTOR_HOPS = parseNumberEnv('PULSEX_MAX_CONNECTOR_HOPS', 1);
@@ -152,6 +165,12 @@ export interface PulsexConfig {
   stablePoolAddress: Address;
   connectorTokens: PulsexToken[];
   stableTokens: PulsexToken[];
+  stableRouting: {
+    enabled: boolean;
+    useStableForStableToStable: boolean;
+    useStableAsConnectorToPLS: boolean;
+    maxStablePivots: number;
+  };
   fees: {
     v1FeeBps: number;
     v2FeeBps: number;
@@ -190,9 +209,15 @@ export const pulsexConfig: PulsexConfig = {
     v2: asAddress(baseConfig.PulsexV2RouterAddress),
     default: asAddress(baseConfig.PulsexV2RouterAddress),
   },
-  stablePoolAddress: asAddress(baseConfig.PulsexStablePoolAddress),
+  stablePoolAddress: envAddress('PULSEX_STABLE_POOL_ADDRESS', asAddress(baseConfig.PulsexStablePoolAddress)),
   connectorTokens: uniqueConnectorTokens,
   stableTokens,
+  stableRouting: {
+    enabled: stableRoutingDefaults.enabled,
+    useStableForStableToStable: stableRoutingDefaults.useStableForStableToStable,
+    useStableAsConnectorToPLS: stableRoutingDefaults.useStableAsConnectorToPLS,
+    maxStablePivots: stableRoutingDefaults.maxStablePivots,
+  },
   fees: {
     v1FeeBps: 25,
     v2FeeBps: 25,

@@ -25,6 +25,7 @@ export interface RouteLegSummary {
   tokenIn: PulsexToken;
   tokenOut: PulsexToken;
   poolAddress: Address;
+  userData: string;
 }
 
 export interface SplitRouteMeta {

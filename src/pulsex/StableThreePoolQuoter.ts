@@ -35,15 +35,21 @@ export class StableThreePoolQuoter {
       return 0n;
     }
 
-    const indexMap = await this.loadIndexMap();
-    const tokenInIndex = indexMap.get(tokenIn.toLowerCase());
-    if (tokenInIndex === undefined) {
-      throw new Error(`Token ${tokenIn} is not supported by the stable pool`);
+    const { tokenInIndex, tokenOutIndex } = await this.resolveTokenIndices(tokenIn, tokenOut);
+    return this.quoteStableOutByIndices(tokenInIndex, tokenOutIndex, amountIn);
+  }
+
+  public async quoteStableOutByIndices(
+    tokenInIndex: number,
+    tokenOutIndex: number,
+    amountIn: bigint,
+  ): Promise<bigint> {
+    if (amountIn < 0n) {
+      throw new Error('amountIn must be non-negative');
     }
 
-    const tokenOutIndex = indexMap.get(tokenOut.toLowerCase());
-    if (tokenOutIndex === undefined) {
-      throw new Error(`Token ${tokenOut} is not supported by the stable pool`);
+    if (amountIn === 0n) {
+      return 0n;
     }
 
     if (tokenInIndex === tokenOutIndex) {
@@ -51,6 +57,28 @@ export class StableThreePoolQuoter {
     }
 
     return this.callGetDy(tokenInIndex, tokenOutIndex, amountIn);
+  }
+
+  public async getTokenIndices(tokenIn: Address, tokenOut: Address): Promise<{
+    tokenInIndex: number;
+    tokenOutIndex: number;
+  }> {
+    return this.resolveTokenIndices(tokenIn, tokenOut);
+  }
+
+  public async getIndexMap(): Promise<Map<Address, number>> {
+    const indexMap = await this.loadIndexMap();
+    return new Map(
+      Array.from(indexMap.entries(), ([address, index]) => [
+        address as Address,
+        index,
+      ]),
+    );
+  }
+
+  public async isTokenSupported(token: Address): Promise<boolean> {
+    const indexMap = await this.loadIndexMap();
+    return indexMap.has(token.toLowerCase());
   }
 
   private async loadIndexMap(): Promise<Map<string, number>> {
@@ -89,6 +117,24 @@ export class StableThreePoolQuoter {
     };
 
     return map;
+  }
+
+  private async resolveTokenIndices(tokenIn: Address, tokenOut: Address): Promise<{
+    tokenInIndex: number;
+    tokenOutIndex: number;
+  }> {
+    const indexMap = await this.loadIndexMap();
+    const tokenInIndex = indexMap.get(tokenIn.toLowerCase());
+    if (tokenInIndex === undefined) {
+      throw new Error(`Token ${tokenIn} is not supported by the stable pool`);
+    }
+
+    const tokenOutIndex = indexMap.get(tokenOut.toLowerCase());
+    if (tokenOutIndex === undefined) {
+      throw new Error(`Token ${tokenOut} is not supported by the stable pool`);
+    }
+
+    return { tokenInIndex, tokenOutIndex };
   }
 
   private async callGetDy(tokenInIndex: number, tokenOutIndex: number, amountIn: bigint): Promise<bigint> {
