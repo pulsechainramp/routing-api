@@ -60,6 +60,12 @@ const BASE_CONFIG: PulsexConfig = {
   stablePoolAddress: '0x00000000000000000000000000000000000000c1',
   connectorTokens: [WPLS, USDC],
   stableTokens: [USDC],
+  stableRouting: {
+    enabled: true,
+    useStableForStableToStable: true,
+    useStableAsConnectorToPLS: true,
+    maxStablePivots: 2,
+  },
   fees: {
     v1FeeBps: 25,
     v2FeeBps: 25,

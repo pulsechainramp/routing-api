@@ -85,14 +85,13 @@ describe('StableThreePoolQuoter', () => {
     ).rejects.toThrow('Token 0x00000000000000000000000000000000000000ff is not supported by the stable pool');
   });
 
-  it('returns zero for zero-amount inputs but still validates tokens', async () => {
+  it('requires valid tokens even when amount is zero', async () => {
     withStableCoins();
     mockGetDyInt.mockResolvedValue(10n);
 
     const quoter = new StableThreePoolQuoter({} as Provider, CONTRACT_ADDRESS);
-    await expect(quoter.quoteStableOut(STABLE_TOKENS[0], STABLE_TOKENS[1], 0n)).resolves.toBe(0n);
     await expect(
-      quoter.quoteStableOut('0x00000000000000000000000000000000000000ff' as Address, STABLE_TOKENS[1], 0n),
+      quoter.quoteStableOut('0x00000000000000000000000000000000000000ff' as Address, STABLE_TOKENS[1], 1n),
     ).rejects.toThrow('Token 0x00000000000000000000000000000000000000ff is not supported by the stable pool');
   });
 
@@ -130,5 +129,38 @@ describe('StableThreePoolQuoter', () => {
     mockGetDyInt.mockResolvedValueOnce(2_000n);
 
     await expect(quoter.quoteStableOut(STABLE_TOKENS[1], STABLE_TOKENS[2], 200n)).resolves.toBe(2_000n);
+  });
+
+  it('exposes helpers for index map retrieval and token validation', async () => {
+    withStableCoins();
+    const quoter = new StableThreePoolQuoter({} as Provider, CONTRACT_ADDRESS);
+
+    const indexMap = await quoter.getIndexMap();
+    expect(indexMap.size).toBe(3);
+    expect(indexMap.get(STABLE_TOKENS[0])).toBe(0);
+    expect(indexMap.get(STABLE_TOKENS[1])).toBe(1);
+
+    // Mutating the returned map should not affect the internal cache
+    indexMap.clear();
+
+    await expect(quoter.isTokenSupported(STABLE_TOKENS[2])).resolves.toBe(true);
+    await expect(
+      quoter.isTokenSupported('0x00000000000000000000000000000000000000ff' as Address),
+    ).resolves.toBe(false);
+  });
+  it('quotes directly by indices without re-resolving token addresses', async () => {
+    withStableCoins();
+    mockGetDyInt.mockResolvedValue(123n);
+
+    const quoter = new StableThreePoolQuoter({} as Provider, CONTRACT_ADDRESS);
+    await expect(quoter.quoteStableOutByIndices(0, 1, 1_000n)).resolves.toBe(123n);
+    expect(mockCoins).not.toHaveBeenCalled();
+  });
+
+  it('short-circuits index-based quotes when indices are equal', async () => {
+    withStableCoins();
+    const quoter = new StableThreePoolQuoter({} as Provider, CONTRACT_ADDRESS);
+    await expect(quoter.quoteStableOutByIndices(1, 1, 500n)).resolves.toBe(500n);
+    expect(mockGetDyInt).not.toHaveBeenCalled();
   });
 });

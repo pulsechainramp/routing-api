@@ -236,7 +236,7 @@ export class PulseXQuoteService {
           percent: legIdx === 0 ? entryPercent : 100_000,
           groupId: id,
           parentGroupId: legIdx === 0 ? parentGroups[entryIndex].id : id - 1,
-          userData: '0x',
+          userData: leg.userData ?? '0x',
         });
       });
     });

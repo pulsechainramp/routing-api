@@ -10,6 +10,7 @@
   },
   "include": [
     "scripts/stress/**/*",
+    "scripts/smoke/**/*",
     "scripts/types/**/*"
   ]
 }
