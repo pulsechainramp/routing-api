@@ -1,12 +1,30 @@
+import { config as loadEnv } from 'dotenv';
 import { JsonRpcProvider, parseUnits } from 'ethers';
 import pulsexConfig from '../../src/config/pulsex';
 import { PulseXQuoter } from '../../src/pulsex/PulseXQuoter';
+import pulsexBaseConfig from '../../src/config';
 import type { PulsexToken } from '../../src/types/pulsex';
 
-const provider = new JsonRpcProvider(
-  process.env.RPC_URL ?? pulsexConfig.chainId,
-  pulsexConfig.chainId,
-);
+loadEnv();
+
+const resolveRpcUrl = (): string => {
+  const candidates = [
+    process.env.RPC_URL,
+    process.env.PULSECHAIN_RPC_URL,
+    pulsexBaseConfig.RPC_URL,
+  ];
+  for (const url of candidates) {
+    const trimmed = url?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  throw new Error(
+    'Unable to resolve an RPC URL. Set RPC_URL or PULSECHAIN_RPC_URL.',
+  );
+};
+
+const provider = new JsonRpcProvider(resolveRpcUrl(), pulsexConfig.chainId);
 
 const selectToken = (symbol: string): PulsexToken => {
   const lower = symbol.toLowerCase();

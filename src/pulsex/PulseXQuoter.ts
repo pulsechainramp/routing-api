@@ -142,7 +142,7 @@ export class PulseXQuoter {
         stableCandidateCount: stableRoutes.length,
       });
     }
-    return this.dedupeRouteCandidates([...stableRoutes, ...baseRoutes]);
+    return this.dedupeRouteCandidates([...baseRoutes, ...stableRoutes]);
   }
 
   public async quoteBestExactIn(
@@ -172,8 +172,37 @@ export class PulseXQuoter {
         candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE'),
       );
       const maxRoutes = this.config.quoteEvaluation.maxRoutes ?? 0;
-      candidates =
-        maxRoutes > 0 ? allCandidates.slice(0, maxRoutes) : allCandidates;
+      if (maxRoutes > 0 && allCandidates.length > maxRoutes) {
+        const limited = allCandidates.slice(0, maxRoutes);
+        const limitedIds = new Set(limited.map((candidate) => candidate.id));
+        const missingStable = allCandidates.filter(
+          (candidate) =>
+            this.candidateHasStableLeg(candidate) &&
+            !limitedIds.has(candidate.id),
+        );
+
+        if (missingStable.length > 0) {
+          let replaceIndex = limited.length - 1;
+          for (const stableCandidate of missingStable) {
+            while (
+              replaceIndex >= 0 &&
+              this.candidateHasStableLeg(limited[replaceIndex])
+            ) {
+              replaceIndex -= 1;
+            }
+            if (replaceIndex < 0) {
+              break;
+            }
+            limited[replaceIndex] = stableCandidate;
+            replaceIndex -= 1;
+          }
+        }
+
+        candidates = limited;
+      } else {
+        candidates = allCandidates;
+      }
+
       if (debugContext) {
         debugContext.routeCandidatesTotal = allCandidates.length;
         debugContext.routeCandidatesEvaluated = candidates.length;
@@ -1050,6 +1079,10 @@ export class PulseXQuoter {
 
   private countStableLegs(legs: RouteLegSummary[]): number {
     return legs.filter((leg) => leg.protocol === 'PULSEX_STABLE').length;
+  }
+
+  private candidateHasStableLeg(candidate: RouteCandidate): boolean {
+    return candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE');
   }
 
   private async findBestSplit(

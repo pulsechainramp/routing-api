@@ -485,6 +485,82 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
       result.singleRoute?.some((leg) => leg.protocol === 'PULSEX_STABLE'),
     ).toBe(true);
   });
+
+  it('retains stable route candidates when the maxRoutes limit is reached', async () => {
+    const quoter = new PulseXQuoter(
+      {} as Provider,
+      {
+        ...BASE_CONFIG,
+        splitConfig: { ...BASE_CONFIG.splitConfig, enabled: false },
+        quoteEvaluation: { ...BASE_CONFIG.quoteEvaluation, maxRoutes: 2 },
+      },
+    );
+    jest.spyOn(quoter as any, 'prewarmReserves').mockResolvedValue(undefined);
+
+    const v2LegA: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('200'),
+      userData: '0x',
+    };
+    const v2LegB: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('201'),
+      userData: '0x',
+    };
+    const stableLeg: RouteLegSummary = {
+      protocol: 'PULSEX_STABLE',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.usdt,
+      poolAddress: toAddress('202'),
+      userData: solidityPacked(['uint8', 'uint8'], [0, 1]),
+    };
+    const candidateA = candidateFromLeg('cpmm-a', v2LegA);
+    const candidateB = candidateFromLeg('cpmm-b', v2LegB);
+    const stableCandidate = candidateFromLeg('stable', stableLeg);
+
+    jest
+      .spyOn(quoter, 'generateRouteCandidates')
+      .mockReturnValue([candidateA, candidateB, stableCandidate]);
+
+    let evaluatedCandidates: RouteCandidate[] = [];
+    jest
+      .spyOn(quoter as unknown as { evaluateRoutes: jest.Mock }, 'evaluateRoutes')
+      .mockImplementation(
+        async (candidates: RouteCandidate[]): Promise<
+          { candidate: RouteCandidate; amountOut: bigint; legs: RouteLegSummary[] }[]
+        > => {
+          evaluatedCandidates = candidates;
+          return candidates.map((candidate, candidateIndex) => ({
+            candidate,
+            amountOut: BigInt(1_000 + candidateIndex),
+            legs: [
+              {
+                protocol: candidate.legs[0].protocol,
+                tokenIn: candidate.legs[0].tokenIn,
+                tokenOut: candidate.legs[0].tokenOut,
+                poolAddress: toAddress(`210${candidateIndex}`),
+                userData: '0x',
+              },
+            ],
+          }));
+        },
+      );
+
+    await quoter.quoteBestExactIn(
+      defaultRequest({
+        tokenOut: TOKENS.plsx,
+      }),
+    );
+
+    expect(evaluatedCandidates).toHaveLength(2);
+    expect(evaluatedCandidates).toEqual(
+      expect.arrayContaining([stableCandidate]),
+    );
+  });
 });
 
 describe('PulseXQuoter stable helpers', () => {
