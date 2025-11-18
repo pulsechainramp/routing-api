@@ -1,4 +1,4 @@
-import { JsonRpcProvider } from 'ethers';
+import { Contract, JsonRpcProvider } from 'ethers';
 import pulsexConfig from '../../src/config/pulsex';
 import PulseXStableSwapPoolAbi from '../../src/abis/PulseXStableSwapPool.json';
 
@@ -12,7 +12,6 @@ const stableRouterAddress =
   '0xDA9aBA4eACF54E0273f56dfFee6B8F1e20B23Bba';
 
 async function main(): Promise<void> {
-  const { Contract } = require('ethers');
   const pool = new Contract(
     pulsexConfig.stablePoolAddress,
     PulseXStableSwapPoolAbi,
