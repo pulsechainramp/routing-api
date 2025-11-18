@@ -1,4 +1,4 @@
-import type { Provider } from 'ethers';
+import { solidityPacked, type Provider } from 'ethers';
 import { PulseXQuoter, type RouteCandidate } from './PulseXQuoter';
 import type { PulsexConfig } from '../config/pulsex';
 import type { Address, ExactInQuoteRequest, PulsexToken, RouteLegSummary } from '../types/pulsex';
@@ -16,9 +16,19 @@ jest.mock('ethers', () => {
   };
 });
 
+const mockQuoteStableOut = jest.fn();
+const mockQuoteStableOutByIndices = jest.fn();
+const mockGetTokenIndices = jest.fn().mockResolvedValue({
+  tokenInIndex: 0,
+  tokenOutIndex: 1,
+});
+const mockGetIndexMap = jest.fn().mockResolvedValue(new Map());
 jest.mock('./StableThreePoolQuoter', () => ({
   StableThreePoolQuoter: jest.fn().mockImplementation(() => ({
-    quoteStableOut: jest.fn(),
+    quoteStableOut: mockQuoteStableOut,
+    quoteStableOutByIndices: mockQuoteStableOutByIndices,
+    getTokenIndices: mockGetTokenIndices,
+    getIndexMap: mockGetIndexMap,
   })),
 }));
 
@@ -52,6 +62,10 @@ const TOKENS: Record<string, PulsexToken> = {
   dai: { address: toAddress('5'), decimals: 18, symbol: 'DAI' },
 };
 
+const HUNDRED_K_USDC_IN = 100_000n * 1_000_000n;
+const BASELINE_CPMM_AMOUNT = 4_000_000_000_000_000_000n;
+const STABLE_CONNECTOR_AMOUNT = 4_500_000_000_000_000_000n;
+
 const BASE_CONFIG: PulsexConfig = {
   chainId: 369,
   affiliateRouter: toAddress('10'),
@@ -73,6 +87,12 @@ const BASE_CONFIG: PulsexConfig = {
     TOKENS.dai,
   ],
   stableTokens: [TOKENS.usdc, TOKENS.usdt, TOKENS.dai],
+  stableRouting: {
+    enabled: true,
+    useStableForStableToStable: true,
+    useStableAsConnectorToPLS: true,
+    maxStablePivots: 3,
+  },
   fees: {
     v1FeeBps: 25,
     v2FeeBps: 25,
@@ -126,6 +146,11 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
   beforeEach(() => {
     mockEstimateGas.mockClear();
     mockGetPrice.mockClear();
+    mockQuoteStableOut.mockClear();
+    mockQuoteStableOutByIndices.mockClear();
+    mockGetTokenIndices.mockClear();
+    mockGetIndexMap.mockClear();
+    mockGetIndexMap.mockResolvedValue(new Map());
   });
 
   afterEach(() => {
@@ -144,12 +169,14 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
       tokenIn: TOKENS.usdc,
       tokenOut: TOKENS.usdt,
       poolAddress: config.stablePoolAddress,
+      userData: "0x",
     };
     const v2Leg: RouteLegSummary = {
       protocol: 'PULSEX_V2',
       tokenIn: TOKENS.usdc,
       tokenOut: TOKENS.usdt,
       poolAddress: toAddress('30'),
+      userData: "0x",
     };
 
     const stableCandidate = candidateFromLeg('stable', stableLeg);
@@ -189,12 +216,14 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
       tokenIn: TOKENS.wpls,
       tokenOut: TOKENS.plsx,
       poolAddress: toAddress('40'),
+      userData: "0x",
     };
     const routeBLeg: RouteLegSummary = {
       protocol: 'PULSEX_V1',
       tokenIn: TOKENS.wpls,
       tokenOut: TOKENS.plsx,
       poolAddress: toAddress('41'),
+      userData: "0x",
     };
 
     const routeACandidate = candidateFromLeg('route-a', routeALeg);
@@ -263,11 +292,12 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
     };
     const quoter = new PulseXQuoter({} as Provider, config);
 
-    const v2Leg: RouteLegSummary = {
+        const v2Leg: RouteLegSummary = {
       protocol: 'PULSEX_V2',
       tokenIn: TOKENS.wpls,
       tokenOut: TOKENS.usdc,
       poolAddress: toAddress('50'),
+      userData: "0x",
     };
     const v2Candidate = candidateFromLeg('native', v2Leg);
 
@@ -300,4 +330,436 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
     expect(result.gasPLSFormatted).toBe('0.000001');
     expect(result.gasEstimate).toBe(200_000n);
   });
+
+  it('selects the stable connector route when it yields more output', async () => {
+    const config: PulsexConfig = {
+      ...BASE_CONFIG,
+      splitConfig: { ...BASE_CONFIG.splitConfig, enabled: false },
+    };
+    const quoter = new PulseXQuoter({} as Provider, config);
+
+    const stableLeg: RouteLegSummary = {
+      protocol: 'PULSEX_STABLE',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.usdt,
+      poolAddress: toAddress('60'),
+      userData: solidityPacked(['uint8', 'uint8'], [0, 1]),
+    };
+    const v2Leg: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('61'),
+      userData: '0x',
+    };
+
+    const stableCandidate = candidateFromLeg('stable-route', stableLeg);
+    const v2Candidate = candidateFromLeg('v2-route', v2Leg);
+
+    jest
+      .spyOn(quoter, 'generateRouteCandidates')
+      .mockReturnValue([stableCandidate, v2Candidate]);
+
+    jest
+      .spyOn(quoter as unknown as { evaluateRoutes: jest.Mock }, 'evaluateRoutes')
+      .mockResolvedValue([
+        { candidate: stableCandidate, amountOut: 11_000n, legs: [stableLeg] },
+        { candidate: v2Candidate, amountOut: 10_000n, legs: [v2Leg] },
+      ]);
+
+    const result = await quoter.quoteBestExactIn(defaultRequest());
+
+    expect(result.singleRoute).toEqual([stableLeg]);
+    expect(result.totalAmountOut).toBe(11_000n);
+  });
+
+  it('sticks to CPMM candidates for 100k USDC -> PLS when stable routing is disabled', async () => {
+    const quoter = new PulseXQuoter(
+      {} as Provider,
+      {
+        ...BASE_CONFIG,
+        stableRouting: { ...BASE_CONFIG.stableRouting, enabled: false },
+        splitConfig: { ...BASE_CONFIG.splitConfig, enabled: false },
+      },
+    );
+    jest.spyOn(quoter as any, 'prewarmReserves').mockResolvedValue(undefined);
+    let evaluated: RouteCandidate[] = [];
+
+    jest
+      .spyOn(quoter as unknown as { evaluateRoutes: jest.Mock }, 'evaluateRoutes')
+      .mockImplementation(
+        async (candidates: RouteCandidate[]): Promise<
+          { candidate: RouteCandidate; amountOut: bigint; legs: RouteLegSummary[] }[]
+        > => {
+          evaluated = candidates;
+          return candidates.map((candidate, candidateIndex) => ({
+            candidate,
+            amountOut: BASELINE_CPMM_AMOUNT,
+            legs: candidate.legs.map((leg, legIdx) => ({
+              protocol: leg.protocol,
+              tokenIn: leg.tokenIn,
+              tokenOut: leg.tokenOut,
+              poolAddress: leg.poolAddress ?? toAddress(`${70 + candidateIndex + legIdx}`),
+              userData: leg.userData ?? '0x',
+            })),
+          }));
+        },
+      );
+
+    const result = await quoter.quoteBestExactIn(
+      defaultRequest({
+        tokenOut: TOKENS.wpls,
+        amountIn: HUNDRED_K_USDC_IN,
+      }),
+    );
+
+    expect(result.totalAmountOut).toBe(BASELINE_CPMM_AMOUNT);
+    expect(
+      evaluated.every((candidate) =>
+        candidate.legs.every((leg) => leg.protocol !== 'PULSEX_STABLE'),
+      ),
+    ).toBe(true);
+    expect(
+      result.singleRoute?.every((leg) => leg.protocol !== 'PULSEX_STABLE'),
+    ).toBe(true);
+  });
+
+  it('builds and selects a stable candidate for 100k USDC -> PLS when enabled', async () => {
+    mockGetIndexMap.mockResolvedValueOnce(
+      new Map<Address, number>([
+        [TOKENS.usdc.address, 0],
+        [TOKENS.usdt.address, 1],
+        [TOKENS.dai.address, 2],
+      ]),
+    );
+    const quoter = new PulseXQuoter(
+      {} as Provider,
+      {
+        ...BASE_CONFIG,
+        splitConfig: { ...BASE_CONFIG.splitConfig, enabled: false },
+      },
+    );
+    jest.spyOn(quoter as any, 'prewarmReserves').mockResolvedValue(undefined);
+    let sawStableCandidate = false;
+
+    jest
+      .spyOn(quoter as unknown as { evaluateRoutes: jest.Mock }, 'evaluateRoutes')
+      .mockImplementation(
+        async (candidates: RouteCandidate[]): Promise<
+          { candidate: RouteCandidate; amountOut: bigint; legs: RouteLegSummary[] }[]
+        > => {
+          sawStableCandidate = candidates.some((candidate) =>
+            candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE'),
+          );
+          return candidates.map((candidate, candidateIndex) => {
+            const hasStableLeg = candidate.legs.some(
+              (leg) => leg.protocol === 'PULSEX_STABLE',
+            );
+            return {
+              candidate,
+              amountOut: hasStableLeg
+                ? STABLE_CONNECTOR_AMOUNT
+                : BASELINE_CPMM_AMOUNT,
+              legs: candidate.legs.map((leg, legIdx) => ({
+                protocol: leg.protocol,
+                tokenIn: leg.tokenIn,
+                tokenOut: leg.tokenOut,
+                poolAddress: leg.poolAddress ?? toAddress(`${90 + candidateIndex + legIdx}`),
+                userData: leg.userData ?? '0x',
+              })),
+            };
+          });
+        },
+      );
+
+    const result = await quoter.quoteBestExactIn(
+      defaultRequest({
+        tokenOut: TOKENS.wpls,
+        amountIn: HUNDRED_K_USDC_IN,
+      }),
+    );
+
+    expect(sawStableCandidate).toBe(true);
+    expect(result.totalAmountOut).toBe(STABLE_CONNECTOR_AMOUNT);
+    expect(
+      result.singleRoute?.some((leg) => leg.protocol === 'PULSEX_STABLE'),
+    ).toBe(true);
+  });
+
+  it('retains stable route candidates when the maxRoutes limit is reached', async () => {
+    const quoter = new PulseXQuoter(
+      {} as Provider,
+      {
+        ...BASE_CONFIG,
+        splitConfig: { ...BASE_CONFIG.splitConfig, enabled: false },
+        quoteEvaluation: { ...BASE_CONFIG.quoteEvaluation, maxRoutes: 2 },
+      },
+    );
+    jest.spyOn(quoter as any, 'prewarmReserves').mockResolvedValue(undefined);
+
+    const v2LegA: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('200'),
+      userData: '0x',
+    };
+    const v2LegB: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('201'),
+      userData: '0x',
+    };
+    const stableLeg: RouteLegSummary = {
+      protocol: 'PULSEX_STABLE',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.usdt,
+      poolAddress: toAddress('202'),
+      userData: solidityPacked(['uint8', 'uint8'], [0, 1]),
+    };
+    const candidateA = candidateFromLeg('cpmm-a', v2LegA);
+    const candidateB = candidateFromLeg('cpmm-b', v2LegB);
+    const stableCandidate = candidateFromLeg('stable', stableLeg);
+
+    jest
+      .spyOn(quoter, 'generateRouteCandidates')
+      .mockReturnValue([candidateA, candidateB, stableCandidate]);
+
+    let evaluatedCandidates: RouteCandidate[] = [];
+    jest
+      .spyOn(quoter as unknown as { evaluateRoutes: jest.Mock }, 'evaluateRoutes')
+      .mockImplementation(
+        async (candidates: RouteCandidate[]): Promise<
+          { candidate: RouteCandidate; amountOut: bigint; legs: RouteLegSummary[] }[]
+        > => {
+          evaluatedCandidates = candidates;
+          return candidates.map((candidate, candidateIndex) => ({
+            candidate,
+            amountOut: BigInt(1_000 + candidateIndex),
+            legs: [
+              {
+                protocol: candidate.legs[0].protocol,
+                tokenIn: candidate.legs[0].tokenIn,
+                tokenOut: candidate.legs[0].tokenOut,
+                poolAddress: toAddress(`210${candidateIndex}`),
+                userData: '0x',
+              },
+            ],
+          }));
+        },
+      );
+
+    await quoter.quoteBestExactIn(
+      defaultRequest({
+        tokenOut: TOKENS.plsx,
+      }),
+    );
+
+    expect(evaluatedCandidates).toHaveLength(2);
+    expect(evaluatedCandidates).toEqual(
+      expect.arrayContaining([stableCandidate]),
+    );
+  });
 });
+
+describe('PulseXQuoter stable helpers', () => {
+  const buildQuoter = () => new PulseXQuoter({} as Provider, BASE_CONFIG);
+
+  const getInternals = (quoter: PulseXQuoter) =>
+    quoter as unknown as Record<string, any>;
+
+  it('identifies stable tokens via helper set and cached indices', () => {
+    const quoter = buildQuoter();
+    const internals = getInternals(quoter);
+    internals.stableIndexMap = new Map([
+      [TOKENS.usdc.address.toLowerCase(), 0],
+      [TOKENS.dai.address.toLowerCase(), 2],
+    ]);
+
+    expect(internals.isStableToken(TOKENS.usdc.address)).toBe(true);
+    expect(internals.isStableToken(TOKENS.plsx.address)).toBe(false);
+    expect(internals.getStableIndex(TOKENS.usdc.address)).toBe(0);
+    expect(internals.getStableIndex(TOKENS.usdt.address)).toBe(null);
+  });
+
+  it('builds stable legs with encoded userData when indices exist', () => {
+    const quoter = buildQuoter();
+    const internals = getInternals(quoter);
+    internals.stableIndexMap = new Map([
+      [TOKENS.usdc.address.toLowerCase(), 0],
+      [TOKENS.dai.address.toLowerCase(), 2],
+    ]);
+
+    const leg = internals.buildStableLeg(TOKENS.usdc, TOKENS.dai);
+    expect(leg).toEqual({
+      protocol: 'PULSEX_STABLE',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.dai,
+      poolAddress: BASE_CONFIG.stablePoolAddress,
+      userData: solidityPacked(['uint8', 'uint8'], [0, 2]),
+    });
+
+    const missing = internals.buildStableLeg(TOKENS.usdt, TOKENS.dai);
+    expect(missing).toBeNull();
+  });
+});
+
+describe('PulseXQuoter stable routing candidates', () => {
+  const buildQuoter = (overrides?: Partial<PulsexConfig>) =>
+    new PulseXQuoter(
+      {} as Provider,
+      {
+        ...BASE_CONFIG,
+        ...overrides,
+      },
+    );
+
+  it('adds a standalone stable candidate for stable pairs when enabled', () => {
+    const quoter = buildQuoter();
+    const internals = quoter as unknown as Record<string, any>;
+    internals.stableIndexMap = new Map([
+      [TOKENS.usdc.address.toLowerCase(), 0],
+      [TOKENS.usdt.address.toLowerCase(), 1],
+    ]);
+
+    const nodePathsSpy = jest
+      .spyOn(internals, 'generateNodePaths')
+      .mockReturnValue([[TOKENS.usdc, TOKENS.usdt]]);
+    const expandSpy = jest
+      .spyOn(internals, 'expandPathsToRoutes')
+      .mockReturnValue([]);
+
+    const candidates = quoter.generateRouteCandidates(
+      TOKENS.usdc,
+      TOKENS.usdt,
+    );
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].legs).toHaveLength(1);
+    expect(candidates[0].legs[0].protocol).toBe('PULSEX_STABLE');
+    expect(candidates[0].legs[0].userData).toBe(
+      solidityPacked(['uint8', 'uint8'], [0, 1]),
+    );
+
+    nodePathsSpy.mockRestore();
+    expandSpy.mockRestore();
+  });
+
+  it('builds connector routes using stable pivots for stable -> non-stable trades', () => {
+    const quoter = buildQuoter({
+      stableRouting: {
+        ...BASE_CONFIG.stableRouting,
+        maxStablePivots: 1,
+      },
+    });
+    const internals = quoter as unknown as Record<string, any>;
+    internals.stableIndexMap = new Map([
+      [TOKENS.usdc.address.toLowerCase(), 0],
+      [TOKENS.usdt.address.toLowerCase(), 1],
+      [TOKENS.dai.address.toLowerCase(), 2],
+    ]);
+
+    const nodePathsSpy = jest
+      .spyOn(internals, 'generateNodePaths')
+      .mockImplementation((...args: unknown[]) => {
+        const [tokenA, tokenB] = args as [PulsexToken, PulsexToken];
+        if (
+          tokenA.address === TOKENS.usdc.address &&
+          tokenB.address === TOKENS.plsx.address
+        ) {
+          return [];
+        }
+        if (
+          tokenA.address === TOKENS.usdt.address &&
+          tokenB.address === TOKENS.plsx.address
+        ) {
+          return [[TOKENS.usdt, TOKENS.plsx]];
+        }
+        return [];
+      });
+
+    const expandSpy = jest
+      .spyOn(internals, 'expandPathsToRoutes')
+      .mockImplementation((...args: unknown[]) => {
+        const [paths] = args as [PulsexToken[][]];
+        if (
+          paths.length === 1 &&
+          paths[0][0].address === TOKENS.usdt.address &&
+          paths[0][1].address === TOKENS.plsx.address
+        ) {
+          return [
+            {
+              id: 'pivot-route',
+              path: paths[0],
+              legs: [
+                {
+                  protocol: 'PULSEX_V2',
+                  tokenIn: TOKENS.usdt,
+                  tokenOut: TOKENS.plsx,
+                },
+              ],
+            },
+          ];
+        }
+        return [];
+      });
+
+    const candidates = quoter.generateRouteCandidates(
+      TOKENS.usdc,
+      TOKENS.plsx,
+    );
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].legs).toHaveLength(2);
+    expect(candidates[0].legs[0].protocol).toBe('PULSEX_STABLE');
+    expect(candidates[0].legs[1].protocol).toBe('PULSEX_V2');
+    expect(candidates[0].path.map((token) => token.address)).toEqual([
+      TOKENS.usdc.address,
+      TOKENS.usdt.address,
+      TOKENS.plsx.address,
+    ]);
+
+    nodePathsSpy.mockRestore();
+    expandSpy.mockRestore();
+  });
+});
+
+describe('PulseXQuoter simulateRoute', () => {
+  const buildQuoter = () =>
+    new PulseXQuoter(
+      {} as Provider,
+      {
+        ...BASE_CONFIG,
+        splitConfig: { ...BASE_CONFIG.splitConfig, enabled: false },
+      },
+    );
+
+  it('uses userData indices for stable legs without reloading indices', async () => {
+    const quoter = buildQuoter();
+    const userData = solidityPacked(['uint8', 'uint8'], [0, 1]);
+    mockQuoteStableOutByIndices.mockResolvedValueOnce(1_000n);
+
+    const candidate: RouteCandidate = {
+      id: 'stable-route',
+      path: [TOKENS.usdc, TOKENS.usdt],
+      legs: [
+        {
+          protocol: 'PULSEX_STABLE',
+          tokenIn: TOKENS.usdc,
+          tokenOut: TOKENS.usdt,
+          userData,
+        },
+      ],
+    };
+
+    const result = await quoter.simulateRoute(candidate, 100n);
+
+    expect(result?.amountOut).toBe(1_000n);
+    expect(result?.legs[0].userData).toBe(userData);
+    expect(mockQuoteStableOutByIndices).toHaveBeenCalledWith(0, 1, 100n);
+    expect(mockGetTokenIndices).not.toHaveBeenCalled();
+  });
+});
+
+

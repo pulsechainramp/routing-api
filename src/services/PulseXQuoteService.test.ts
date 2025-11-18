@@ -18,6 +18,7 @@ const createLeg = (
   tokenOut: string,
   pool: string,
   protocol: PulsexProtocol = 'PULSEX_V2',
+  userData: string = '0x',
 ): RouteLegSummary => ({
   protocol,
   tokenIn: {
@@ -31,6 +32,7 @@ const createLeg = (
     symbol: 'OUT',
   },
   poolAddress: pool as `0x${string}`,
+  userData,
 });
 
 const baseQuoteResult = (
@@ -183,6 +185,31 @@ describe('PulseXQuoteService', () => {
     expect(quote.route[0].percent).toBe(70);
     expect(quote.route[1].percent).toBe(30);
     expect(quote.route[0].subroutes[0].paths[0].exchange).toBe('PulseX Stable');
+  });
+
+  it('passes through stable leg userData to swap steps', async () => {
+    encodeSwapRouteMock.mockClear();
+    const stableLeg = createLeg(
+      '0x0000000000000000000000000000000000000d10',
+      '0x0000000000000000000000000000000000000d11',
+      '0x0000000000000000000000000000000000000d12',
+      'PULSEX_STABLE',
+      '0x0102',
+    );
+
+    const quoter = {
+      quoteBestExactIn: jest.fn().mockResolvedValue(baseQuoteResult([stableLeg])),
+    };
+
+    const service = new PulseXQuoteService(provider, quoter as any);
+    await service.getQuote({
+      tokenInAddress: stableLeg.tokenIn.address,
+      tokenOutAddress: stableLeg.tokenOut.address,
+      amount: '123',
+    });
+
+    const routeArg = encodeSwapRouteMock.mock.calls[0][0];
+    expect(routeArg.steps[0].userData).toBe('0x0102');
   });
 
   it('computes golden minAmountOut based on slippage input', async () => {

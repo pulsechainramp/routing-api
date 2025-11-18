@@ -1,4 +1,4 @@
-import { Contract, ZeroAddress, type Provider } from 'ethers';
+import { Contract, ZeroAddress, solidityPacked, type Provider } from 'ethers';
 import PulsexFactoryAbi from '../abis/PulsexFactory.json';
 import { StableThreePoolQuoter } from './StableThreePoolQuoter';
 import { PulseXPriceOracle } from './PulseXPriceOracle';
@@ -26,11 +26,16 @@ const ROUTE_RANK_LIMIT = 3;
 const ZERO_ADDRESS = ZeroAddress.toLowerCase();
 const PULSEX_DEBUG_LOGGING_ENABLED =
   process.env.PULSEX_DEBUG_LOGGING === 'true';
+const PULSEX_DEBUG_ROUTING_ENABLED =
+  process.env.PULSEX_DEBUG_ROUTING === 'true';
+const MAX_STABLE_CONNECTOR_ROUTE_OPTIONS = 4;
 
 interface RouteLeg {
   protocol: PulsexProtocol;
   tokenIn: PulsexToken;
   tokenOut: PulsexToken;
+  poolAddress?: Address;
+  userData?: string;
 }
 
 export interface RouteCandidate {
@@ -82,10 +87,13 @@ export class PulseXQuoter {
 
   private readonly stableTokenSet: Set<string>;
   private readonly wrappedNativeToken?: PulsexToken;
+  private stableIndexMap?: Map<string, number>;
+  private stableIndexInitPromise?: Promise<void>;
 
   private readonly reserveCache = new Map<string, ReserveCacheEntry>();
   private readonly splitAmountCache = new Map<string, Map<string, bigint>>();
   private readonly debugLoggingEnabled = PULSEX_DEBUG_LOGGING_ENABLED;
+  private readonly stableRoutingDebugEnabled = PULSEX_DEBUG_ROUTING_ENABLED;
 
   constructor(
     private readonly provider: Provider,
@@ -125,7 +133,16 @@ export class PulseXQuoter {
     tokenOut: PulsexToken,
   ): RouteCandidate[] {
     const nodePaths = this.generateNodePaths(tokenIn, tokenOut);
-    return this.expandPathsToRoutes(nodePaths);
+    const baseRoutes = this.expandPathsToRoutes(nodePaths);
+    const stableRoutes = this.buildStableRouteCandidates(tokenIn, tokenOut);
+    if (this.stableRoutingDebugEnabled && stableRoutes.length > 0) {
+      this.logger.debug('PulseX stable routing candidates generated', {
+        tokenIn: tokenIn.address,
+        tokenOut: tokenOut.address,
+        stableCandidateCount: stableRoutes.length,
+      });
+    }
+    return this.dedupeRouteCandidates([...baseRoutes, ...stableRoutes]);
   }
 
   public async quoteBestExactIn(
@@ -143,13 +160,49 @@ export class PulseXQuoter {
     }
 
     try {
+      if (this.config.stableRouting.enabled) {
+        await this.ensureStableIndicesLoaded();
+      }
+
       const allCandidates = this.generateRouteCandidates(
         normalizedRequest.tokenIn,
         normalizedRequest.tokenOut,
       );
+      const quoteHasStableCandidates = allCandidates.some((candidate) =>
+        candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE'),
+      );
       const maxRoutes = this.config.quoteEvaluation.maxRoutes ?? 0;
-      candidates =
-        maxRoutes > 0 ? allCandidates.slice(0, maxRoutes) : allCandidates;
+      if (maxRoutes > 0 && allCandidates.length > maxRoutes) {
+        const limited = allCandidates.slice(0, maxRoutes);
+        const limitedIds = new Set(limited.map((candidate) => candidate.id));
+        const missingStable = allCandidates.filter(
+          (candidate) =>
+            this.candidateHasStableLeg(candidate) &&
+            !limitedIds.has(candidate.id),
+        );
+
+        if (missingStable.length > 0) {
+          let replaceIndex = limited.length - 1;
+          for (const stableCandidate of missingStable) {
+            while (
+              replaceIndex >= 0 &&
+              this.candidateHasStableLeg(limited[replaceIndex])
+            ) {
+              replaceIndex -= 1;
+            }
+            if (replaceIndex < 0) {
+              break;
+            }
+            limited[replaceIndex] = stableCandidate;
+            replaceIndex -= 1;
+          }
+        }
+
+        candidates = limited;
+      } else {
+        candidates = allCandidates;
+      }
+
       if (debugContext) {
         debugContext.routeCandidatesTotal = allCandidates.length;
         debugContext.routeCandidatesEvaluated = candidates.length;
@@ -186,6 +239,19 @@ export class PulseXQuoter {
       const bestSingle = topRanked[0];
       if (!bestSingle) {
         throw new Error('Unable to rank PulseX routes');
+      }
+      if (
+        this.stableRoutingDebugEnabled &&
+        quoteHasStableCandidates &&
+        bestSingle.legs.some((leg) => leg.protocol === 'PULSEX_STABLE')
+      ) {
+        this.logger.debug('PulseX stable route selected', {
+          candidateId: bestSingle.candidate.id,
+          amountOut: bestSingle.amountOut.toString(),
+          stableLegs: this.countStableLegs(bestSingle.legs),
+          tokenIn: normalizedRequest.tokenIn.address,
+          tokenOut: normalizedRequest.tokenOut.address,
+        });
       }
 
       let totalAmountOut = bestSingle.amountOut;
@@ -233,9 +299,16 @@ export class PulseXQuoter {
 
     for (const leg of route.legs) {
       if (leg.protocol === 'PULSEX_STABLE') {
-        const amountOut = await this.stableQuoter.quoteStableOut(
-          leg.tokenIn.address,
-          leg.tokenOut.address,
+        let indices = this.decodeStableLegUserData(leg.userData);
+        if (!indices) {
+          indices = await this.stableQuoter.getTokenIndices(
+            leg.tokenIn.address,
+            leg.tokenOut.address,
+          );
+        }
+        const amountOut = await this.stableQuoter.quoteStableOutByIndices(
+          indices.tokenInIndex,
+          indices.tokenOutIndex,
           cursorAmount,
         );
 
@@ -249,6 +322,12 @@ export class PulseXQuoter {
           tokenIn: leg.tokenIn,
           tokenOut: leg.tokenOut,
           poolAddress: this.config.stablePoolAddress,
+          userData:
+            leg.userData ??
+            solidityPacked(
+              ['uint8', 'uint8'],
+              [indices.tokenInIndex, indices.tokenOutIndex],
+            ),
         });
         continue;
       }
@@ -286,6 +365,7 @@ export class PulseXQuoter {
         tokenIn: leg.tokenIn,
         tokenOut: leg.tokenOut,
         poolAddress: reserves.pairAddress as Address,
+        userData: '0x',
       });
     }
 
@@ -353,6 +433,8 @@ export class PulseXQuoter {
         ];
 
         if (
+          this.config.stableRouting.enabled &&
+          this.config.stableRouting.useStableForStableToStable &&
           this.stableTokenSet.has(tokenA.address.toLowerCase()) &&
           this.stableTokenSet.has(tokenB.address.toLowerCase())
         ) {
@@ -379,6 +461,128 @@ export class PulseXQuoter {
     return routes;
   }
 
+  private buildStableRouteCandidates(
+    tokenIn: PulsexToken,
+    tokenOut: PulsexToken,
+  ): RouteCandidate[] {
+    if (!this.config.stableRouting.enabled || !this.stableIndexMap?.size) {
+      return [];
+    }
+
+    const candidates: RouteCandidate[] = [];
+    const inStable = this.isStableToken(tokenIn.address);
+    const outStable = this.isStableToken(tokenOut.address);
+
+    if (
+      inStable &&
+      outStable &&
+      this.config.stableRouting.useStableForStableToStable
+    ) {
+      const stableLeg = this.buildStableLeg(tokenIn, tokenOut);
+      if (stableLeg) {
+        const legs = [stableLeg];
+        candidates.push({
+          id: this.buildRouteId(legs),
+          path: [tokenIn, tokenOut],
+          legs,
+        });
+      }
+    }
+
+    if (
+      this.config.stableRouting.useStableAsConnectorToPLS &&
+      inStable !== outStable
+    ) {
+      if (inStable) {
+        candidates.push(
+          ...this.buildStableConnectorCandidatesFromStableIn(
+            tokenIn,
+            tokenOut,
+          ),
+        );
+      } else {
+        candidates.push(
+          ...this.buildStableConnectorCandidatesToStableOut(
+            tokenIn,
+            tokenOut,
+          ),
+        );
+      }
+    }
+
+    return candidates;
+  }
+
+  private buildStableConnectorCandidatesFromStableIn(
+    stableTokenIn: PulsexToken,
+    tokenOut: PulsexToken,
+  ): RouteCandidate[] {
+    const pivots = this.getStablePivotTokens(stableTokenIn.address);
+    const candidates: RouteCandidate[] = [];
+
+    for (const pivot of pivots) {
+      const stableLeg = this.buildStableLeg(stableTokenIn, pivot);
+      if (!stableLeg) {
+        continue;
+      }
+      const pivotPaths = this.generateNodePaths(pivot, tokenOut);
+      const pivotRoutes = this.expandPathsToRoutes(pivotPaths).slice(
+        0,
+        MAX_STABLE_CONNECTOR_ROUTE_OPTIONS,
+      );
+      for (const route of pivotRoutes) {
+        const legs = [stableLeg, ...route.legs];
+        const path = [stableTokenIn, ...route.path];
+        candidates.push({
+          id: this.buildRouteId(legs),
+          path,
+          legs,
+        });
+      }
+    }
+
+    return candidates;
+  }
+
+  private buildStableConnectorCandidatesToStableOut(
+    tokenIn: PulsexToken,
+    stableTokenOut: PulsexToken,
+  ): RouteCandidate[] {
+    const pivots = this.getStablePivotTokens(stableTokenOut.address);
+    const candidates: RouteCandidate[] = [];
+
+    for (const pivot of pivots) {
+      const stableLeg = this.buildStableLeg(pivot, stableTokenOut);
+      if (!stableLeg) {
+        continue;
+      }
+      const upstreamPaths = this.generateNodePaths(tokenIn, pivot);
+      const upstreamRoutes = this.expandPathsToRoutes(upstreamPaths).slice(
+        0,
+        MAX_STABLE_CONNECTOR_ROUTE_OPTIONS,
+      );
+      for (const route of upstreamRoutes) {
+        const legs = [...route.legs, stableLeg];
+        const path = [...route.path, stableTokenOut];
+        candidates.push({
+          id: this.buildRouteId(legs),
+          path,
+          legs,
+        });
+      }
+    }
+
+    return candidates;
+  }
+
+  private getStablePivotTokens(excludeAddress: Address): PulsexToken[] {
+    const excludeLower = excludeAddress.toLowerCase();
+    const limit = Math.max(0, this.config.stableRouting.maxStablePivots);
+    return this.config.stableTokens
+      .filter((token) => token.address.toLowerCase() !== excludeLower)
+      .slice(0, limit);
+  }
+
   private cartesianLegs(options: RouteLeg[][]): RouteLeg[][] {
     if (options.length === 0) {
       return [];
@@ -395,6 +599,21 @@ export class PulseXQuoter {
       },
       [[]],
     );
+  }
+
+  private dedupeRouteCandidates(
+    candidates: RouteCandidate[],
+  ): RouteCandidate[] {
+    if (!candidates.length) {
+      return [];
+    }
+    const unique = new Map<string, RouteCandidate>();
+    for (const candidate of candidates) {
+      if (!unique.has(candidate.id)) {
+        unique.set(candidate.id, candidate);
+      }
+    }
+    return Array.from(unique.values());
   }
 
   private async buildGasEstimates(
@@ -603,6 +822,36 @@ export class PulseXQuoter {
     return this.stableTokenSet.has(address.toLowerCase());
   }
 
+  private getStableIndex(address: Address): number | null {
+    if (!this.stableIndexMap) {
+      return null;
+    }
+    const index = this.stableIndexMap.get(address.toLowerCase());
+    return typeof index === 'number' ? index : null;
+  }
+
+  private buildStableLeg(
+    tokenIn: PulsexToken,
+    tokenOut: PulsexToken,
+  ): RouteLeg | null {
+    const tokenInIndex = this.getStableIndex(tokenIn.address as Address);
+    const tokenOutIndex = this.getStableIndex(tokenOut.address as Address);
+    if (tokenInIndex === null || tokenOutIndex === null) {
+      return null;
+    }
+
+    return {
+      protocol: 'PULSEX_STABLE',
+      tokenIn,
+      tokenOut,
+      poolAddress: this.config.stablePoolAddress,
+      userData: solidityPacked(
+        ['uint8', 'uint8'],
+        [tokenInIndex, tokenOutIndex],
+      ),
+    };
+  }
+
   private mapCachedReserves(
     cached: PairReserves | null,
     tokenIn: PulsexToken,
@@ -676,6 +925,56 @@ export class PulseXQuoter {
     return {
       ...token,
       address: token.address as Address,
+    };
+  }
+
+  private async ensureStableIndicesLoaded(): Promise<void> {
+    if (this.stableIndexMap && this.stableIndexMap.size > 0) {
+      return;
+    }
+
+    if (!this.stableIndexInitPromise) {
+      this.stableIndexInitPromise = this.stableQuoter
+        .getIndexMap()
+        .then((map) => {
+          this.stableIndexMap = new Map(
+            Array.from(map.entries(), ([address, index]) => [
+              address.toLowerCase(),
+              index,
+            ]),
+          );
+        })
+        .catch((error) => {
+          this.logger.warn('Unable to load PulseX stable pool indices', {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        })
+        .finally(() => {
+          this.stableIndexInitPromise = undefined;
+        });
+    }
+
+    await this.stableIndexInitPromise;
+  }
+
+  private decodeStableLegUserData(
+    userData?: string,
+  ): { tokenInIndex: number; tokenOutIndex: number } | null {
+    if (!userData || userData === '0x') {
+      return null;
+    }
+    const trimmed = userData.startsWith('0x') ? userData.slice(2) : userData;
+    if (trimmed.length < 4) {
+      return null;
+    }
+    const tokenInIndex = Number.parseInt(trimmed.slice(0, 2), 16);
+    const tokenOutIndex = Number.parseInt(trimmed.slice(2, 4), 16);
+    if (Number.isNaN(tokenInIndex) || Number.isNaN(tokenOutIndex)) {
+      return null;
+    }
+    return {
+      tokenInIndex,
+      tokenOutIndex,
     };
   }
 
@@ -780,6 +1079,10 @@ export class PulseXQuoter {
 
   private countStableLegs(legs: RouteLegSummary[]): number {
     return legs.filter((leg) => leg.protocol === 'PULSEX_STABLE').length;
+  }
+
+  private candidateHasStableLeg(candidate: RouteCandidate): boolean {
+    return candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE');
   }
 
   private async findBestSplit(
