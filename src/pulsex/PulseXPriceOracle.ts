@@ -16,6 +16,10 @@ interface PriceCacheEntry {
   expiresAt: number;
 }
 
+interface FailureCacheEntry {
+  expiresAt: number;
+}
+
 export class PulseXPriceOracle {
   private cache?: PriceCacheEntry;
 
@@ -49,6 +53,9 @@ export class PulseXPriceOracle {
 
   public clearCache(): void {
     this.cache = undefined;
+    this.tokenPriceCache.clear();
+    this.tokenDecimalsCache.clear();
+    this.tokenFailureCache.clear();
   }
 
   public async getPlsPriceUsd(): Promise<number> {
@@ -150,6 +157,203 @@ export class PulseXPriceOracle {
     throw new Error('Pair tokens do not match expected WPLS/USDC order');
   }
 
+  private tokenPriceCache = new Map<string, PriceCacheEntry>();
+  private tokenDecimalsCache = new Map<string, number>();
+  private tokenFailureCache = new Map<string, FailureCacheEntry>();
+
+  public async getTokenPriceUsd(tokenAddress: string): Promise<number> {
+    const normalizedAddress = tokenAddress.toLowerCase();
+
+    const cached = this.tokenPriceCache.get(normalizedAddress);
+    if (cached && cached.expiresAt > Date.now() && cached.value > 0) {
+      return cached.value;
+    }
+
+    const failure = this.tokenFailureCache.get(normalizedAddress);
+    if (failure && failure.expiresAt > Date.now()) {
+      throw new Error('Token price unavailable');
+    }
+
+    const wplsAddress = this.wplsToken.address.toLowerCase();
+    const usdcAddress = this.usdcToken.address.toLowerCase();
+
+    // 1. If token is WPLS or PLS (native), return PLS price
+    if (
+      normalizedAddress === wplsAddress ||
+      normalizedAddress === 'pls' ||
+      this.isZeroAddress(normalizedAddress)
+    ) {
+      return this.getPlsPriceUsd();
+    }
+
+    // 2. If token is USDC, return 1.0 (approx)
+    if (normalizedAddress === usdcAddress) {
+      return 1.0;
+    }
+
+    // 3. Get PLS price in USD
+    const plsPriceUsd = await this.getPlsPriceUsd();
+
+    let priceUsd = 0;
+
+    // 4. Find pair with WPLS to get Token/WPLS price
+    for (const factory of this.factoryPriority) {
+      const priceInPls = await this.tryGetPriceInPls(factory, tokenAddress);
+      if (priceInPls !== null) {
+        priceUsd = priceInPls * plsPriceUsd;
+        break;
+      }
+    }
+
+    // If direct WPLS pair not found or empty, try USDC pair
+    if (priceUsd === 0) {
+      for (const factory of this.factoryPriority) {
+        const priceInUsdc = await this.tryGetPriceInUsdc(factory, tokenAddress);
+        if (priceInUsdc !== null) {
+          priceUsd = priceInUsdc;
+          break;
+        }
+      }
+    }
+
+    if (priceUsd <= 0) {
+      this.tokenFailureCache.set(normalizedAddress, {
+        expiresAt: Date.now() + 30_000, // short TTL for negative cache
+      });
+      throw new Error('Token price unavailable');
+    }
+
+    this.tokenFailureCache.delete(normalizedAddress);
+    this.tokenPriceCache.set(normalizedAddress, {
+      value: priceUsd,
+      expiresAt: Date.now() + this.config.cacheTtlMs.priceOracle
+    });
+
+    return priceUsd;
+  }
+
+  private async getDecimals(tokenAddress: string): Promise<number | null> {
+    const normalized = tokenAddress.toLowerCase();
+    if (this.tokenDecimalsCache.has(normalized)) {
+      return this.tokenDecimalsCache.get(normalized)!;
+    }
+
+    try {
+      const tokenContract = new Contract(
+        tokenAddress,
+        ['function decimals() view returns (uint8)'],
+        this.provider,
+      );
+      const decimals = Number(await tokenContract.decimals());
+      this.tokenDecimalsCache.set(normalized, decimals);
+      return decimals;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  private async tryGetPriceInPls(
+    factory: Contract,
+    tokenAddress: string,
+  ): Promise<number | null> {
+    try {
+      const pairAddress = await factory.getPair(
+        tokenAddress,
+        this.wplsToken.address,
+      );
+
+      if (!pairAddress || this.isZeroAddress(pairAddress)) {
+        return null;
+      }
+
+      const pairContract = new Contract(pairAddress, PAIR_ABI, this.provider);
+      const token0 = (await pairContract.token0()) as string;
+      const [reserve0, reserve1] = await pairContract.getReserves();
+
+      const normalizedToken0 = token0.toLowerCase();
+      const normalizedTokenAddress = tokenAddress.toLowerCase();
+
+      let reserveToken: bigint;
+      let reserveWpls: bigint;
+
+      if (normalizedToken0 === normalizedTokenAddress) {
+        reserveToken = BigInt(reserve0);
+        reserveWpls = BigInt(reserve1);
+      } else {
+        reserveToken = BigInt(reserve1);
+        reserveWpls = BigInt(reserve0);
+      }
+
+      if (reserveToken === 0n || reserveWpls === 0n) {
+        return null;
+      }
+
+      const decimals = await this.getDecimals(tokenAddress);
+      if (decimals === null) return null;
+
+      const wplsFloat = Number(formatUnits(reserveWpls, 18));
+      const tokenFloat = Number(formatUnits(reserveToken, decimals));
+
+      if (tokenFloat === 0) return null;
+
+      return wplsFloat / tokenFloat;
+
+    } catch (error) {
+      return null;
+    }
+  }
+
+  private async tryGetPriceInUsdc(
+    factory: Contract,
+    tokenAddress: string,
+  ): Promise<number | null> {
+    try {
+      const pairAddress = await factory.getPair(
+        tokenAddress,
+        this.usdcToken.address,
+      );
+
+      if (!pairAddress || this.isZeroAddress(pairAddress)) {
+        return null;
+      }
+
+      const pairContract = new Contract(pairAddress, PAIR_ABI, this.provider);
+      const token0 = (await pairContract.token0()) as string;
+      const [reserve0, reserve1] = await pairContract.getReserves();
+
+      const normalizedToken0 = token0.toLowerCase();
+      const normalizedTokenAddress = tokenAddress.toLowerCase();
+
+      let reserveToken: bigint;
+      let reserveUsdc: bigint;
+
+      if (normalizedToken0 === normalizedTokenAddress) {
+        reserveToken = BigInt(reserve0);
+        reserveUsdc = BigInt(reserve1);
+      } else {
+        reserveToken = BigInt(reserve1);
+        reserveUsdc = BigInt(reserve0);
+      }
+
+      if (reserveToken === 0n || reserveUsdc === 0n) {
+        return null;
+      }
+
+      const decimals = await this.getDecimals(tokenAddress);
+      if (decimals === null) return null;
+
+      const usdcFloat = Number(formatUnits(reserveUsdc, this.usdcToken.decimals ?? 6));
+      const tokenFloat = Number(formatUnits(reserveToken, decimals));
+
+      if (tokenFloat === 0) return null;
+
+      return usdcFloat / tokenFloat;
+
+    } catch (error) {
+      return null;
+    }
+  }
+
   private isZeroAddress(value: string | undefined): boolean {
     if (!value) {
       return true;
@@ -162,3 +366,4 @@ export class PulseXPriceOracle {
     );
   }
 }
+

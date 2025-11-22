@@ -51,6 +51,10 @@ export class PulseXQuoteService {
     }
   }
 
+  public async getTokenPrice(address: string): Promise<number> {
+    return this.quoter.getTokenPrice(address);
+  }
+
   public async getQuote(params: QuoteParams): Promise<QuoteResponse> {
     const startTime = Date.now();
     let globalTimeoutHit = false;
