@@ -22,6 +22,9 @@ interface FailureCacheEntry {
 
 export class PulseXPriceOracle {
   private cache?: PriceCacheEntry;
+  private tokenPriceCache = new Map<string, PriceCacheEntry>();
+  private tokenDecimalsCache = new Map<string, number>();
+  private tokenFailureCache = new Map<string, FailureCacheEntry>();
 
   private readonly wplsToken: PulsexToken;
   private readonly usdcToken: PulsexToken;
@@ -157,10 +160,6 @@ export class PulseXPriceOracle {
     throw new Error('Pair tokens do not match expected WPLS/USDC order');
   }
 
-  private tokenPriceCache = new Map<string, PriceCacheEntry>();
-  private tokenDecimalsCache = new Map<string, number>();
-  private tokenFailureCache = new Map<string, FailureCacheEntry>();
-
   public async getTokenPriceUsd(tokenAddress: string): Promise<number> {
     const normalizedAddress = tokenAddress.toLowerCase();
 
@@ -188,7 +187,12 @@ export class PulseXPriceOracle {
 
     // 2. If token is USDC, return 1.0 (approx)
     if (normalizedAddress === usdcAddress) {
-      return 1.0;
+      const value = 1.0;
+      this.tokenPriceCache.set(normalizedAddress, {
+        value,
+        expiresAt: Date.now() + this.config.cacheTtlMs.priceOracle,
+      });
+      return value;
     }
 
     // 3. Get PLS price in USD
@@ -216,7 +220,7 @@ export class PulseXPriceOracle {
       }
     }
 
-    if (priceUsd <= 0) {
+    if (!Number.isFinite(priceUsd) || priceUsd <= 0) {
       this.tokenFailureCache.set(normalizedAddress, {
         expiresAt: Date.now() + 30_000, // short TTL for negative cache
       });
@@ -291,7 +295,9 @@ export class PulseXPriceOracle {
       const decimals = await this.getDecimals(tokenAddress);
       if (decimals === null) return null;
 
-      const wplsFloat = Number(formatUnits(reserveWpls, 18));
+      const wplsFloat = Number(
+        formatUnits(reserveWpls, this.wplsToken.decimals ?? 18),
+      );
       const tokenFloat = Number(formatUnits(reserveToken, decimals));
 
       if (tokenFloat === 0) return null;

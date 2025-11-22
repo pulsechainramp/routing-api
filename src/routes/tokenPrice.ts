@@ -3,10 +3,22 @@ import { TokenPriceController } from '../controllers/TokenPriceController';
 import { PulseXQuoteService } from '../services/PulseXQuoteService';
 
 export default async function tokenPriceRoutes(
-    fastify: FastifyInstance,
-    options: { pulseXQuoteService: PulseXQuoteService },
+  fastify: FastifyInstance,
+  options: { pulseXQuoteService: PulseXQuoteService },
 ) {
-    const controller = new TokenPriceController(options.pulseXQuoteService);
+  const controller = new TokenPriceController(options.pulseXQuoteService);
 
-    fastify.get('/price', controller.getPrice.bind(controller));
+  fastify.get('/price', {
+    schema: {
+      querystring: {
+        type: 'object',
+        properties: {
+          address: { type: 'string' },
+        },
+        required: ['address'],
+        additionalProperties: false,
+      },
+    },
+    handler: controller.getPrice.bind(controller),
+  });
 }
