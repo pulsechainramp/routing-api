@@ -116,6 +116,12 @@ const BASE_CONFIG: PulsexConfig = {
     baseGasUnits: 150_000,
     gasPerLegUnits: 50_000,
   },
+  multicall: {
+    enabled: false,
+    address: toAddress('999'),
+    maxBatchSize: 20,
+    timeoutMs: 1_000,
+  },
 };
 
 const defaultRequest = (

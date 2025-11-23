@@ -89,6 +89,12 @@ const BASE_CONFIG: PulsexConfig = {
     baseGasUnits: 150_000,
     gasPerLegUnits: 50_000,
   },
+  multicall: {
+    enabled: false,
+    address: '0x0000000000000000000000000000000000000aaa',
+    maxBatchSize: 20,
+    timeoutMs: 1_000,
+  },
 };
 
 const registerFactory = (address: string, impl: any) => {

@@ -1,7 +1,10 @@
-import { Contract, formatUnits, type Provider } from 'ethers';
+import { Contract, Interface, formatUnits, type Provider } from 'ethers';
 import PulsexFactoryAbi from '../abis/PulsexFactory.json';
 import type { PulsexConfig } from '../config/pulsex';
 import type { PulsexToken } from '../types/pulsex';
+import type { Address } from '../types/pulsex';
+import { MulticallClient, type MulticallCall, type MulticallResult } from '../utils/multicall';
+import { Logger } from '../utils/logger';
 
 const PAIR_ABI = [
   'function token0() view returns (address)',
@@ -30,6 +33,9 @@ export class PulseXPriceOracle {
   private readonly usdcToken: PulsexToken;
 
   private readonly factoryPriority: Contract[];
+  private readonly multicallClient?: MulticallClient;
+  private readonly pairInterface = new Interface(PAIR_ABI);
+  private readonly logger = new Logger('PulseXPriceOracle');
 
   constructor(
     private readonly provider: Provider,
@@ -52,6 +58,21 @@ export class PulseXPriceOracle {
       new Contract(config.factories.v2, PulsexFactoryAbi, provider),
       new Contract(config.factories.v1, PulsexFactoryAbi, provider),
     ];
+
+    if (config.multicall?.enabled) {
+      try {
+        this.multicallClient = new MulticallClient(provider, {
+          address: config.multicall.address,
+          enabled: config.multicall.enabled,
+          maxBatchSize: config.multicall.maxBatchSize,
+          timeoutMs: config.multicall.timeoutMs,
+        }, this.logger);
+      } catch (error) {
+        this.logger.debug('Failed to initialize Multicall client for price oracle', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 
   public clearCache(): void {
@@ -75,45 +96,23 @@ export class PulseXPriceOracle {
   }
 
   private async loadPrice(): Promise<number> {
-    for (const factory of this.factoryPriority) {
-      const price = await this.tryFactory(factory);
-      if (price) {
-        return price;
-      }
+    const pairData = await this.fetchPairData(
+      this.wplsToken.address as Address,
+      this.usdcToken.address as Address,
+    );
+    if (!pairData) {
+      throw new Error('Unable to determine WPLS/USDC price from PulseX pairs');
     }
-
-    throw new Error('Unable to determine WPLS/USDC price from PulseX pairs');
-  }
-
-  private async tryFactory(factory: Contract): Promise<number | null> {
-    let pairAddress: string;
-    try {
-      pairAddress = await factory.getPair(
-        this.wplsToken.address,
-        this.usdcToken.address,
-      );
-    } catch (error) {
-      return null;
-    }
-
-    if (!pairAddress || this.isZeroAddress(pairAddress)) {
-      return null;
-    }
-
-    const pairContract = new Contract(pairAddress, PAIR_ABI, this.provider);
-    const token0 = (await pairContract.token0()) as string;
-    const token1 = (await pairContract.token1()) as string;
-    const [reserve0, reserve1] = await pairContract.getReserves();
 
     const { reserveWpls, reserveUsdc } = this.mapReserves(
-      token0,
-      token1,
-      reserve0,
-      reserve1,
+      pairData.token0,
+      pairData.token1,
+      pairData.reserve0,
+      pairData.reserve1,
     );
 
     if (reserveWpls === 0n || reserveUsdc === 0n) {
-      return null;
+      throw new Error('Unable to determine WPLS/USDC price from PulseX pairs');
     }
 
     const wplsFloat = Number(
@@ -124,7 +123,7 @@ export class PulseXPriceOracle {
     );
 
     if (!Number.isFinite(wplsFloat) || wplsFloat === 0) {
-      return null;
+      throw new Error('Unable to determine WPLS/USDC price from PulseX pairs');
     }
 
     return usdcFloat / wplsFloat;
@@ -201,22 +200,16 @@ export class PulseXPriceOracle {
     let priceUsd = 0;
 
     // 4. Find pair with WPLS to get Token/WPLS price
-    for (const factory of this.factoryPriority) {
-      const priceInPls = await this.tryGetPriceInPls(factory, tokenAddress);
-      if (priceInPls !== null) {
-        priceUsd = priceInPls * plsPriceUsd;
-        break;
-      }
+    const priceInPls = await this.tryGetPriceInPls(tokenAddress);
+    if (priceInPls !== null) {
+      priceUsd = priceInPls * plsPriceUsd;
     }
 
     // If direct WPLS pair not found or empty, try USDC pair
     if (priceUsd === 0) {
-      for (const factory of this.factoryPriority) {
-        const priceInUsdc = await this.tryGetPriceInUsdc(factory, tokenAddress);
-        if (priceInUsdc !== null) {
-          priceUsd = priceInUsdc;
-          break;
-        }
+      const priceInUsdc = await this.tryGetPriceInUsdc(tokenAddress);
+      if (priceInUsdc !== null) {
+        priceUsd = priceInUsdc;
       }
     }
 
@@ -257,105 +250,264 @@ export class PulseXPriceOracle {
   }
 
   private async tryGetPriceInPls(
-    factory: Contract,
     tokenAddress: string,
   ): Promise<number | null> {
-    try {
-      const pairAddress = await factory.getPair(
-        tokenAddress,
-        this.wplsToken.address,
-      );
-
-      if (!pairAddress || this.isZeroAddress(pairAddress)) {
-        return null;
-      }
-
-      const pairContract = new Contract(pairAddress, PAIR_ABI, this.provider);
-      const token0 = (await pairContract.token0()) as string;
-      const [reserve0, reserve1] = await pairContract.getReserves();
-
-      const normalizedToken0 = token0.toLowerCase();
-      const normalizedTokenAddress = tokenAddress.toLowerCase();
-
-      let reserveToken: bigint;
-      let reserveWpls: bigint;
-
-      if (normalizedToken0 === normalizedTokenAddress) {
-        reserveToken = BigInt(reserve0);
-        reserveWpls = BigInt(reserve1);
-      } else {
-        reserveToken = BigInt(reserve1);
-        reserveWpls = BigInt(reserve0);
-      }
-
-      if (reserveToken === 0n || reserveWpls === 0n) {
-        return null;
-      }
-
-      const decimals = await this.getDecimals(tokenAddress);
-      if (decimals === null) return null;
-
-      const wplsFloat = Number(
-        formatUnits(reserveWpls, this.wplsToken.decimals ?? 18),
-      );
-      const tokenFloat = Number(formatUnits(reserveToken, decimals));
-
-      if (tokenFloat === 0) return null;
-
-      return wplsFloat / tokenFloat;
-
-    } catch (error) {
+    const pairData = await this.fetchPairData(
+      tokenAddress as Address,
+      this.wplsToken.address as Address,
+    );
+    if (!pairData) {
       return null;
     }
+
+    const normalizedToken0 = pairData.token0.toLowerCase();
+    const normalizedTokenAddress = tokenAddress.toLowerCase();
+
+    const reserveToken =
+      normalizedToken0 === normalizedTokenAddress
+        ? pairData.reserve0
+        : pairData.reserve1;
+    const reserveWpls =
+      normalizedToken0 === normalizedTokenAddress
+        ? pairData.reserve1
+        : pairData.reserve0;
+
+    if (reserveToken === 0n || reserveWpls === 0n) {
+      return null;
+    }
+
+    const decimals = await this.getDecimals(tokenAddress);
+    if (decimals === null) return null;
+
+    const wplsFloat = Number(
+      formatUnits(reserveWpls, this.wplsToken.decimals ?? 18),
+    );
+    const tokenFloat = Number(formatUnits(reserveToken, decimals));
+
+    if (tokenFloat === 0) return null;
+
+    return wplsFloat / tokenFloat;
   }
 
   private async tryGetPriceInUsdc(
-    factory: Contract,
     tokenAddress: string,
   ): Promise<number | null> {
-    try {
-      const pairAddress = await factory.getPair(
-        tokenAddress,
-        this.usdcToken.address,
-      );
+    const pairData = await this.fetchPairData(
+      tokenAddress as Address,
+      this.usdcToken.address as Address,
+    );
+    if (!pairData) {
+      return null;
+    }
+
+    const normalizedToken0 = pairData.token0.toLowerCase();
+    const normalizedTokenAddress = tokenAddress.toLowerCase();
+
+    const reserveToken =
+      normalizedToken0 === normalizedTokenAddress
+        ? pairData.reserve0
+        : pairData.reserve1;
+    const reserveUsdc =
+      normalizedToken0 === normalizedTokenAddress
+        ? pairData.reserve1
+        : pairData.reserve0;
+
+    if (reserveToken === 0n || reserveUsdc === 0n) {
+      return null;
+    }
+
+    const decimals = await this.getDecimals(tokenAddress);
+    if (decimals === null) return null;
+
+    const usdcFloat = Number(
+      formatUnits(reserveUsdc, this.usdcToken.decimals ?? 6),
+    );
+    const tokenFloat = Number(formatUnits(reserveToken, decimals));
+
+    if (tokenFloat === 0) return null;
+
+    return usdcFloat / tokenFloat;
+  }
+
+  private async fetchPairData(
+    tokenA: Address,
+    tokenB: Address,
+  ): Promise<{
+    pairAddress: Address;
+    token0: Address;
+    token1: Address;
+    reserve0: bigint;
+    reserve1: bigint;
+  } | null> {
+    const multicallResult = await this.tryFetchPairDataWithMulticall(
+      tokenA,
+      tokenB,
+    );
+    if (multicallResult) {
+      return multicallResult;
+    }
+
+    for (const factory of this.factoryPriority) {
+      let pairAddress: Address | null = null;
+      try {
+        pairAddress = (await factory.getPair(tokenA, tokenB)) as Address;
+      } catch (error) {
+        continue;
+      }
 
       if (!pairAddress || this.isZeroAddress(pairAddress)) {
-        return null;
+        continue;
       }
 
       const pairContract = new Contract(pairAddress, PAIR_ABI, this.provider);
-      const token0 = (await pairContract.token0()) as string;
-      const [reserve0, reserve1] = await pairContract.getReserves();
+      try {
+        const [token0, token1, reserves] = await Promise.all([
+          pairContract.token0(),
+          pairContract.token1(),
+          pairContract.getReserves(),
+        ]);
+        const reserve0 = BigInt((reserves as [bigint, bigint, number])[0]);
+        const reserve1 = BigInt((reserves as [bigint, bigint, number])[1]);
+        if (reserve0 === 0n || reserve1 === 0n) {
+          continue;
+        }
 
-      const normalizedToken0 = token0.toLowerCase();
-      const normalizedTokenAddress = tokenAddress.toLowerCase();
-
-      let reserveToken: bigint;
-      let reserveUsdc: bigint;
-
-      if (normalizedToken0 === normalizedTokenAddress) {
-        reserveToken = BigInt(reserve0);
-        reserveUsdc = BigInt(reserve1);
-      } else {
-        reserveToken = BigInt(reserve1);
-        reserveUsdc = BigInt(reserve0);
+        return {
+          pairAddress,
+          token0: token0 as Address,
+          token1: token1 as Address,
+          reserve0,
+          reserve1,
+        };
+      } catch (error) {
+        continue;
       }
+    }
 
-      if (reserveToken === 0n || reserveUsdc === 0n) {
+    return null;
+  }
+
+  private async tryFetchPairDataWithMulticall(
+    tokenA: Address,
+    tokenB: Address,
+  ): Promise<{
+    pairAddress: Address;
+    token0: Address;
+    token1: Address;
+    reserve0: bigint;
+    reserve1: bigint;
+  } | null> {
+    if (!this.multicallClient || !this.multicallClient.isEnabled()) {
+      return null;
+    }
+
+    const getPairCalls: MulticallCall[] = this.factoryPriority.map((factory) => ({
+      target: factory.target as Address,
+      callData: factory.interface.encodeFunctionData('getPair', [tokenA, tokenB]),
+    }));
+
+    let pairResults: MulticallResult[];
+    try {
+      pairResults = await this.multicallClient.execute(getPairCalls);
+    } catch (error) {
+      this.logger.debug('Multicall getPair stage failed (oracle)', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+
+    let pairAddress: Address | null = null;
+    let chosenIndex = -1;
+    for (let i = 0; i < pairResults.length; i += 1) {
+      const result = pairResults[i];
+      if (!result?.success || !result.returnData) {
+        continue;
+      }
+      try {
+        const decoded = this.factoryPriority[i].interface.decodeFunctionResult(
+          'getPair',
+          result.returnData,
+        );
+        const candidate = decoded[0] as Address;
+        if (candidate && !this.isZeroAddress(candidate)) {
+          pairAddress = candidate;
+          chosenIndex = i;
+          break;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    if (!pairAddress || chosenIndex < 0) {
+      return null;
+    }
+
+    const pairCalls: MulticallCall[] = [
+      {
+        target: pairAddress,
+        callData: this.pairInterface.encodeFunctionData('token0', []),
+      },
+      {
+        target: pairAddress,
+        callData: this.pairInterface.encodeFunctionData('token1', []),
+      },
+      {
+        target: pairAddress,
+        callData: this.pairInterface.encodeFunctionData('getReserves', []),
+      },
+    ];
+
+    let pairDetailResults: MulticallResult[];
+    try {
+      pairDetailResults = await this.multicallClient.execute(pairCalls);
+    } catch (error) {
+      this.logger.debug('Multicall pair detail stage failed (oracle)', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+
+    if (
+      pairDetailResults.length < 3 ||
+      !pairDetailResults[0]?.success ||
+      !pairDetailResults[1]?.success ||
+      !pairDetailResults[2]?.success
+    ) {
+      return null;
+    }
+
+    try {
+      const decodedToken0 = this.pairInterface.decodeFunctionResult(
+        'token0',
+        pairDetailResults[0].returnData,
+      );
+      const decodedToken1 = this.pairInterface.decodeFunctionResult(
+        'token1',
+        pairDetailResults[1].returnData,
+      );
+      const decodedReserves = this.pairInterface.decodeFunctionResult(
+        'getReserves',
+        pairDetailResults[2].returnData,
+      );
+
+      const reserve0 = BigInt(decodedReserves[0] as bigint);
+      const reserve1 = BigInt(decodedReserves[1] as bigint);
+      if (reserve0 === 0n || reserve1 === 0n) {
         return null;
       }
 
-      const decimals = await this.getDecimals(tokenAddress);
-      if (decimals === null) return null;
-
-      const usdcFloat = Number(formatUnits(reserveUsdc, this.usdcToken.decimals ?? 6));
-      const tokenFloat = Number(formatUnits(reserveToken, decimals));
-
-      if (tokenFloat === 0) return null;
-
-      return usdcFloat / tokenFloat;
-
+      return {
+        pairAddress,
+        token0: decodedToken0[0] as Address,
+        token1: decodedToken1[0] as Address,
+        reserve0,
+        reserve1,
+      };
     } catch (error) {
+      this.logger.debug('Failed to decode pair details via multicall (oracle)', {
+        message: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
