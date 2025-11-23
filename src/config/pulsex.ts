@@ -45,6 +45,7 @@ const DEFAULT_PLSX_ADDRESS = '0x95B303987A60C71504D99Aa1b13B4DA07b0790ab' as Add
 const DEFAULT_WETH_ADDRESS = '0x02DcdD04e3F455D838cd1249292C58f3B79e3C3C' as Address;
 const DEFAULT_HEX_ADDRESS = '0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39' as Address;
 const DEFAULT_INC_ADDRESS = '0x2fa878Ab3F87CC1C9737Fc071108F904c0B0C95d' as Address;
+const DEFAULT_MULTICALL_ADDRESS = '0x60694a81c004FFd874abB63b46AF3aDA81D266fA' as Address;
 
 const coreConnectorTokenMetadata: PulsexToken[] = [
   {
@@ -195,6 +196,12 @@ export interface PulsexConfig {
     baseGasUnits: number;
     gasPerLegUnits: number;
   };
+  multicall: {
+    enabled: boolean;
+    address: Address;
+    maxBatchSize: number;
+    timeoutMs: number;
+  };
 }
 
 export const pulsexConfig: PulsexConfig = {
@@ -241,6 +248,12 @@ export const pulsexConfig: PulsexConfig = {
   gasConfig: {
     baseGasUnits: GAS_BASE_UNITS,
     gasPerLegUnits: GAS_UNITS_PER_LEG,
+  },
+  multicall: {
+    enabled: parseBooleanEnv('PULSEX_MULTICALL_ENABLED', true),
+    address: envAddress('PULSECHAIN_MULTICALL_ADDRESS', DEFAULT_MULTICALL_ADDRESS),
+    maxBatchSize: Math.max(1, parseNumberEnv('PULSEX_MULTICALL_MAX_BATCH', 60)),
+    timeoutMs: parseNumberEnv('PULSEX_MULTICALL_TIMEOUT_MS', QUOTE_TIMEOUT_MS),
   },
 };
 

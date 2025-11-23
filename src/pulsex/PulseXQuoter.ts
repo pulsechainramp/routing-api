@@ -1,10 +1,11 @@
-import { Contract, ZeroAddress, solidityPacked, type Provider } from 'ethers';
+import { Contract, Interface, ZeroAddress, solidityPacked, type Provider } from 'ethers';
 import PulsexFactoryAbi from '../abis/PulsexFactory.json';
 import { StableThreePoolQuoter } from './StableThreePoolQuoter';
 import { PulseXPriceOracle } from './PulseXPriceOracle';
 import { PulsexGasEstimator } from './gasEstimator';
 import { getAmountOutCpmm } from './cpmmMath';
 import { Logger } from '../utils/logger';
+import { MulticallClient, type MulticallCall, type MulticallResult } from '../utils/multicall';
 import type { PulsexConfig } from '../config/pulsex';
 import type {
   ExactInQuoteRequest,
@@ -79,6 +80,8 @@ export class PulseXQuoter {
   private readonly stableQuoter: StableThreePoolQuoter;
   private readonly priceOracle: PulseXPriceOracle;
   private readonly gasEstimator: PulsexGasEstimator;
+  private readonly multicallClient?: MulticallClient;
+  private readonly pairInterface = new Interface(PAIR_ABI);
 
   private readonly factoryContracts: Record<
     'PULSEX_V1' | 'PULSEX_V2',
@@ -105,6 +108,20 @@ export class PulseXQuoter {
     );
     this.priceOracle = new PulseXPriceOracle(provider, config);
     this.gasEstimator = new PulsexGasEstimator(provider, config);
+    if (config.multicall?.enabled) {
+      try {
+        this.multicallClient = new MulticallClient(provider, {
+          address: config.multicall.address,
+          enabled: config.multicall.enabled,
+          maxBatchSize: config.multicall.maxBatchSize,
+          timeoutMs: config.multicall.timeoutMs,
+        }, this.logger);
+      } catch (error) {
+        this.logger.debug('Failed to initialize multicall client', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
 
     this.factoryContracts = {
       PULSEX_V1: new Contract(
@@ -681,6 +698,14 @@ export class PulseXQuoter {
       metrics.reserveCacheMisses += 1;
     }
 
+    const multicallLoaded = await this.loadReservesForLegsWithMulticall([
+      { protocol, tokenIn, tokenOut, cacheKey },
+    ]);
+    if (multicallLoaded && multicallLoaded.has(cacheKey)) {
+      const refreshed = this.reserveCache.get(cacheKey);
+      return this.mapCachedReserves(refreshed?.value ?? null, tokenIn, tokenOut);
+    }
+
     const entry = await this.loadPairReservesFromChain(
       protocol,
       tokenIn,
@@ -1227,7 +1252,7 @@ export class PulseXQuoter {
       return;
     }
 
-    const legsToLoad = uniqueLegs.filter((leg) => {
+    let legsToLoad = uniqueLegs.filter((leg) => {
       const cacheKey = this.buildReserveCacheKey(
         leg.protocol,
         leg.tokenIn,
@@ -1236,6 +1261,26 @@ export class PulseXQuoter {
       const existing = this.reserveCache.get(cacheKey);
       return !existing || existing.expiresAt <= Date.now();
     });
+
+    if (!legsToLoad.length) {
+      return;
+    }
+
+    const multicallLoaded = await this.loadReservesForLegsWithMulticall(legsToLoad);
+    if (multicallLoaded) {
+      const remaining = legsToLoad.filter((leg) => {
+        const cacheKey = this.buildReserveCacheKey(
+          leg.protocol,
+          leg.tokenIn,
+          leg.tokenOut,
+        );
+        return !multicallLoaded.has(cacheKey);
+      });
+      if (!remaining.length) {
+        return;
+      }
+      legsToLoad = remaining;
+    }
 
     if (!legsToLoad.length) {
       return;
@@ -1274,6 +1319,258 @@ export class PulseXQuoter {
       startTimeMs: Date.now(),
       reserveCacheMisses: 0,
     };
+  }
+
+  private async loadReservesForLegsWithMulticall(
+    legs: Array<{
+      protocol: PulsexProtocol;
+      tokenIn: PulsexToken;
+      tokenOut: PulsexToken;
+      cacheKey?: string;
+    }>,
+  ): Promise<Set<string> | null> {
+    if (!this.multicallClient || !this.multicallClient.isEnabled()) {
+      return null;
+    }
+
+    type LegContext = {
+      protocol: PulsexProtocol;
+      tokenIn: PulsexToken;
+      tokenOut: PulsexToken;
+      cacheKey: string;
+      factory: Contract;
+    };
+
+    const legContexts: LegContext[] = [];
+    const loadedKeys = new Set<string>();
+
+    for (const leg of legs) {
+      if (leg.protocol === 'PULSEX_STABLE') {
+        continue;
+      }
+      const cacheKey =
+        leg.cacheKey ??
+        this.buildReserveCacheKey(leg.protocol, leg.tokenIn, leg.tokenOut);
+      const existing = this.reserveCache.get(cacheKey);
+      if (existing && existing.expiresAt > Date.now()) {
+        continue;
+      }
+      const factory = this.factoryContracts[leg.protocol];
+      if (!factory) {
+        this.storeReserveCacheEntry(cacheKey, null);
+        continue;
+      }
+      legContexts.push({
+        protocol: leg.protocol,
+        tokenIn: leg.tokenIn,
+        tokenOut: leg.tokenOut,
+        cacheKey,
+        factory,
+      });
+    }
+
+    if (!legContexts.length) {
+      return loadedKeys;
+    }
+
+    const getPairCalls: MulticallCall[] = legContexts.map((context) => ({
+      target: context.factory.target as Address,
+      callData: context.factory.interface.encodeFunctionData('getPair', [
+        context.tokenIn.address,
+        context.tokenOut.address,
+      ]),
+    }));
+
+    let pairResults: MulticallResult[];
+    try {
+      pairResults = await this.multicallClient.execute(getPairCalls);
+    } catch (error) {
+      this.logger.debug('Multicall getPair stage failed', {
+        message: error instanceof Error ? error.message : String(error),
+        callCount: getPairCalls.length,
+      });
+      return null;
+    }
+
+    const pairContextMap = new Map<
+      string,
+      {
+        pairAddress: Address;
+        protocol: PulsexProtocol;
+        legs: LegContext[];
+      }
+    >();
+
+    pairResults.forEach((result, index) => {
+      const context = legContexts[index];
+      if (!context) {
+        return;
+      }
+
+      if (!result?.success || !result.returnData) {
+        this.storeReserveCacheEntry(context.cacheKey, null);
+        return;
+      }
+
+      let pairAddress: Address | null = null;
+      try {
+        const decoded = context.factory.interface.decodeFunctionResult(
+          'getPair',
+          result.returnData,
+        );
+        pairAddress = decoded[0] as Address;
+      } catch (error) {
+        this.logger.debug('Failed to decode getPair via multicall', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      if (!pairAddress || this.isZeroAddress(pairAddress)) {
+        this.storeReserveCacheEntry(context.cacheKey, null);
+        return;
+      }
+
+      const mapKey = `${context.protocol}:${pairAddress.toLowerCase()}`;
+      const existing = pairContextMap.get(mapKey);
+      if (existing) {
+        existing.legs.push(context);
+        return;
+      }
+
+      pairContextMap.set(mapKey, {
+        pairAddress,
+        protocol: context.protocol,
+        legs: [context],
+      });
+    });
+
+    if (!pairContextMap.size) {
+      return loadedKeys;
+    }
+
+    const pairCalls: MulticallCall[] = [];
+    const callMeta: Array<{
+      pairAddress: Address;
+      protocol: PulsexProtocol;
+      legs: LegContext[];
+      token0Index: number;
+      token1Index: number;
+      reservesIndex: number;
+    }> = [];
+
+    for (const context of pairContextMap.values()) {
+      const token0Index = pairCalls.length;
+      pairCalls.push({
+        target: context.pairAddress,
+        callData: this.pairInterface.encodeFunctionData('token0', []),
+      });
+      const token1Index = pairCalls.length;
+      pairCalls.push({
+        target: context.pairAddress,
+        callData: this.pairInterface.encodeFunctionData('token1', []),
+      });
+      const reservesIndex = pairCalls.length;
+      pairCalls.push({
+        target: context.pairAddress,
+        callData: this.pairInterface.encodeFunctionData('getReserves', []),
+      });
+
+      callMeta.push({
+        pairAddress: context.pairAddress,
+        protocol: context.protocol,
+        legs: context.legs,
+        token0Index,
+        token1Index,
+        reservesIndex,
+      });
+    }
+
+    let reserveResults: MulticallResult[];
+    try {
+      reserveResults = await this.multicallClient.execute(pairCalls);
+    } catch (error) {
+      this.logger.debug('Multicall reserve stage failed', {
+        message: error instanceof Error ? error.message : String(error),
+        callCount: pairCalls.length,
+      });
+      return null;
+    }
+
+    for (const meta of callMeta) {
+      const token0Result = reserveResults[meta.token0Index];
+      const token1Result = reserveResults[meta.token1Index];
+      const reservesResult = reserveResults[meta.reservesIndex];
+
+      if (
+        !token0Result?.success ||
+        !token1Result?.success ||
+        !reservesResult?.success
+      ) {
+        for (const leg of meta.legs) {
+          this.storeReserveCacheEntry(leg.cacheKey, null);
+        }
+        continue;
+      }
+
+      let token0: Address | null = null;
+      let token1: Address | null = null;
+      let reserve0: bigint | null = null;
+      let reserve1: bigint | null = null;
+
+      try {
+        const decodedToken0 = this.pairInterface.decodeFunctionResult(
+          'token0',
+          token0Result.returnData,
+        );
+        const decodedToken1 = this.pairInterface.decodeFunctionResult(
+          'token1',
+          token1Result.returnData,
+        );
+        const decodedReserves = this.pairInterface.decodeFunctionResult(
+          'getReserves',
+          reservesResult.returnData,
+        );
+
+        token0 = decodedToken0[0] as Address;
+        token1 = decodedToken1[0] as Address;
+        reserve0 = BigInt(decodedReserves[0] as bigint);
+        reserve1 = BigInt(decodedReserves[1] as bigint);
+      } catch (error) {
+        this.logger.debug('Failed to decode reserves via multicall', {
+          message: error instanceof Error ? error.message : String(error),
+          pairAddress: meta.pairAddress,
+        });
+      }
+
+      if (
+        !token0 ||
+        !token1 ||
+        reserve0 === null ||
+        reserve1 === null
+      ) {
+        for (const leg of meta.legs) {
+          this.storeReserveCacheEntry(leg.cacheKey, null);
+        }
+        continue;
+      }
+
+      const entry: PairReserves = {
+        pairAddress: meta.pairAddress,
+        token0,
+        token1,
+        reserve0,
+        reserve1,
+        reserveIn: 0n,
+        reserveOut: 0n,
+      };
+
+      for (const leg of meta.legs) {
+        this.storeReserveCacheEntry(leg.cacheKey, entry);
+        loadedKeys.add(leg.cacheKey);
+      }
+    }
+
+    return loadedKeys;
   }
 
   private countUniqueCpmmPairs(candidates: RouteCandidate[]): number {

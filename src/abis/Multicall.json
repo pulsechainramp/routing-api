@@ -1,0 +1,53 @@
+[
+  {
+    "inputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "target", "type": "address" },
+          { "internalType": "bytes", "name": "callData", "type": "bytes" }
+        ],
+        "internalType": "struct Multicall.Call[]",
+        "name": "calls",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "multicall",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "bool", "name": "success", "type": "bool" },
+          { "internalType": "bytes", "name": "returnData", "type": "bytes" }
+        ],
+        "internalType": "struct Multicall.Result[]",
+        "name": "results",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address[]", "name": "tokens", "type": "address[]" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "getTokenBalances",
+    "outputs": [
+      { "internalType": "uint256[]", "name": "balances", "type": "uint256[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address[]", "name": "tokens", "type": "address[]" },
+      { "internalType": "address[]", "name": "accounts", "type": "address[]" }
+    ],
+    "name": "getTokenBalancesBatch",
+    "outputs": [
+      { "internalType": "uint256[][]", "name": "balances", "type": "uint256[][]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
