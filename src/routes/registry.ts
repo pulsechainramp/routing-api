@@ -22,6 +22,7 @@ import referralFeeRoutes from './referralFees';
 import { PulseXQuoteService } from '../services/PulseXQuoteService';
 import onrampsRoutes from './onramps';
 import authRoutes from './auth';
+import tokenPriceRoutes from './tokenPrice';
 
 export interface RouteDependencies {
   prisma: PrismaClient;
@@ -56,6 +57,7 @@ export class RouteRegistry {
     await this.registerReferralRoutes();
     await this.registerReferralFeeRoutes();
     await this.registerOnrampsRoutes();
+    await this.registerTokenPriceRoutes();
   }
 
   private async registerAuthRoutes(): Promise<void> {
@@ -134,6 +136,13 @@ export class RouteRegistry {
   private async registerOnrampsRoutes(): Promise<void> {
     await this.fastify.register(onrampsRoutes, {
       prefix: '/onramps',
+    });
+  }
+
+  private async registerTokenPriceRoutes(): Promise<void> {
+    await this.fastify.register(tokenPriceRoutes, {
+      prefix: '/token',
+      pulseXQuoteService: this.dependencies.pulseXQuoteService,
     });
   }
 } 

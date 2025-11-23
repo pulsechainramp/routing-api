@@ -128,6 +128,10 @@ export class PulseXQuoter {
     );
   }
 
+  public async getTokenPrice(address: string): Promise<number> {
+    return this.priceOracle.getTokenPriceUsd(address);
+  }
+
   public generateRouteCandidates(
     tokenIn: PulsexToken,
     tokenOut: PulsexToken,
