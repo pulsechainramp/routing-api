@@ -1,0 +1,172 @@
+{
+  "name": "Pulse Bridge",
+  "version": { "major": 2, "minor": 1, "patch": 0 },
+  "keywords": ["pulsebridge", "tokens", "trusted"],
+  "logoURI": "/token-logos/pulsex/369/0xA1077a294dDE1B09bB078844df40758a5D0f9a27.png",
+  "timestamp": "2023-05-15T20:16:00+0000",
+  "tags": {
+    "priority": {
+      "name": "Priority",
+      "description": "Prioritized tokens for sorting in the bridge UI"
+    },
+    "stablecoin": {
+      "name": "Stablecoin",
+      "description": "Tokens that are fixed to an external asset"
+    }
+  },
+  "tokens": [
+    {
+      "name": "Wrapped Pulse from PulseChain",
+      "chainId": 1,
+      "symbol": "WPLS",
+      "decimals": 18,
+      "address": "0xA882606494D86804B5514E07e6Bd2D6a6eE6d68A",
+      "logoURI": "/token-logos/pulsex/369/0xA1077a294dDE1B09bB078844df40758a5D0f9a27.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "HEX",
+      "chainId": 1,
+      "symbol": "HEX",
+      "decimals": 8,
+      "address": "0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39",
+      "logoURI": "/token-logos/pulsex/369/0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39.png",
+      "tags": ["priority", "verified"]
+    },
+    {
+      "name": "Wrapped Ether",
+      "chainId": 1,
+      "symbol": "WETH",
+      "decimals": 18,
+      "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "logoURI": "/token-logos/eth/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "DAI",
+      "chainId": 1,
+      "symbol": "DAI",
+      "decimals": 18,
+      "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      "logoURI": "/token-logos/eth/0x6B175474E89094C44Da98b954EedeAC495271d0F.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "USDC",
+      "chainId": 1,
+      "symbol": "USDC",
+      "decimals": 6,
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "logoURI": "/token-logos/eth/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "USDT",
+      "chainId": 1,
+      "symbol": "USDT",
+      "decimals": 6,
+      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "logoURI": "/token-logos/eth/0xdAC17F958D2ee523a2206206994597C13D831ec7.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "Wrapped BTC",
+      "chainId": 1,
+      "symbol": "WBTC",
+      "decimals": 8,
+      "address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+      "logoURI": "/token-logos/eth/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "PulseX from PulseChain",
+      "chainId": 1,
+      "symbol": "PLSX from PulseChain",
+      "decimals": 18,
+      "address": "0x4AC429A7cdf2b533E2c0cFF1b017F2c344E864e2",
+      "logoURI": "/token-logos/pulsex/369/0x95B303987A60C71504D99Aa1b13B4DA07b0790ab.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "Wrapped Pulse from PulseChain (OLD)",
+      "chainId": 1,
+      "symbol": "WPLS from PulseChain (OLD)",
+      "decimals": 18,
+      "address": "0x97Ac4a2439A47c07ad535bb1188c989dae755341",
+      "logoURI": "/token-logos/pulsex/369/0xA1077a294dDE1B09bB078844df40758a5D0f9a27.png",
+      "tags": ["warning"]
+    },
+    {
+      "name": "Wrapped Pulse",
+      "chainId": 369,
+      "symbol": "WPLS",
+      "decimals": 18,
+      "address": "0xA1077a294dDE1B09bB078844df40758a5D0f9a27",
+      "logoURI": "/token-logos/pulsex/369/0xA1077a294dDE1B09bB078844df40758a5D0f9a27.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "HEX from Ethereum",
+      "chainId": 369,
+      "symbol": "HEX from Ethereum",
+      "decimals": 8,
+      "address": "0x57fde0a71132198BBeC939B98976993d8D89D225",
+      "logoURI": "/token-logos/pulsex/369/0x57fde0a71132198BBeC939B98976993d8D89D225.png",
+      "tags": ["priority", "verified"]
+    },
+    {
+      "name": "Wrapped Ether from Ethereum",
+      "chainId": 369,
+      "symbol": "WETH from Ethereum",
+      "decimals": 18,
+      "address": "0x02DcdD04e3F455D838cd1249292C58f3B79e3C3C",
+      "logoURI": "/token-logos/pulsex/369/0x02DcdD04e3F455D838cd1249292C58f3B79e3C3C.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "DAI from Ethereum",
+      "chainId": 369,
+      "symbol": "DAI from Ethereum",
+      "decimals": 18,
+      "address": "0xefD766cCb38EaF1dfd701853BFCe31359239F305",
+      "logoURI": "/token-logos/pulsex/369/0xefD766cCb38EaF1dfd701853BFCe31359239F305.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "USDC from Ethereum",
+      "chainId": 369,
+      "symbol": "USDC from Ethereum",
+      "decimals": 6,
+      "address": "0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07",
+      "logoURI": "/token-logos/pulsex/369/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "USDT from Ethereum",
+      "chainId": 369,
+      "symbol": "USDT from Ethereum",
+      "decimals": 6,
+      "address": "0x0Cb6F5a34ad42ec934882A05265A7d5F59b51A2f",
+      "logoURI": "/token-logos/pulsex/369/0x0Cb6F5a34ad42ec934882A05265A7d5F59b51A2f.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "Wrapped BTC from Ethereum",
+      "chainId": 369,
+      "symbol": "WBTC from Ethereum",
+      "decimals": 8,
+      "address": "0xb17D901469B9208B17d916112988A3FeD19b5cA1",
+      "logoURI": "/token-logos/pulsex/369/0xb17D901469B9208B17d916112988A3FeD19b5cA1.png",
+      "tags": ["verified"]
+    },
+    {
+      "name": "PulseX",
+      "chainId": 369,
+      "symbol": "PLSX",
+      "decimals": 18,
+      "address": "0x95B303987A60C71504D99Aa1b13B4DA07b0790ab",
+      "logoURI": "/token-logos/pulsex/369/0x95B303987A60C71504D99Aa1b13B4DA07b0790ab.png",
+      "tags": ["verified"]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { ethers } from 'ethers';
 import { 
   OmniBridgeTokenList, 
@@ -8,28 +9,33 @@ import {
 } from '../types/omnibridge';
 
 export class OmniBridgeService {
-  private client: AxiosInstance;
-  private tokenListUrl: string;
+  private tokenListPath: string;
   private cachedTokenList: OmniBridgeTokenList | null = null;
   private lastCacheTime: number = 0;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
-    this.tokenListUrl = 'https://bridge.mypinata.cloud/ipfs/bafybeif242ld54nzjg2aqxvfse23wpbkqbyqasj3usgslccuajnykonzo4/pulsebridge.tokenlist.json';
-    
-    this.client = axios.create({
-      timeout: 10000
-    });
+    this.tokenListPath = path.join(__dirname, '..', 'data', 'pulsebridge.tokenlist.json');
   }
 
   private async fetchTokenList(): Promise<OmniBridgeTokenList> {
-    try {
-      const response = await this.client.get<OmniBridgeTokenList>(this.tokenListUrl);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch OmniBridge token list:', error);
-      throw new Error('Failed to fetch supported tokens');
+    const candidatePaths = [
+      this.tokenListPath,
+      path.join(process.cwd(), 'src', 'data', 'pulsebridge.tokenlist.json'),
+      path.join(process.cwd(), 'dist', 'data', 'pulsebridge.tokenlist.json')
+    ];
+
+    for (const candidate of candidatePaths) {
+      try {
+        const raw = await fs.readFile(candidate, 'utf-8');
+        return JSON.parse(raw) as OmniBridgeTokenList;
+      } catch (error) {
+        // try next candidate
+      }
     }
+
+    console.error('Failed to load OmniBridge token list from any local path');
+    throw new Error('Failed to load supported tokens');
   }
 
   private async getCachedTokenList(): Promise<OmniBridgeTokenList> {
@@ -70,7 +76,7 @@ export class OmniBridgeService {
         decimals: 18,
         address: '0x0000000000000000000000000000000000000000', // Zero address for native token
         chainId: 1,
-        logoURI: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png', // Using WETH icon
+        logoURI: '/token-logos/eth/0x0000000000000000000000000000000000000000.png', // Local bundled icon
         tags: ['priority', 'verified'],
         network: 'ethereum'
       };
@@ -82,7 +88,7 @@ export class OmniBridgeService {
         decimals: 18,
         address: '0x0000000000000000000000000000000000000000', // Zero address for native token
         chainId: 369,
-        logoURI: 'https://tokens.app.pulsex.com/images/tokens/0xA1077a294dDE1B09bB078844df40758a5D0f9a27.png', // Using WPLS icon
+        logoURI: '/token-logos/pulsex/369/0x0000000000000000000000000000000000000000.png', // Local bundled icon
         tags: ['priority', 'verified'],
         network: 'pulsechain'
       };
