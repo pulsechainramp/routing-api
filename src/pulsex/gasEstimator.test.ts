@@ -19,13 +19,12 @@ const BASE_CONFIG: PulsexConfig = {
   stableTokens: [],
   stableRouting: {
     enabled: true,
-    useStableForStableToStable: true,
     useStableAsConnectorToPLS: true,
     maxStablePivots: 2,
   },
   fees: {
-    v1FeeBps: 25,
-    v2FeeBps: 25,
+    v1FeeBps: 29,
+    v2FeeBps: 29,
   },
   maxConnectorHops: 2,
   cacheTtlMs: {
@@ -36,10 +35,14 @@ const BASE_CONFIG: PulsexConfig = {
   quoteEvaluation: {
     timeoutMs: 1_000,
     concurrency: 2,
+    totalBudgetMs: 7_000,
   },
   splitConfig: {
     enabled: false,
     weights: [],
+    maxRoutes: 2,
+    minImprovementBps: 0,
+    minUsdValue: 0,
   },
   usdStableToken: {
     address: '0x00000000000000000000000000000000000000d1',

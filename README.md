@@ -130,6 +130,14 @@ _Note:_ `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereu
 > Copy `docker-compose.yml.example` to `docker-compose.yml` and set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `DATABASE_URL` before running Compose.
 > Update `src/config/index.ts` before deploying so `AffiliateRouterAddress` (and other contract constants) match your target network.
 
+### PulseX routing env tuning
+- `PULSEX_QUOTE_TOTAL_TIMEOUT_MS` sets the quoter’s total budget (outer safety net); pass `budgetMs` down from the service.
+- `PULSEX_QUOTE_TIMEOUT_MS` (per leg/route) and `PULSEX_MULTICALL_TIMEOUT_MS` should sit in the 1200–2500ms and 1500–3000ms ranges respectively.
+- `PULSEX_QUOTE_MAX_ROUTES` controls search breadth; 24–40 is a good balance (higher = better quality, slower).
+- `PULSEX_QUOTE_CONCURRENCY` (4–8 typical) and `PULSEX_MULTICALL_MAX_BATCH` shape RPC load vs. latency.
+- `PULSEX_EXTRA_CONNECTORS_ENABLED` toggles additional connector tokens; disable if logs show excessive unique pair lookups.
+- Trade-off: raise timeouts/max routes for deeper, higher-quality quotes; lower them for tighter latency/SLA at the cost of occasional quality drop on large trades.
+
 #### Quote signing (dev & prod)
 Quotes are now authenticated end-to-end. You need a dedicated signer key that both the API and the frontend trust:
 

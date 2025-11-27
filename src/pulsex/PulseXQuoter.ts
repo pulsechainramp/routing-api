@@ -30,6 +30,17 @@ const PULSEX_DEBUG_LOGGING_ENABLED =
 const PULSEX_DEBUG_ROUTING_ENABLED =
   process.env.PULSEX_DEBUG_ROUTING === 'true';
 const MAX_STABLE_CONNECTOR_ROUTE_OPTIONS = 4;
+const PREFERRED_CONNECTOR_SYMBOLS = [
+  'WPLS',
+  'USDC',
+  'DAI',
+  'USDT',
+  'PLSX',
+  'WETH',
+  'HEX',
+  'INC',
+];
+const BPS_DENOMINATOR = 10_000n;
 
 interface RouteLeg {
   protocol: PulsexProtocol;
@@ -71,7 +82,9 @@ interface QuoteDebugMetrics {
   routeCandidatesTotal?: number;
   routeCandidatesEvaluated?: number;
   uniqueCpmmPairs?: number;
+  reserveCacheHits: number;
   reserveCacheMisses: number;
+  multicallPairsLoaded: number;
   success?: boolean;
 }
 
@@ -97,6 +110,7 @@ export class PulseXQuoter {
   private readonly splitAmountCache = new Map<string, Map<string, bigint>>();
   private readonly debugLoggingEnabled = PULSEX_DEBUG_LOGGING_ENABLED;
   private readonly stableRoutingDebugEnabled = PULSEX_DEBUG_ROUTING_ENABLED;
+  private readonly preferredConnectorWeights: Map<string, number>;
 
   constructor(
     private readonly provider: Provider,
@@ -140,6 +154,8 @@ export class PulseXQuoter {
       config.stableTokens.map((token) => token.address.toLowerCase()),
     );
 
+    this.preferredConnectorWeights = this.buildPreferredConnectorWeights();
+
     this.wrappedNativeToken = config.connectorTokens.find(
       (token) => token.isNative,
     );
@@ -168,11 +184,14 @@ export class PulseXQuoter {
 
   public async quoteBestExactIn(
     request: ExactInQuoteRequest,
+    options?: { budgetMs?: number },
   ): Promise<PulsexQuoteResult> {
     this.splitAmountCache.clear();
-    const debugContext = this.debugLoggingEnabled
-      ? this.createDebugContext()
-      : undefined;
+    const startTimeMs = Date.now();
+    const debugContext = this.createDebugContext(startTimeMs);
+    const shouldLogMetrics = this.debugLoggingEnabled;
+    const budgetMs =
+      options?.budgetMs ?? this.config.quoteEvaluation.totalBudgetMs;
     let success = false;
     let candidates: RouteCandidate[] = [];
     const normalizedRequest = this.normalizeRequest(request);
@@ -192,36 +211,28 @@ export class PulseXQuoter {
       const quoteHasStableCandidates = allCandidates.some((candidate) =>
         candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE'),
       );
+      const scoredCandidates = this.sortCandidatesByPreScore(allCandidates);
       const maxRoutes = this.config.quoteEvaluation.maxRoutes ?? 0;
-      if (maxRoutes > 0 && allCandidates.length > maxRoutes) {
-        const limited = allCandidates.slice(0, maxRoutes);
+      if (maxRoutes > 0 && scoredCandidates.length > maxRoutes) {
+        let limited = scoredCandidates.slice(0, maxRoutes);
         const limitedIds = new Set(limited.map((candidate) => candidate.id));
-        const missingStable = allCandidates.filter(
-          (candidate) =>
-            this.candidateHasStableLeg(candidate) &&
-            !limitedIds.has(candidate.id),
-        );
-
-        if (missingStable.length > 0) {
-          let replaceIndex = limited.length - 1;
-          for (const stableCandidate of missingStable) {
-            while (
-              replaceIndex >= 0 &&
-              this.candidateHasStableLeg(limited[replaceIndex])
-            ) {
-              replaceIndex -= 1;
-            }
-            if (replaceIndex < 0) {
-              break;
-            }
-            limited[replaceIndex] = stableCandidate;
-            replaceIndex -= 1;
+        if (
+          quoteHasStableCandidates &&
+          !limited.some((candidate) => this.candidateHasStableLeg(candidate))
+        ) {
+          const replacement = scoredCandidates.find(
+            (candidate) =>
+              this.candidateHasStableLeg(candidate) &&
+              !limitedIds.has(candidate.id),
+          );
+          if (replacement) {
+            limited[limited.length - 1] = replacement;
           }
         }
 
         candidates = limited;
       } else {
-        candidates = allCandidates;
+        candidates = scoredCandidates;
       }
 
       if (debugContext) {
@@ -235,15 +246,26 @@ export class PulseXQuoter {
         throw new Error('No candidate PulseX routes found');
       }
 
-      await this.prewarmReserves(candidates);
+      await this.prewarmReserves(candidates, debugContext, budgetMs);
 
       const simulations = await this.evaluateRoutes(
         candidates,
         normalizedRequest.amountIn,
         debugContext,
+        budgetMs,
       );
 
       if (!simulations.length) {
+        const fallback = await this.tryDirectFallback(
+          normalizedRequest,
+          candidates,
+          budgetMs,
+          debugContext,
+        );
+        if (fallback) {
+          success = true;
+          return fallback;
+        }
         throw new Error('No valid PulseX routes after simulation');
       }
 
@@ -279,10 +301,41 @@ export class PulseXQuoter {
       let singleRoute: RouteLegSummary[] | undefined = bestSingle.legs;
       let splitRoutes: SplitRouteMeta[] | undefined;
 
-      if (this.config.splitConfig.enabled) {
+      const splitConfig = this.config.splitConfig;
+      let shouldConsiderSplits = splitConfig.enabled;
+      if (shouldConsiderSplits && splitConfig.minUsdValue > 0) {
+        try {
+          const tokenPriceUsd = await this.priceOracle.getTokenPriceUsd(
+            normalizedRequest.tokenIn.address,
+          );
+          const notionalMicros = this.computeUsdNotionalMicros(
+            normalizedRequest.amountIn,
+            normalizedRequest.tokenIn,
+            tokenPriceUsd,
+          );
+          const thresholdMicros = this.scaleUsdToMicros(
+            splitConfig.minUsdValue,
+            'splitMinUsdValue',
+          );
+          shouldConsiderSplits =
+            notionalMicros.valid &&
+            thresholdMicros.valid &&
+            notionalMicros.value >= thresholdMicros.value;
+        } catch (error) {
+          shouldConsiderSplits = false;
+          if (this.debugLoggingEnabled) {
+            this.logger.debug('Skipping split evaluation due to price lookup failure', {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      }
+
+      if (shouldConsiderSplits) {
         const bestSplit = await this.findBestSplit(
           normalizedRequest.amountIn,
           topRanked,
+          bestSingle,
           debugContext,
         );
         if (bestSplit && bestSplit.totalAmountOut > totalAmountOut) {
@@ -303,7 +356,7 @@ export class PulseXQuoter {
       success = true;
       return result;
     } finally {
-      if (debugContext) {
+      if (shouldLogMetrics) {
         debugContext.success = success;
         this.logQuoteMetrics(debugContext);
       }
@@ -416,23 +469,29 @@ export class PulseXQuoter {
       }
     };
 
-    addPath([tokenIn, tokenOut]);
-
-    for (const connector of connectors) {
-      addPath([tokenIn, connector, tokenOut]);
-    }
-
-    if (this.config.maxConnectorHops >= 2) {
-      for (let i = 0; i < connectors.length; i += 1) {
-        for (let j = 0; j < connectors.length; j += 1) {
-          if (i === j) {
-            continue;
-          }
-          const c1 = connectors[i];
-          const c2 = connectors[j];
-          addPath([tokenIn, c1, c2, tokenOut]);
-        }
+    const maxConnectors = Math.max(0, this.config.maxConnectorHops);
+    const dfs = (currentPath: PulsexToken[], remainingConnectors: number) => {
+      if (remainingConnectors === 0) {
+        addPath([...currentPath, tokenOut]);
+        return;
       }
+      for (const connector of connectors) {
+        if (
+          this.pathContainsToken(currentPath, connector.address) ||
+          this.isSameAddress(connector.address, tokenOut.address)
+        ) {
+          continue;
+        }
+        dfs([...currentPath, connector], remainingConnectors - 1);
+      }
+    };
+
+    for (let connectorsToUse = 0; connectorsToUse <= maxConnectors; connectorsToUse += 1) {
+      if (connectorsToUse === 0) {
+        addPath([tokenIn, tokenOut]);
+        continue;
+      }
+      dfs([tokenIn], connectorsToUse);
     }
 
     return paths;
@@ -455,7 +514,6 @@ export class PulseXQuoter {
 
         if (
           this.config.stableRouting.enabled &&
-          this.config.stableRouting.useStableForStableToStable &&
           this.stableTokenSet.has(tokenA.address.toLowerCase()) &&
           this.stableTokenSet.has(tokenB.address.toLowerCase())
         ) {
@@ -494,11 +552,7 @@ export class PulseXQuoter {
     const inStable = this.isStableToken(tokenIn.address);
     const outStable = this.isStableToken(tokenOut.address);
 
-    if (
-      inStable &&
-      outStable &&
-      this.config.stableRouting.useStableForStableToStable
-    ) {
+    if (inStable && outStable) {
       const stableLeg = this.buildStableLeg(tokenIn, tokenOut);
       if (stableLeg) {
         const legs = [stableLeg];
@@ -691,6 +745,9 @@ export class PulseXQuoter {
     const cacheKey = this.buildReserveCacheKey(protocol, tokenIn, tokenOut);
     const existing = this.reserveCache.get(cacheKey);
     if (existing && existing.expiresAt > Date.now()) {
+      if (metrics) {
+        metrics.reserveCacheHits += 1;
+      }
       return this.mapCachedReserves(existing.value, tokenIn, tokenOut);
     }
 
@@ -698,12 +755,22 @@ export class PulseXQuoter {
       metrics.reserveCacheMisses += 1;
     }
 
-    const multicallLoaded = await this.loadReservesForLegsWithMulticall([
-      { protocol, tokenIn, tokenOut, cacheKey },
-    ]);
+    const multicallLoaded = await this.loadReservesForLegsWithMulticall(
+      [
+        { protocol, tokenIn, tokenOut, cacheKey },
+      ],
+      metrics,
+    );
     if (multicallLoaded && multicallLoaded.has(cacheKey)) {
       const refreshed = this.reserveCache.get(cacheKey);
       return this.mapCachedReserves(refreshed?.value ?? null, tokenIn, tokenOut);
+    }
+    if (!multicallLoaded && this.debugLoggingEnabled) {
+      this.logger.debug('Multicall failed for PulseX reserves; falling back to direct RPC', {
+        protocol,
+        tokenIn: tokenIn.address,
+        tokenOut: tokenOut.address,
+      });
     }
 
     const entry = await this.loadPairReservesFromChain(
@@ -914,6 +981,27 @@ export class PulseXQuoter {
     };
   }
 
+  private buildPreferredConnectorWeights(): Map<string, number> {
+    const weights = new Map<string, number>();
+    const baseWeight = PREFERRED_CONNECTOR_SYMBOLS.length;
+    PREFERRED_CONNECTOR_SYMBOLS.forEach((symbol, index) => {
+      const weight = baseWeight - index;
+      this.config.connectorTokens.forEach((token) => {
+        if (
+          token.symbol &&
+          token.symbol.toLowerCase() === symbol.toLowerCase()
+        ) {
+          weights.set(token.address.toLowerCase(), weight);
+        }
+      });
+    });
+    return weights;
+  }
+
+  private connectorWeight(token: PulsexToken): number {
+    return this.preferredConnectorWeights.get(token.address.toLowerCase()) ?? 0;
+  }
+
   private buildRouteId(legs: RouteLeg[]): string {
     return legs
       .map(
@@ -925,6 +1013,11 @@ export class PulseXQuoter {
 
   private isSameAddress(a: string, b: string): boolean {
     return a.toLowerCase() === b.toLowerCase();
+  }
+
+  private pathContainsToken(path: PulsexToken[], address: string): boolean {
+    const normalized = address.toLowerCase();
+    return path.some((token) => token.address.toLowerCase() === normalized);
   }
 
   private normalizeRequest(req: ExactInQuoteRequest): ExactInQuoteRequest {
@@ -1032,21 +1125,33 @@ export class PulseXQuoter {
     candidates: RouteCandidate[],
     amountIn: bigint,
     metrics?: QuoteDebugMetrics,
+    budgetMs?: number,
   ): Promise<SimulatedRouteResult[]> {
     const results: SimulatedRouteResult[] = [];
     const concurrency = Math.max(
       1,
       this.config.quoteEvaluation.concurrency ?? 1,
     );
-    const timeoutMs = this.config.quoteEvaluation.timeoutMs ?? 4_000;
+    const baseTimeoutMs = this.config.quoteEvaluation.timeoutMs ?? 4_000;
+    const startTime = metrics?.startTimeMs ?? Date.now();
+    const remainingBudget = () =>
+      budgetMs !== undefined ? budgetMs - (Date.now() - startTime) : undefined;
 
     for (let i = 0; i < candidates.length; i += concurrency) {
+      const remaining = remainingBudget();
+      if (remaining !== undefined && remaining <= 0) {
+        break;
+      }
+      const perRouteTimeout =
+        remaining !== undefined
+          ? Math.min(baseTimeoutMs, Math.max(200, Math.floor(remaining / 2)))
+          : baseTimeoutMs;
       const batch = candidates.slice(i, i + concurrency);
       const batchResults = await Promise.all(
         batch.map(async (candidate) => {
           const { value: simulation } = await this.withTimeout(
             this.simulateRoute(candidate, amountIn, metrics),
-            timeoutMs,
+            perRouteTimeout,
             { logOnError: false },
           );
 
@@ -1070,6 +1175,109 @@ export class PulseXQuoter {
     }
 
     return results;
+  }
+
+  private async tryDirectFallback(
+    request: ExactInQuoteRequest,
+    candidates: RouteCandidate[],
+    budgetMs?: number,
+    metrics?: QuoteDebugMetrics,
+  ): Promise<PulsexQuoteResult | null> {
+    const startTime = metrics?.startTimeMs ?? Date.now();
+    const remainingBudget = () =>
+      budgetMs !== undefined ? budgetMs - (Date.now() - startTime) : undefined;
+    const coreConnectorAddresses = new Set(
+      this.config.connectorTokens
+        .filter(
+          (token) =>
+            token.symbol &&
+            ['WPLS', 'USDC', 'PLSX'].includes(token.symbol.toUpperCase()),
+        )
+        .map((token) => token.address.toLowerCase()),
+    );
+
+    const filtered = candidates.filter((candidate) => {
+      if (candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE')) {
+        return false;
+      }
+      if (candidate.path.length === 2) {
+        return true;
+      }
+      if (candidate.path.length === 3) {
+        const connector = candidate.path[1];
+        return coreConnectorAddresses.has(connector.address.toLowerCase());
+      }
+      return false;
+    });
+
+    const perLegTimeout = () => {
+      const remaining = remainingBudget();
+      if (remaining === undefined) {
+        return 800;
+      }
+      return Math.max(200, Math.min(800, remaining));
+    };
+
+    for (const candidate of filtered) {
+      const remaining = remainingBudget();
+      if (remaining !== undefined && remaining <= 0) {
+        break;
+      }
+
+      let cursorAmount = request.amountIn;
+      const legs: RouteLegSummary[] = [];
+      let failed = false;
+
+      for (const leg of candidate.legs) {
+        const { value: reserves } = await this.withTimeout(
+          this.getPairReserves(leg.protocol, leg.tokenIn, leg.tokenOut, metrics),
+          perLegTimeout(),
+          { logOnError: false },
+        );
+        if (!reserves || reserves.reserveIn <= 0n || reserves.reserveOut <= 0n) {
+          failed = true;
+          break;
+        }
+
+        const feeBps =
+          leg.protocol === 'PULSEX_V1'
+            ? this.config.fees.v1FeeBps
+            : this.config.fees.v2FeeBps;
+        const amountOut = getAmountOutCpmm(
+          cursorAmount,
+          reserves.reserveIn,
+          reserves.reserveOut,
+          feeBps,
+        );
+        if (amountOut <= 0n) {
+          failed = true;
+          break;
+        }
+
+        cursorAmount = amountOut;
+        legs.push({
+          protocol: leg.protocol,
+          tokenIn: leg.tokenIn,
+          tokenOut: leg.tokenOut,
+          poolAddress: reserves.pairAddress as Address,
+          userData: '0x',
+        });
+      }
+
+      if (failed || cursorAmount <= 0n || !legs.length) {
+        continue;
+      }
+
+      return {
+        request,
+        totalAmountOut: cursorAmount,
+        routerAddress: this.config.routers.default,
+        singleRoute: legs,
+        ...(await this.buildGasEstimates(legs, undefined)),
+      };
+    }
+
+    return null;
   }
 
   private shouldPreferStableRoutes(
@@ -1110,6 +1318,90 @@ export class PulseXQuoter {
     return legs.filter((leg) => leg.protocol === 'PULSEX_STABLE').length;
   }
 
+  private scaleUsdToMicros(value: number, label: string): { value: bigint; valid: boolean } {
+    if (!Number.isFinite(value) || value <= 0 || value > 1_000_000_000) {
+      if (this.debugLoggingEnabled) {
+        this.logger.debug('Invalid USD value for split evaluation', { label, value });
+      }
+      return { value: 0n, valid: false };
+    }
+    const scaled = BigInt(Math.round(value * 1_000_000));
+    return { value: scaled > 0n ? scaled : 0n, valid: scaled > 0n };
+  }
+
+  private computeUsdNotionalMicros(
+    amountIn: bigint,
+    token: PulsexToken,
+    priceUsd: number,
+  ): { value: bigint; valid: boolean } {
+    const priceScaled = this.scaleUsdToMicros(priceUsd, 'priceUsd');
+    if (!priceScaled.valid) {
+      return { value: 0n, valid: false };
+    }
+    const decimals = Math.max(0, Math.min(18, token.decimals ?? 18));
+    const unit = 10n ** BigInt(decimals);
+    const notionalMicros = (amountIn * priceScaled.value) / unit;
+    return { value: notionalMicros > 0n ? notionalMicros : 0n, valid: true };
+  }
+
+  private preScoreRoute(candidate: RouteCandidate): number {
+    let score = 1_000;
+    const hopPenalty = (candidate.path.length - 2) * 50;
+    score -= hopPenalty;
+
+    for (const leg of candidate.legs) {
+      if (leg.protocol === 'PULSEX_V1') {
+        score -= 25;
+      }
+      if (leg.protocol === 'PULSEX_STABLE') {
+        score += 10;
+      }
+    }
+
+    const connectorBonus = candidate.path
+      .slice(1, -1)
+      .reduce((total, token) => total + this.connectorWeight(token), 0);
+    score += connectorBonus;
+
+    score += this.cachedLiquidityBonus(candidate);
+
+    return score;
+  }
+
+  private cachedLiquidityBonus(candidate: RouteCandidate): number {
+    let bonus = 0;
+    for (const leg of candidate.legs) {
+      if (leg.protocol === 'PULSEX_STABLE') {
+        continue;
+      }
+      const cacheKey = this.buildReserveCacheKey(
+        leg.protocol,
+        leg.tokenIn,
+        leg.tokenOut,
+      );
+      const cached = this.reserveCache.get(cacheKey);
+      if (cached && cached.value && cached.expiresAt > Date.now()) {
+        bonus += 5;
+      }
+    }
+    return bonus;
+  }
+
+  private sortCandidatesByPreScore(candidates: RouteCandidate[]): RouteCandidate[] {
+    return candidates
+      .map((candidate) => ({
+        candidate,
+        score: this.preScoreRoute(candidate),
+      }))
+      .sort((a, b) => {
+        if (a.score !== b.score) {
+          return b.score - a.score;
+        }
+        return a.candidate.id.localeCompare(b.candidate.id);
+      })
+      .map((entry) => entry.candidate);
+  }
+
   private candidateHasStableLeg(candidate: RouteCandidate): boolean {
     return candidate.legs.some((leg) => leg.protocol === 'PULSEX_STABLE');
   }
@@ -1117,72 +1409,84 @@ export class PulseXQuoter {
   private async findBestSplit(
     totalAmountIn: bigint,
     simulations: SimulatedRouteResult[],
+    bestSingle: SimulatedRouteResult,
     metrics?: QuoteDebugMetrics,
   ): Promise<{ totalAmountOut: bigint; routes: SplitRouteMeta[] } | undefined> {
-    if (simulations.length < 2) {
-      return undefined;
-    }
-
-    const first = simulations[0];
-    const second = simulations.find(
-      (candidate) => candidate.candidate.id !== first.candidate.id,
-    );
-
-    if (!first || !second) {
+    if (simulations.length < 2 || !bestSingle || bestSingle.amountOut <= 0n) {
       return undefined;
     }
 
     const weights = this.config.splitConfig.weights ?? [];
+    const maxRoutes = Math.max(2, this.config.splitConfig.maxRoutes ?? 2);
+    const routesToConsider = simulations.slice(0, maxRoutes);
     let bestTotal = 0n;
     let bestRoutes: SplitRouteMeta[] | undefined;
 
-    for (const weight of weights) {
-      if (weight <= 0 || weight >= 10_000) {
-        continue;
-      }
+    for (let i = 0; i < routesToConsider.length; i += 1) {
+      for (let j = i + 1; j < routesToConsider.length; j += 1) {
+        const first = routesToConsider[i];
+        const second = routesToConsider[j];
+        for (const weight of weights) {
+          if (weight <= 0 || weight >= 10_000) {
+            continue;
+          }
 
-      const amountInFirst = (totalAmountIn * BigInt(weight)) / 10_000n;
-      const amountInSecond = totalAmountIn - amountInFirst;
-      if (amountInFirst <= 0n || amountInSecond <= 0n) {
-        continue;
-      }
+          const amountInFirst = (totalAmountIn * BigInt(weight)) / BPS_DENOMINATOR;
+          const amountInSecond = totalAmountIn - amountInFirst;
+          if (amountInFirst <= 0n || amountInSecond <= 0n) {
+            continue;
+          }
 
-      const amountOutFirst = await this.simulateAmountWithCache(
-        first.candidate,
-        amountInFirst,
-        metrics,
-      );
-      const amountOutSecond = await this.simulateAmountWithCache(
-        second.candidate,
-        amountInSecond,
-        metrics,
-      );
+          const amountOutFirst = await this.simulateAmountWithCache(
+            first.candidate,
+            amountInFirst,
+            metrics,
+          );
+          const amountOutSecond = await this.simulateAmountWithCache(
+            second.candidate,
+            amountInSecond,
+            metrics,
+          );
 
-      if (amountOutFirst <= 0n || amountOutSecond <= 0n) {
-        continue;
-      }
+          if (amountOutFirst <= 0n || amountOutSecond <= 0n) {
+            continue;
+          }
 
-      const total = amountOutFirst + amountOutSecond;
-      if (total > bestTotal) {
-        bestTotal = total;
-        bestRoutes = [
-          {
-            shareBps: weight,
-            amountIn: amountInFirst,
-            amountOut: amountOutFirst,
-            legs: first.legs,
-          },
-          {
-            shareBps: 10_000 - weight,
-            amountIn: amountInSecond,
-            amountOut: amountOutSecond,
-            legs: second.legs,
-          },
-        ];
+          const total = amountOutFirst + amountOutSecond;
+          if (total > bestTotal) {
+            bestTotal = total;
+            bestRoutes = [
+              {
+                shareBps: weight,
+                amountIn: amountInFirst,
+                amountOut: amountOutFirst,
+                legs: first.legs,
+              },
+              {
+                shareBps: 10_000 - weight,
+                amountIn: amountInSecond,
+                amountOut: amountOutSecond,
+                legs: second.legs,
+              },
+            ];
+          }
+        }
       }
     }
 
     if (!bestRoutes) {
+      return undefined;
+    }
+
+    const minImprovementBps =
+      BigInt(Math.max(0, this.config.splitConfig.minImprovementBps ?? 0));
+    if (bestTotal <= bestSingle.amountOut) {
+      return undefined;
+    }
+
+    const improvementBps =
+      ((bestTotal - bestSingle.amountOut) * BPS_DENOMINATOR) / bestSingle.amountOut;
+    if (improvementBps < minImprovementBps) {
       return undefined;
     }
 
@@ -1243,10 +1547,17 @@ export class PulseXQuoter {
     return Array.from(unique.values());
   }
 
-  private async prewarmReserves(candidates: RouteCandidate[]): Promise<void> {
+  private async prewarmReserves(
+    candidates: RouteCandidate[],
+    metrics?: QuoteDebugMetrics,
+    budgetMs?: number,
+  ): Promise<void> {
     if (!candidates.length) {
       return;
     }
+    const startTime = metrics?.startTimeMs ?? Date.now();
+    const getRemaining = () =>
+      budgetMs !== undefined ? budgetMs - (Date.now() - startTime) : Infinity;
     const uniqueLegs = this.collectUniqueCpmmLegs(candidates);
     if (!uniqueLegs.length) {
       return;
@@ -1266,7 +1577,19 @@ export class PulseXQuoter {
       return;
     }
 
-    const multicallLoaded = await this.loadReservesForLegsWithMulticall(legsToLoad);
+    if (getRemaining() <= 500) {
+      if (this.debugLoggingEnabled) {
+        this.logger.debug('Stopping PulseX reserve prewarm; budget almost exhausted', {
+          budgetMs,
+        });
+      }
+      return;
+    }
+
+    const multicallLoaded = await this.loadReservesForLegsWithMulticall(
+      legsToLoad,
+      metrics,
+    );
     if (multicallLoaded) {
       const remaining = legsToLoad.filter((leg) => {
         const cacheKey = this.buildReserveCacheKey(
@@ -1280,9 +1603,28 @@ export class PulseXQuoter {
         return;
       }
       legsToLoad = remaining;
+      if (this.debugLoggingEnabled && legsToLoad.length > 0) {
+        this.logger.debug('PulseX multicall left reserves unresolved; falling back to RPC', {
+          remainingLegs: legsToLoad.length,
+        });
+      }
+    } else if (this.debugLoggingEnabled) {
+      this.logger.debug('Multicall prewarm failed; falling back to direct RPC for remaining legs', {
+        legCount: legsToLoad.length,
+      });
     }
 
     if (!legsToLoad.length) {
+      return;
+    }
+
+    if (getRemaining() <= 1_000) {
+      if (this.debugLoggingEnabled) {
+        this.logger.debug('Skipping RPC reserve prewarm; insufficient remaining budget', {
+          budgetMs,
+          remainingMs: getRemaining(),
+        });
+      }
       return;
     }
 
@@ -1292,9 +1634,15 @@ export class PulseXQuoter {
     );
 
     for (let i = 0; i < legsToLoad.length; i += concurrency) {
+      if (getRemaining() <= 200) {
+        break;
+      }
       const batch = legsToLoad.slice(i, i + concurrency);
       await Promise.all(
         batch.map(async (leg) => {
+          if (getRemaining() <= 200) {
+            return;
+          }
           try {
             await this.loadPairReservesFromChain(
               leg.protocol,
@@ -1314,10 +1662,12 @@ export class PulseXQuoter {
     }
   }
 
-  private createDebugContext(): QuoteDebugMetrics {
+  private createDebugContext(startTimeMs: number): QuoteDebugMetrics {
     return {
-      startTimeMs: Date.now(),
+      startTimeMs,
+      reserveCacheHits: 0,
       reserveCacheMisses: 0,
+      multicallPairsLoaded: 0,
     };
   }
 
@@ -1328,6 +1678,7 @@ export class PulseXQuoter {
       tokenOut: PulsexToken;
       cacheKey?: string;
     }>,
+    metrics?: QuoteDebugMetrics,
   ): Promise<Set<string> | null> {
     if (!this.multicallClient || !this.multicallClient.isEnabled()) {
       return null;
@@ -1343,6 +1694,7 @@ export class PulseXQuoter {
 
     const legContexts: LegContext[] = [];
     const loadedKeys = new Set<string>();
+    const seenLegKeys = new Set<string>();
 
     for (const leg of legs) {
       if (leg.protocol === 'PULSEX_STABLE') {
@@ -1353,8 +1705,16 @@ export class PulseXQuoter {
         this.buildReserveCacheKey(leg.protocol, leg.tokenIn, leg.tokenOut);
       const existing = this.reserveCache.get(cacheKey);
       if (existing && existing.expiresAt > Date.now()) {
+        if (metrics) {
+          metrics.reserveCacheHits += 1;
+        }
         continue;
       }
+      const dedupeKey = `${leg.protocol}:${cacheKey}`;
+      if (seenLegKeys.has(dedupeKey)) {
+        continue;
+      }
+      seenLegKeys.add(dedupeKey);
       const factory = this.factoryContracts[leg.protocol];
       if (!factory) {
         this.storeReserveCacheEntry(cacheKey, null);
@@ -1570,6 +1930,10 @@ export class PulseXQuoter {
       }
     }
 
+    if (metrics && loadedKeys.size > 0) {
+      metrics.multicallPairsLoaded += loadedKeys.size;
+    }
+
     return loadedKeys;
   }
 
@@ -1595,7 +1959,9 @@ export class PulseXQuoter {
       routeCandidatesTotal: context.routeCandidatesTotal ?? 0,
       routeCandidatesEvaluated: context.routeCandidatesEvaluated ?? 0,
       uniqueCpmmPairs: context.uniqueCpmmPairs ?? 0,
+      reserveCacheHits: context.reserveCacheHits,
       reserveCacheMisses: context.reserveCacheMisses,
+      multicallPairsLoaded: context.multicallPairsLoaded,
       durationMs: Date.now() - context.startTimeMs,
       success: context.success ?? false,
     });

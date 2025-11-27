@@ -89,13 +89,12 @@ const BASE_CONFIG: PulsexConfig = {
   stableTokens: [TOKENS.usdc, TOKENS.usdt, TOKENS.dai],
   stableRouting: {
     enabled: true,
-    useStableForStableToStable: true,
     useStableAsConnectorToPLS: true,
     maxStablePivots: 3,
   },
   fees: {
-    v1FeeBps: 25,
-    v2FeeBps: 25,
+    v1FeeBps: 29,
+    v2FeeBps: 29,
   },
   maxConnectorHops: 2,
   cacheTtlMs: {
@@ -106,10 +105,14 @@ const BASE_CONFIG: PulsexConfig = {
   quoteEvaluation: {
     timeoutMs: 1_000,
     concurrency: 2,
+    totalBudgetMs: 7_000,
   },
   splitConfig: {
     enabled: true,
     weights: [5_000],
+    maxRoutes: 3,
+    minImprovementBps: 0,
+    minUsdValue: 0,
   },
   usdStableToken: TOKENS.usdc,
   gasConfig: {
@@ -490,6 +493,95 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
     expect(
       result.singleRoute?.some((leg) => leg.protocol === 'PULSEX_STABLE'),
     ).toBe(true);
+  });
+
+  it('evaluates split improvement using bigint-safe math for large amounts', async () => {
+    const config: PulsexConfig = {
+      ...BASE_CONFIG,
+      splitConfig: {
+        enabled: true,
+        weights: [5_000],
+        maxRoutes: 3,
+        minImprovementBps: 5,
+        minUsdValue: 0,
+      },
+    };
+
+    const quoter = new PulseXQuoter({} as Provider, config);
+
+    const routeALeg: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.wpls,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('501'),
+      userData: '0x',
+    };
+    const routeBLeg: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.wpls,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('502'),
+      userData: '0x',
+    };
+
+    const routeACandidate = candidateFromLeg('route-a', routeALeg);
+    const routeBCandidate = candidateFromLeg('route-b', routeBLeg);
+
+    const hugeAmountIn = 2_000_000_000_000_000_000_000_000_000_000n;
+    const bestSingleAmountOut =
+      hugeAmountIn * 2n - (hugeAmountIn * 2n) / 1_000n; // ~10 bps worse than split
+
+    jest
+      .spyOn(quoter, 'generateRouteCandidates')
+      .mockReturnValue([routeACandidate, routeBCandidate]);
+
+    jest
+      .spyOn(quoter as unknown as { evaluateRoutes: jest.Mock }, 'evaluateRoutes')
+      .mockResolvedValue([
+        { candidate: routeACandidate, amountOut: bestSingleAmountOut, legs: [routeALeg] },
+        { candidate: routeBCandidate, amountOut: bestSingleAmountOut - 1n, legs: [routeBLeg] },
+      ]);
+
+    jest
+      .spyOn(
+        quoter as unknown as {
+          simulateAmountWithCache: (
+            candidate: RouteCandidate,
+            amountIn: bigint,
+          ) => Promise<bigint>;
+        },
+        'simulateAmountWithCache',
+      )
+      .mockImplementation(async (_candidate, amountIn) => amountIn * 2n);
+
+    const result = await quoter.quoteBestExactIn(
+      defaultRequest({
+        tokenIn: TOKENS.wpls,
+        tokenOut: TOKENS.plsx,
+        amountIn: hugeAmountIn,
+      }),
+    );
+
+    expect(result.splitRoutes).toBeDefined();
+    expect(result.totalAmountOut).toBeGreaterThan(bestSingleAmountOut);
+  });
+
+  it('returns zero notional for invalid or extreme prices', () => {
+    const quoter = new PulseXQuoter({} as Provider, BASE_CONFIG);
+    const internals = quoter as unknown as Record<string, any>;
+
+    expect(internals.computeUsdNotionalMicros(1_000_000n, TOKENS.usdc, NaN)).toEqual({
+      value: 0n,
+      valid: false,
+    });
+    expect(internals.computeUsdNotionalMicros(1_000_000n, TOKENS.usdc, 0)).toEqual({
+      value: 0n,
+      valid: false,
+    });
+    expect(internals.computeUsdNotionalMicros(1_000_000n, TOKENS.usdc, 2_000_000_001)).toEqual({
+      value: 0n,
+      valid: false,
+    });
   });
 
   it('retains stable route candidates when the maxRoutes limit is reached', async () => {

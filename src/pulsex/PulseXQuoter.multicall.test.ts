@@ -49,15 +49,14 @@ const BASE_CONFIG: PulsexConfig = {
   stableTokens: [TOKENS.usdc],
   stableRouting: {
     enabled: true,
-    useStableForStableToStable: true,
     useStableAsConnectorToPLS: true,
     maxStablePivots: 1,
   },
-  fees: { v1FeeBps: 25, v2FeeBps: 25 },
+  fees: { v1FeeBps: 29, v2FeeBps: 29 },
   maxConnectorHops: 1,
   cacheTtlMs: { reserves: 1_000, stableIndex: 1_000, priceOracle: 1_000 },
-  quoteEvaluation: { timeoutMs: 1_000, concurrency: 2 },
-  splitConfig: { enabled: false, weights: [] },
+  quoteEvaluation: { timeoutMs: 1_000, concurrency: 2, totalBudgetMs: 7_000 },
+  splitConfig: { enabled: false, weights: [], maxRoutes: 2, minImprovementBps: 0, minUsdValue: 0 },
   usdStableToken: TOKENS.usdc,
   gasConfig: { baseGasUnits: 150_000, gasPerLegUnits: 50_000 },
   multicall: {
