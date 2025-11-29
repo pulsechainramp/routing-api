@@ -20,7 +20,6 @@
     "db:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "stress:pulsex": "tsc --project tsconfig.scripts.json && node dist/scripts/stress/pulsexQuote.stress.js",
-    "pulsex:test-router-math": "ts-node scripts/pulsex/compareRouterMath.ts",
     "pulsex:compare-router": "ts-node scripts/pulsex/compareRouterMath.ts"
   },
   "dependencies": {

@@ -131,11 +131,17 @@ _Note:_ `ETH_RPC_*` settings override the shared `RPC_*` values only for Ethereu
 > Update `src/config/index.ts` before deploying so `AffiliateRouterAddress` (and other contract constants) match your target network.
 
 ### PulseX routing env tuning
-- `PULSEX_QUOTE_TOTAL_TIMEOUT_MS` sets the quoter’s total budget (outer safety net); pass `budgetMs` down from the service.
-- `PULSEX_QUOTE_TIMEOUT_MS` (per leg/route) and `PULSEX_MULTICALL_TIMEOUT_MS` should sit in the 1200–2500ms and 1500–3000ms ranges respectively.
-- `PULSEX_QUOTE_MAX_ROUTES` controls search breadth; 24–40 is a good balance (higher = better quality, slower).
-- `PULSEX_QUOTE_CONCURRENCY` (4–8 typical) and `PULSEX_MULTICALL_MAX_BATCH` shape RPC load vs. latency.
+- `PULSEX_QUOTE_TOTAL_TIMEOUT_MS` sets the quoter's total budget (outer safety net); pass `budgetMs` down from the service.
+- `PULSEX_QUOTE_TIMEOUT_MS` (per leg/route) and `PULSEX_MULTICALL_TIMEOUT_MS` should sit in the 1200-2500ms and 1500-3000ms ranges respectively.
+- `PULSEX_QUOTE_MAX_ROUTES` controls search breadth; 24-40 is a good balance (higher = better quality, slower).
+- `PULSEX_QUOTE_CONCURRENCY` (4-8 typical) and `PULSEX_MULTICALL_MAX_BATCH` shape RPC load vs. latency.
+- `PULSEX_V1_FEE_BPS` and `PULSEX_V2_FEE_BPS` set the per-pool fees in basis points (defaults: 29 for ~0.29%); align these with your on-chain PulseX fee settings.
 - `PULSEX_EXTRA_CONNECTORS_ENABLED` toggles additional connector tokens; disable if logs show excessive unique pair lookups.
+- `PULSEX_SPLIT_ROUTES_ENABLED` turns on split-route evaluation; only applies when the thresholds below are met.
+- `PULSEX_SPLIT_MIN_USD` is the minimum USD notional before a trade is considered for splitting.
+- `PULSEX_SPLIT_MAX_ROUTES` caps how many split routes to explore (minimum of 2).
+- `PULSEX_SPLIT_MIN_IMPROVEMENT_BPS` is the minimum improvement (bps) a split must beat the best single route by to be used.
+- `PULSEX_SPLIT_WEIGHTS` lists candidate weights (in bps) for the first leg; the second leg uses the remaining share to total 10,000 (e.g., `3000,4000,5000,6000,7000`).
 - Trade-off: raise timeouts/max routes for deeper, higher-quality quotes; lower them for tighter latency/SLA at the cost of occasional quality drop on large trades.
 
 #### Quote signing (dev & prod)
