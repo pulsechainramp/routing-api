@@ -158,7 +158,7 @@ export default async function quoteRoutes(
               amountInWei: { type: 'string' },
               minAmountOutWei: { type: 'string' },
               slippageBps: { type: 'integer', minimum: 0, maximum: 10000 },
-              recipient: { type: 'string', pattern: ADDRESS },
+              recipient: { type: 'string' },
               routerAddress: { type: 'string', pattern: ADDRESS },
               chainId: { type: 'integer', minimum: 0 },
               referrerAddress: { type: 'string', pattern: ADDRESS },

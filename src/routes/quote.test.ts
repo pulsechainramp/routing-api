@@ -196,7 +196,7 @@ describe('Quote route amount validation', () => {
             amountInWei,
             minAmountOutWei,
             slippageBps: 50,
-            recipient: tokenIn,
+            recipient: tokenOut,
             routerAddress: config.AffiliateRouterAddress,
             chainId: 369,
           },
@@ -244,7 +244,50 @@ describe('Quote route amount validation', () => {
             amountInWei,
             minAmountOutWei,
             slippageBps: 50,
-            recipient: tokenIn,
+            recipient: tokenOut,
+            routerAddress: config.AffiliateRouterAddress,
+            chainId: 369,
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('attests when recipient is the native alias PLS', async () => {
+    const { app } = await buildApp();
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+    const amountInWei = '1000000000000000000';
+    const minAmountOutWei = '900000000000000000';
+    const calldata = buildRouteCalldata(amountInWei, minAmountOutWei, deadline);
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/quote/attest',
+        payload: {
+          quote: {
+            calldata,
+            tokenInAddress: tokenIn,
+            tokenOutAddress: tokenOut,
+            amountIn: amountInWei,
+            minAmountOut: minAmountOutWei,
+            outputAmount: '1000000000000000000',
+            deadline,
+            gasUSDEstimated: 1,
+            gasAmountEstimated: 210000,
+            route: [],
+          },
+          context: {
+            tokenInAddress: tokenIn,
+            tokenOutAddress: tokenOut,
+            amountInWei,
+            minAmountOutWei,
+            slippageBps: 50,
+            recipient: 'PLS',
             routerAddress: config.AffiliateRouterAddress,
             chainId: 369,
           },
@@ -299,4 +342,5 @@ describe('Quote route amount validation', () => {
       await app.close();
     }
   });
+
 });

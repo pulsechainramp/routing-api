@@ -184,6 +184,16 @@ export class QuoteController {
         'Calldata tokenOut mismatch'
       );
 
+      const destination = normalizeAddress(summary.destination);
+      const recipient = normalizeAddress(context.recipient || ZERO_ADDRESS);
+      assertCondition(recipient.length > 0, 'recipient is required');
+      const destinationMatches =
+        addressesMatch(destination, recipient) || isNativeAddress(destination);
+      assertCondition(
+        destinationMatches,
+        'Recipient mismatch between calldata and context'
+      );
+
       const amountInWei = BigInt(summary.amountIn).toString();
       assertCondition(
         amountInWei === context.amountInWei,
@@ -191,8 +201,9 @@ export class QuoteController {
       );
 
       const minAmountOutWei = BigInt(summary.amountOutMin).toString();
+      const contextMinAmountOut = context.minAmountOutWei || minAmountOutWei;
       assertCondition(
-        BigInt(minAmountOutWei) >= BigInt(context.minAmountOutWei),
+        BigInt(minAmountOutWei) >= BigInt(contextMinAmountOut),
         'Calldata minAmountOut is below UI tolerance'
       );
 
