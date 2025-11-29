@@ -4,7 +4,7 @@ import { resolvePulsechainRpcUrls } from './pulsechainRpcUrls';
 const pulsechainRpcUrls = resolvePulsechainRpcUrls();
 
 export default {
-  AffiliateRouterAddress: '0x72f1d19e38FBFCC085239D45fE563e81408afC78',
+  AffiliateRouterAddress: '0x23c8CDc3d6d6F7B579c2d4c20ed345Be193FDfCc',
   ReferralFeeIndexerName: 'referral_fee_indexer',
   ReferralFeeIndexStartBlock: 24366340,
   PulsexV1FactoryAddress: '0x1715a3e4a142d8b698131108995174f37aeba10d',
