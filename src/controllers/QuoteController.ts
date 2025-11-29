@@ -188,9 +188,7 @@ export class QuoteController {
       const recipient = normalizeAddress(context.recipient || ZERO_ADDRESS);
       assertCondition(recipient.length > 0, 'recipient is required');
       const destinationMatches =
-        destination === recipient ||
-        destination === ZERO_ADDRESS ||
-        destination === '0x0';
+        addressesMatch(destination, recipient) || isNativeAddress(destination);
       assertCondition(
         destinationMatches,
         'Recipient mismatch between calldata and context'
@@ -203,10 +201,7 @@ export class QuoteController {
       );
 
       const minAmountOutWei = BigInt(summary.amountOutMin).toString();
-      const contextMinAmountOut =
-        context.minAmountOutWei && `${context.minAmountOutWei}`.trim().length > 0
-          ? context.minAmountOutWei
-          : minAmountOutWei;
+      const contextMinAmountOut = context.minAmountOutWei || minAmountOutWei;
       assertCondition(
         BigInt(minAmountOutWei) >= BigInt(contextMinAmountOut),
         'Calldata minAmountOut is below UI tolerance'
