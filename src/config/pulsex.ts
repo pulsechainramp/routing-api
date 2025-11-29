@@ -39,6 +39,18 @@ const parseBooleanEnv = (envKey: string, fallback: boolean): boolean => {
   return fallback;
 };
 
+const parseNumberListEnv = (envKey: string, fallback: number[]): number[] => {
+  const raw = process.env[envKey];
+  if (!raw) {
+    return fallback;
+  }
+  const parsed = raw
+    .split(',')
+    .map((entry) => Number(entry.trim()))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return parsed.length ? parsed : fallback;
+};
+
 export const PULSECHAIN_CHAIN_ID = 369;
 
 const DEFAULT_PLSX_ADDRESS = '0x95B303987A60C71504D99Aa1b13B4DA07b0790ab' as Address;
@@ -125,10 +137,6 @@ if (!usdStableToken) {
 
 const stableRoutingDefaults = {
   enabled: parseBooleanEnv('PULSEX_STABLE_ROUTING_ENABLED', true),
-  useStableForStableToStable: parseBooleanEnv(
-    'PULSEX_STABLE_ROUTING_USE_STABLE_FOR_STABLE',
-    true,
-  ),
   useStableAsConnectorToPLS: parseBooleanEnv(
     'PULSEX_STABLE_ROUTING_USE_STABLE_CONNECTOR_FOR_PLS',
     true,
@@ -138,7 +146,7 @@ const stableRoutingDefaults = {
 
 export const PULSEX_CONNECTOR_TOKENS = uniqueConnectorTokens.map((token) => token.address);
 export const PULSEX_STABLE_TOKENS = stableTokens.map((token) => token.address);
-export const MAX_CONNECTOR_HOPS = parseNumberEnv('PULSEX_MAX_CONNECTOR_HOPS', 1);
+export const MAX_CONNECTOR_HOPS = parseNumberEnv('PULSEX_MAX_CONNECTOR_HOPS', 2);
 export const MAX_STABLE_COINS = 3;
 export const RESERVES_TTL_MS = parseNumberEnv('PULSEX_RESERVES_CACHE_TTL_MS', 15_000);
 export const STABLE_INDEX_TTL_MS = parseNumberEnv('PULSEX_STABLE_INDEX_TTL_MS', 300_000);
@@ -146,8 +154,20 @@ export const PRICE_CACHE_TTL_MS = parseNumberEnv('PULSEX_PRICE_CACHE_TTL_MS', 15
 export const QUOTE_TIMEOUT_MS = parseNumberEnv('PULSEX_QUOTE_TIMEOUT_MS', 3_000);
 export const QUOTE_CONCURRENCY = parseNumberEnv('PULSEX_QUOTE_CONCURRENCY', 6);
 export const QUOTE_MAX_ROUTES = parseNumberEnv('PULSEX_QUOTE_MAX_ROUTES', 40);
+export const QUOTE_TOTAL_TIMEOUT_MS = parseNumberEnv(
+  'PULSEX_QUOTE_TOTAL_TIMEOUT_MS',
+  7_000,
+);
 export const ENABLE_SPLIT_ROUTES = parseBooleanEnv('PULSEX_SPLIT_ROUTES_ENABLED', false);
-export const SPLIT_WEIGHTS = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000];
+export const SPLIT_WEIGHTS = parseNumberListEnv(
+  'PULSEX_SPLIT_WEIGHTS',
+  [3000, 4000, 5000, 6000, 7000],
+);
+export const SPLIT_MAX_ROUTES = parseNumberEnv('PULSEX_SPLIT_MAX_ROUTES', 3);
+export const SPLIT_MIN_IMPROVEMENT_BPS = parseNumberEnv('PULSEX_SPLIT_MIN_IMPROVEMENT_BPS', 10);
+export const SPLIT_MIN_USD = parseNumberEnv('PULSEX_SPLIT_MIN_USD', 10_000);
+export const V1_FEE_BPS = parseNumberEnv('PULSEX_V1_FEE_BPS', 29);
+export const V2_FEE_BPS = parseNumberEnv('PULSEX_V2_FEE_BPS', 29);
 export const GAS_BASE_UNITS = 150_000;
 export const GAS_UNITS_PER_LEG = 50_000;
 
@@ -168,7 +188,6 @@ export interface PulsexConfig {
   stableTokens: PulsexToken[];
   stableRouting: {
     enabled: boolean;
-    useStableForStableToStable: boolean;
     useStableAsConnectorToPLS: boolean;
     maxStablePivots: number;
   };
@@ -186,10 +205,14 @@ export interface PulsexConfig {
     timeoutMs: number;
     concurrency: number;
     maxRoutes?: number;
+    totalBudgetMs: number;
   };
   splitConfig: {
     enabled: boolean;
     weights: number[];
+    maxRoutes: number;
+    minImprovementBps: number;
+    minUsdValue: number;
   };
   usdStableToken: PulsexToken;
   gasConfig: {
@@ -221,13 +244,12 @@ export const pulsexConfig: PulsexConfig = {
   stableTokens,
   stableRouting: {
     enabled: stableRoutingDefaults.enabled,
-    useStableForStableToStable: stableRoutingDefaults.useStableForStableToStable,
     useStableAsConnectorToPLS: stableRoutingDefaults.useStableAsConnectorToPLS,
     maxStablePivots: stableRoutingDefaults.maxStablePivots,
   },
   fees: {
-    v1FeeBps: 25,
-    v2FeeBps: 25,
+    v1FeeBps: V1_FEE_BPS,
+    v2FeeBps: V2_FEE_BPS,
   },
   maxConnectorHops: MAX_CONNECTOR_HOPS,
   cacheTtlMs: {
@@ -239,10 +261,14 @@ export const pulsexConfig: PulsexConfig = {
     timeoutMs: QUOTE_TIMEOUT_MS,
     concurrency: QUOTE_CONCURRENCY,
     maxRoutes: QUOTE_MAX_ROUTES,
+    totalBudgetMs: QUOTE_TOTAL_TIMEOUT_MS,
   },
   splitConfig: {
     enabled: ENABLE_SPLIT_ROUTES,
     weights: SPLIT_WEIGHTS,
+    maxRoutes: Math.max(2, SPLIT_MAX_ROUTES),
+    minImprovementBps: Math.max(0, SPLIT_MIN_IMPROVEMENT_BPS),
+    minUsdValue: Math.max(0, SPLIT_MIN_USD),
   },
   usdStableToken: usdStableToken,
   gasConfig: {

@@ -19,7 +19,8 @@
     "db:reset": "prisma migrate reset",
     "db:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
-    "stress:pulsex": "tsc --project tsconfig.scripts.json && node dist/scripts/stress/pulsexQuote.stress.js"
+    "stress:pulsex": "tsc --project tsconfig.scripts.json && node dist/scripts/stress/pulsexQuote.stress.js",
+    "pulsex:compare-router": "ts-node scripts/pulsex/compareRouterMath.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.0.1",

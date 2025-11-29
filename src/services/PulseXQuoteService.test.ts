@@ -76,6 +76,7 @@ describe('PulseXQuoteService', () => {
           address: pulsexConfig.connectorTokens.find((token) => token.isNative)?.address,
         }),
       }),
+      expect.objectContaining({ budgetMs: expect.any(Number) }),
     );
   });
 

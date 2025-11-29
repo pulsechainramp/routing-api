@@ -11,6 +11,7 @@
   "include": [
     "scripts/stress/**/*",
     "scripts/smoke/**/*",
-    "scripts/types/**/*"
+    "scripts/types/**/*",
+    "scripts/pulsex/**/*"
   ]
 }

@@ -70,10 +70,11 @@ export class PulseXQuoteService {
     try {
       const slippageBps = this.normalizeSlippageBps(params.allowedSlippage);
       const request = await this.buildQuoteRequest(params, slippageBps);
-      const totalTimeoutMs = Number(
-        process.env.PULSEX_QUOTE_TOTAL_TIMEOUT_MS ?? 6_000,
-      );
-      const quotePromise = this.quoter.quoteBestExactIn(request);
+      const totalTimeoutMs = pulsexConfig.quoteEvaluation.totalBudgetMs;
+      const internalBudgetMs = Math.max(0, totalTimeoutMs - 500);
+      const quotePromise = this.quoter.quoteBestExactIn(request, {
+        budgetMs: internalBudgetMs,
+      });
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(
           () => reject(new Error(PULSEX_QUOTE_TIMEOUT_ERROR)),
@@ -93,9 +94,7 @@ export class PulseXQuoteService {
       ) {
         globalTimeoutHit = true;
         this.logger.warn('PulseX quote timed out', {
-          timeoutMs: Number(
-            process.env.PULSEX_QUOTE_TOTAL_TIMEOUT_MS ?? 6_000,
-          ),
+          timeoutMs: pulsexConfig.quoteEvaluation.totalBudgetMs,
         });
       } else {
         this.logger.error('Failed to build PulseX quote', { error });

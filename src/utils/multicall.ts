@@ -53,10 +53,12 @@ export class MulticallClient {
     for (let i = 0; i < calls.length; i += batchSize) {
       const chunk = calls.slice(i, i + batchSize);
 
+      const startedAt = Date.now();
       const { value, timedOut } = await this.withTimeout(
         this.contract.multicall(chunk) as Promise<MulticallResult[]>,
         this.config.timeoutMs,
       );
+      const durationMs = Date.now() - startedAt;
 
       if (timedOut) {
         throw new Error('Multicall chunk timed out');
@@ -65,6 +67,11 @@ export class MulticallClient {
       if (!value || !Array.isArray(value)) {
         throw new Error('Multicall returned an empty result set');
       }
+
+      this.logger.debug('Multicall chunk executed', {
+        batchSize: chunk.length,
+        durationMs,
+      });
 
       for (const entry of value) {
         results.push({
