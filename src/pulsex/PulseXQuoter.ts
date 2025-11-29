@@ -1218,6 +1218,8 @@ export class PulseXQuoter {
       return Math.max(200, Math.min(800, remaining));
     };
 
+    let best: { amountOut: bigint; legs: RouteLegSummary[] } | null = null;
+
     for (const candidate of filtered) {
       const remaining = remainingBudget();
       if (remaining !== undefined && remaining <= 0) {
@@ -1268,16 +1270,22 @@ export class PulseXQuoter {
         continue;
       }
 
-      return {
-        request,
-        totalAmountOut: cursorAmount,
-        routerAddress: this.config.routers.default,
-        singleRoute: legs,
-        ...(await this.buildGasEstimates(legs, undefined)),
-      };
+      if (!best || cursorAmount > best.amountOut) {
+        best = { amountOut: cursorAmount, legs };
+      }
     }
 
-    return null;
+    if (!best) {
+      return null;
+    }
+
+    return {
+      request,
+      totalAmountOut: best.amountOut,
+      routerAddress: this.config.routers.default,
+      singleRoute: best.legs,
+      ...(await this.buildGasEstimates(best.legs, undefined)),
+    };
   }
 
   private shouldPreferStableRoutes(

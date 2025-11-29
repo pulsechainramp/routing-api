@@ -90,7 +90,17 @@ const pickRandomPairs = (tokens: PulsexToken[], count: number): Array<{ tokenIn:
     if (!a || !b || a.address.toLowerCase() === b.address.toLowerCase()) {
       continue;
     }
-    if (picks.some((entry) => entry.tokenIn.address === a.address && entry.tokenOut.address === b.address)) {
+    const exists = picks.some((entry) => {
+      const inAddr = entry.tokenIn.address.toLowerCase();
+      const outAddr = entry.tokenOut.address.toLowerCase();
+      const aLower = a.address.toLowerCase();
+      const bLower = b.address.toLowerCase();
+      return (
+        (inAddr === aLower && outAddr === bLower) ||
+        (inAddr === bLower && outAddr === aLower)
+      );
+    });
+    if (exists) {
       continue;
     }
     picks.push({ tokenIn: a, tokenOut: b });
@@ -110,6 +120,9 @@ const normalizeReserves = (
   const token1Lower = token1.toLowerCase();
   const inLower = tokenIn.address.toLowerCase();
   const outLower = tokenOut.address.toLowerCase();
+  if (inLower === outLower) {
+    return null;
+  }
   if (
     (inLower !== token0Lower && inLower !== token1Lower) ||
     (outLower !== token0Lower && outLower !== token1Lower)

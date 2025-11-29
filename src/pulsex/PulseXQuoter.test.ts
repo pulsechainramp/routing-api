@@ -1,7 +1,14 @@
 import { solidityPacked, type Provider } from 'ethers';
 import { PulseXQuoter, type RouteCandidate } from './PulseXQuoter';
+import { getAmountOutCpmm } from './cpmmMath';
 import type { PulsexConfig } from '../config/pulsex';
-import type { Address, ExactInQuoteRequest, PulsexToken, RouteLegSummary } from '../types/pulsex';
+import type {
+  Address,
+  ExactInQuoteRequest,
+  PulsexProtocol,
+  PulsexToken,
+  RouteLegSummary,
+} from '../types/pulsex';
 
 jest.mock('ethers', () => {
   const actual = jest.requireActual('ethers');
@@ -582,6 +589,109 @@ describe('PulseXQuoter.quoteBestExactIn', () => {
       value: 0n,
       valid: false,
     });
+  });
+
+  it('keeps the best direct route when falling back after failed simulations', async () => {
+    const quoter = new PulseXQuoter(
+      {} as Provider,
+      {
+        ...BASE_CONFIG,
+        stableRouting: { ...BASE_CONFIG.stableRouting, enabled: false },
+        splitConfig: { ...BASE_CONFIG.splitConfig, enabled: false },
+      },
+    );
+    jest.spyOn(quoter as any, 'prewarmReserves').mockResolvedValue(undefined);
+
+    const v2Leg: RouteLegSummary = {
+      protocol: 'PULSEX_V2',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('300'),
+      userData: '0x',
+    };
+    const v1Leg: RouteLegSummary = {
+      protocol: 'PULSEX_V1',
+      tokenIn: TOKENS.usdc,
+      tokenOut: TOKENS.plsx,
+      poolAddress: toAddress('301'),
+      userData: '0x',
+    };
+
+    const v2Candidate = candidateFromLeg('v2-low', v2Leg);
+    const v1Candidate = candidateFromLeg('v1-high', v1Leg);
+
+    jest
+      .spyOn(quoter, 'generateRouteCandidates')
+      .mockReturnValue([v2Candidate, v1Candidate]);
+
+    jest
+      .spyOn(quoter as unknown as { evaluateRoutes: jest.Mock }, 'evaluateRoutes')
+      .mockResolvedValue([]);
+
+    const reserveLookup: Record<
+      'PULSEX_V1' | 'PULSEX_V2',
+      { reserveIn: bigint; reserveOut: bigint; pairAddress: Address }
+    > = {
+      PULSEX_V2: {
+        reserveIn: 1_000_000n,
+        reserveOut: 2_000_000n,
+        pairAddress: v2Leg.poolAddress,
+      },
+      PULSEX_V1: {
+        reserveIn: 5_000_000n,
+        reserveOut: 20_000_000n,
+        pairAddress: v1Leg.poolAddress,
+      },
+    };
+
+    jest
+      .spyOn(quoter as unknown as { getPairReserves: jest.Mock }, 'getPairReserves')
+      .mockImplementation(async (protocol: PulsexProtocol) => {
+        const entry = reserveLookup[protocol as 'PULSEX_V1' | 'PULSEX_V2'];
+        if (!entry) {
+          return null;
+        }
+        return {
+          pairAddress: entry.pairAddress,
+          token0: v2Leg.tokenIn.address,
+          token1: v2Leg.tokenOut.address,
+          reserve0: entry.reserveIn,
+          reserve1: entry.reserveOut,
+          reserveIn: entry.reserveIn,
+          reserveOut: entry.reserveOut,
+        };
+      });
+
+    const amountOutV2 = getAmountOutCpmm(
+      defaultRequest().amountIn,
+      reserveLookup.PULSEX_V2.reserveIn,
+      reserveLookup.PULSEX_V2.reserveOut,
+      BASE_CONFIG.fees.v2FeeBps,
+    );
+    const amountOutV1 = getAmountOutCpmm(
+      defaultRequest().amountIn,
+      reserveLookup.PULSEX_V1.reserveIn,
+      reserveLookup.PULSEX_V1.reserveOut,
+      BASE_CONFIG.fees.v1FeeBps,
+    );
+
+    const result = await quoter.quoteBestExactIn(
+      defaultRequest({
+        tokenOut: TOKENS.plsx,
+      }),
+    );
+
+    expect(amountOutV1).toBeGreaterThan(amountOutV2);
+    expect(result.totalAmountOut).toBe(amountOutV1);
+    expect(result.singleRoute).toEqual([
+      {
+        protocol: 'PULSEX_V1',
+        tokenIn: TOKENS.usdc,
+        tokenOut: TOKENS.plsx,
+        poolAddress: reserveLookup.PULSEX_V1.pairAddress,
+        userData: '0x',
+      },
+    ]);
   });
 
   it('retains stable route candidates when the maxRoutes limit is reached', async () => {
