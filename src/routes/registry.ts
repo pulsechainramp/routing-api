@@ -23,6 +23,7 @@ import { PulseXQuoteService } from '../services/PulseXQuoteService';
 import onrampsRoutes from './onramps';
 import authRoutes from './auth';
 import tokenPriceRoutes from './tokenPrice';
+import contactRoutes from './contact';
 
 export interface RouteDependencies {
   prisma: PrismaClient;
@@ -58,6 +59,7 @@ export class RouteRegistry {
     await this.registerReferralFeeRoutes();
     await this.registerOnrampsRoutes();
     await this.registerTokenPriceRoutes();
+    await this.registerContactRoutes();
   }
 
   private async registerAuthRoutes(): Promise<void> {
@@ -143,6 +145,12 @@ export class RouteRegistry {
     await this.fastify.register(tokenPriceRoutes, {
       prefix: '/token',
       pulseXQuoteService: this.dependencies.pulseXQuoteService,
+    });
+  }
+
+  private async registerContactRoutes(): Promise<void> {
+    await this.fastify.register(contactRoutes, {
+      prefix: '/api',
     });
   }
 } 
