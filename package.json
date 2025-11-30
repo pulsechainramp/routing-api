@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/geoip-lite": "1.4.4",
+    "@types/nodemailer": "6.4.15",
     "@types/jest": "29.5.14",
     "@types/node": "20.19.7",
     "autocannon": "^7.14.0",

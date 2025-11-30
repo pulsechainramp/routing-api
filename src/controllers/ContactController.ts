@@ -52,7 +52,9 @@ if (transporter) {
   transporter
     .verify()
     .then(() => logger.info('Email transporter ready'))
-    .catch((error) => logger.error('Email transporter verification failed', { error }));
+    .catch((error: unknown) =>
+      logger.error('Email transporter verification failed', { error })
+    );
 } else {
   logger.warn('Email transporter not configured. Missing SMTP environment variables.');
 }
