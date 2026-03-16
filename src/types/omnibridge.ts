@@ -42,6 +42,7 @@ export interface OmniBridgeEstimateParams {
   tokenAddress: string;
   networkId: number;
   amount?: string;
+  targetChainId?: number;
 }
 
 export interface OmniBridgeEstimateResponse {

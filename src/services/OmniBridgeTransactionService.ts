@@ -13,6 +13,15 @@ import {
 
 const BRIDGE_CACHE_MISS_ERROR = 'Transaction not found in bridge cache';
 const SENDER_MISMATCH_ERROR = 'Transaction sender does not match authenticated wallet';
+type BridgeStatusDetail = 'bridge_in_progress' | 'claim_required' | 'completed' | 'failed';
+
+interface StatusAwareTransaction {
+  status: string;
+  sourceChainId: number;
+  targetChainId: number;
+  messageId: string;
+  userAddress: string;
+}
 
 export class OmniBridgeTransactionService {
   private prisma: PrismaClient;
@@ -23,6 +32,8 @@ export class OmniBridgeTransactionService {
   private failedTransactionCache: Map<string, number>;
   private inflightTransactions: Map<string, Promise<any>>;
   private failureCacheTtlMs: number;
+  private pulsechainTargetedLookupDisabledUntilMs: number;
+  private pulsechainTargetedLookupFailureCount: number;
 
   constructor(prisma: PrismaClient, blockchainService: BlockchainService) {
     if (!blockchainService) {
@@ -40,6 +51,8 @@ export class OmniBridgeTransactionService {
     this.failureCacheTtlMs = Number(process.env.OMNI_MISS_TTL_MS ?? 10 * 60 * 1000);
     this.failedTransactionCache = new Map();
     this.inflightTransactions = new Map();
+    this.pulsechainTargetedLookupDisabledUntilMs = 0;
+    this.pulsechainTargetedLookupFailureCount = 0;
   }
 
   // Create a new bridge transaction from source chain data
@@ -182,10 +195,12 @@ export class OmniBridgeTransactionService {
       });
       
       // Add human-readable amounts for display
-      return transactions.map(transaction => ({
+      const withAmounts = transactions.map(transaction => ({
         ...transaction,
         humanReadableAmount: this.formatWeiToHumanReadable(transaction.amount, transaction.tokenDecimals)
       }));
+
+      return await this.enrichTransactionsWithStatusMeta(withAmounts as any[]);
     } catch (error) {
       console.error('Failed to get user transactions:', error);
       throw new Error('Failed to get user transactions');
@@ -294,6 +309,62 @@ export class OmniBridgeTransactionService {
     } catch (error) {
       console.error('Failed to fetch PulseChain requests:', error);
       throw new Error('Failed to fetch PulseChain requests');
+    }
+  }
+
+  // Fetch specific PulseChain requests by message IDs (PLS to ETH)
+  async fetchPulsechainRequestsByMessageIds(
+    userAddress: string,
+    messageIds: string[],
+    first: number = 1000,
+    skip: number = 0
+  ): Promise<OmniBridgeRequest[]> {
+    try {
+      const query = `
+        query getRequestsByMessageIds($user: String!, $first: Int!, $skip: Int!, $messageIds: [Bytes!]) {
+          requests: userRequests(
+            where: { user: $user, messageId_in: $messageIds }
+            orderBy: txHash
+            orderDirection: desc
+            first: $first
+            skip: $skip
+          ) {
+            user: recipient
+            txHash
+            messageId
+            timestamp
+            amount
+            token
+            decimals
+            symbol
+            encodedData
+            message {
+              txHash
+              messageId: msgId
+              messageData: msgData
+              signatures
+            }
+          }
+        }
+      `;
+
+      const response = await this.client.post<OmniBridgeGraphQLResponse<OmniBridgeRequestsResponse>>(
+        this.pulsechainGraphUrl,
+        {
+          query,
+          variables: {
+            user: userAddress,
+            first,
+            skip,
+            messageIds,
+          }
+        }
+      );
+
+      return response.data.data.requests;
+    } catch (error) {
+      console.error('Failed to fetch PulseChain requests by message IDs:', error);
+      throw new Error('Failed to fetch PulseChain requests by message IDs');
     }
   }
 
@@ -688,10 +759,288 @@ export class OmniBridgeTransactionService {
         }
       }
 
-      return transaction;
+      const [enrichedTransaction] = await this.enrichTransactionsWithStatusMeta([transaction as any]);
+      return enrichedTransaction ?? transaction;
     } catch (error) {
       console.error('Failed to get transaction status:', error);
       throw new Error('Failed to get transaction status');
     }
   }
-} 
+
+  private hasRelaySignatures(request: OmniBridgeRequest): boolean {
+    const signatures = request.message?.signatures;
+    if (typeof signatures !== 'string') {
+      return false;
+    }
+
+    const normalized = signatures.trim().toLowerCase();
+    return normalized.length > 2 && normalized !== '0x';
+  }
+
+  private getPositiveEnvInt(name: string, fallback: number): number {
+    const raw = process.env[name];
+    if (!raw) {
+      return fallback;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return fallback;
+    }
+
+    return Math.floor(parsed);
+  }
+
+  private getNonNegativeEnvInt(name: string, fallback: number): number {
+    const raw = process.env[name];
+    if (!raw) {
+      return fallback;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return fallback;
+    }
+
+    return Math.floor(parsed);
+  }
+
+  private getTargetedLookupRetryDelayMs(failureCount: number): number {
+    const baseDelayMs = this.getPositiveEnvInt(
+      'OMNIBRIDGE_CLAIMABILITY_TARGETED_RETRY_BASE_MS',
+      30_000
+    );
+    const maxDelayMs = this.getPositiveEnvInt(
+      'OMNIBRIDGE_CLAIMABILITY_TARGETED_RETRY_MAX_MS',
+      900_000
+    );
+
+    const exponent = Math.max(failureCount - 1, 0);
+    const scaledDelay = baseDelayMs * 2 ** exponent;
+    return Math.min(scaledDelay, maxDelayMs);
+  }
+
+  private isTargetedLookupDisabled(nowMs: number = Date.now()): boolean {
+    return this.pulsechainTargetedLookupDisabledUntilMs > nowMs;
+  }
+
+  private markTargetedLookupSuccess(): void {
+    this.pulsechainTargetedLookupFailureCount = 0;
+    this.pulsechainTargetedLookupDisabledUntilMs = 0;
+  }
+
+  private markTargetedLookupFailure(error: unknown): void {
+    this.pulsechainTargetedLookupFailureCount += 1;
+    const retryDelayMs = this.getTargetedLookupRetryDelayMs(
+      this.pulsechainTargetedLookupFailureCount
+    );
+    this.pulsechainTargetedLookupDisabledUntilMs = Date.now() + retryDelayMs;
+    console.error(
+      `Targeted claimability lookup failed; disabling targeted lookup for ${retryDelayMs}ms:`,
+      error
+    );
+  }
+
+  private chunkArray<T>(values: T[], chunkSize: number): T[][] {
+    if (values.length === 0) {
+      return [];
+    }
+
+    const chunks: T[][] = [];
+    for (let i = 0; i < values.length; i += chunkSize) {
+      chunks.push(values.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }
+
+  private async fetchPulsechainRequestsByMessageIdsChunked(
+    userAddress: string,
+    messageIds: string[]
+  ): Promise<OmniBridgeRequest[]> {
+    const chunkSize = this.getPositiveEnvInt(
+      'OMNIBRIDGE_CLAIMABILITY_MESSAGE_CHUNK_SIZE',
+      100
+    );
+
+    const uniqueIds = Array.from(new Set(messageIds.map((id) => id.toLowerCase())));
+    const chunks = this.chunkArray(uniqueIds, chunkSize);
+
+    const requests: OmniBridgeRequest[] = [];
+    for (const chunk of chunks) {
+      const first = Math.max(chunk.length, 1);
+      const chunkRequests = await this.fetchPulsechainRequestsByMessageIds(
+        userAddress,
+        chunk,
+        first,
+        0
+      );
+      requests.push(...chunkRequests);
+    }
+
+    return requests;
+  }
+
+  private async scanPulsechainRequestsForMessageIds(
+    userAddress: string,
+    requestedIds: Set<string>
+  ): Promise<OmniBridgeRequest[]> {
+    const pageSize = this.getPositiveEnvInt(
+      'OMNIBRIDGE_CLAIMABILITY_PAGE_SIZE',
+      1000
+    );
+    const maxPages = this.getNonNegativeEnvInt(
+      'OMNIBRIDGE_CLAIMABILITY_MAX_PAGES',
+      0
+    );
+
+    const remaining = new Set(requestedIds);
+    const requests: OmniBridgeRequest[] = [];
+
+    let page = 0;
+    while (remaining.size > 0 && (maxPages === 0 || page < maxPages)) {
+      const skip = page * pageSize;
+      const batch = await this.fetchPulsechainRequests(userAddress, pageSize, skip);
+
+      if (!batch.length) {
+        break;
+      }
+
+      for (const request of batch) {
+        const messageId = request.messageId.toLowerCase();
+        if (!remaining.has(messageId)) {
+          continue;
+        }
+
+        requests.push(request);
+        remaining.delete(messageId);
+
+        if (remaining.size === 0) {
+          break;
+        }
+      }
+
+      if (batch.length < pageSize) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    if (remaining.size > 0 && maxPages > 0) {
+      console.warn(
+        `Claimability fallback scan reached page cap (${maxPages}) with ${remaining.size} message IDs unresolved`
+      );
+    }
+
+    return requests;
+  }
+
+  private async getClaimableMessageIdSet(userAddress: string, messageIds: string[]): Promise<Set<string>> {
+    if (!userAddress || messageIds.length === 0) {
+      return new Set();
+    }
+
+    const requestedIds = new Set(messageIds.map((id) => id.toLowerCase()));
+
+    try {
+      let requests: OmniBridgeRequest[] = [];
+
+      if (!this.isTargetedLookupDisabled()) {
+        try {
+          // Preferred path: query only specific message IDs to avoid pagination blind spots.
+          requests = await this.fetchPulsechainRequestsByMessageIdsChunked(
+            userAddress,
+            Array.from(requestedIds)
+          );
+          this.markTargetedLookupSuccess();
+        } catch (targetedError) {
+          this.markTargetedLookupFailure(targetedError);
+          requests = await this.scanPulsechainRequestsForMessageIds(userAddress, requestedIds);
+        }
+      } else {
+        requests = await this.scanPulsechainRequestsForMessageIds(userAddress, requestedIds);
+      }
+
+      const claimable = requests
+        .filter((request) => requestedIds.has(request.messageId.toLowerCase()))
+        .filter((request) => this.hasRelaySignatures(request))
+        .map((request) => request.messageId.toLowerCase());
+
+      return new Set(claimable);
+    } catch (error) {
+      console.error('Failed to fetch PulseChain claimability status:', error);
+      return new Set();
+    }
+  }
+
+  private decorateTransactionStatus<T extends StatusAwareTransaction>(
+    transaction: T,
+    claimableMessageIds: Set<string>
+  ): T & { statusDetail: BridgeStatusDetail; isClaimable: boolean } {
+    const isPending = transaction.status === 'pending';
+    const isPulseToEth =
+      transaction.sourceChainId === 369 && transaction.targetChainId === 1;
+    const isClaimable =
+      isPending &&
+      isPulseToEth &&
+      claimableMessageIds.has(transaction.messageId.toLowerCase());
+
+    let statusDetail: BridgeStatusDetail = 'bridge_in_progress';
+    if (transaction.status === 'executed') {
+      statusDetail = 'completed';
+    } else if (transaction.status === 'failed') {
+      statusDetail = 'failed';
+    } else if (isClaimable) {
+      statusDetail = 'claim_required';
+    }
+
+    return {
+      ...transaction,
+      statusDetail,
+      isClaimable,
+    };
+  }
+
+  private async enrichTransactionsWithStatusMeta<T extends StatusAwareTransaction>(
+    transactions: T[]
+  ): Promise<Array<T & { statusDetail: BridgeStatusDetail; isClaimable: boolean }>> {
+    if (!transactions.length) {
+      return [];
+    }
+
+    const pendingPlsToEthByUser = new Map<string, string[]>();
+
+    transactions.forEach((transaction) => {
+      const isPendingPlsToEth =
+        transaction.status === 'pending' &&
+        transaction.sourceChainId === 369 &&
+        transaction.targetChainId === 1;
+
+      if (!isPendingPlsToEth || !transaction.userAddress) {
+        return;
+      }
+
+      const user = transaction.userAddress.toLowerCase();
+      const existing = pendingPlsToEthByUser.get(user) ?? [];
+      existing.push(transaction.messageId);
+      pendingPlsToEthByUser.set(user, existing);
+    });
+
+    const claimableMessageIds = new Set<string>();
+
+    const claimabilityLookups = Array.from(pendingPlsToEthByUser.entries()).map(
+      async ([userAddress, messageIds]) => {
+        const claimableForUser = await this.getClaimableMessageIdSet(userAddress, messageIds);
+        claimableForUser.forEach((id) => claimableMessageIds.add(id));
+      }
+    );
+
+    if (claimabilityLookups.length > 0) {
+      await Promise.all(claimabilityLookups);
+    }
+
+    return transactions.map((transaction) =>
+      this.decorateTransactionStatus(transaction, claimableMessageIds)
+    );
+  }
+}

@@ -14,6 +14,7 @@ interface EstimateRequest {
     tokenAddress: string;
     networkId: number;
     amount?: string;
+    targetChainId?: number;
   };
 }
 
@@ -88,6 +89,10 @@ export async function rateRoutes(fastify: FastifyInstance, options: RatePluginOp
           },
           amount: { 
             type: 'string',
+          },
+          targetChainId: {
+            type: 'number',
+            enum: [1, 369]
           }
         },
         additionalProperties: false
@@ -95,12 +100,13 @@ export async function rateRoutes(fastify: FastifyInstance, options: RatePluginOp
     }
   }, async (request: FastifyRequest<EstimateRequest>, reply: FastifyReply) => {
     try {
-      const { tokenAddress, networkId, amount = '0' } = request.query;
+      const { tokenAddress, networkId, amount = '0', targetChainId } = request.query;
 
       const estimate = await omniBridgeService.getEstimatedAmount({
         tokenAddress,
         networkId,
-        amount
+        amount,
+        targetChainId
       });
 
       return reply.send({
